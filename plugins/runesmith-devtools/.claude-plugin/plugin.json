@@ -16,8 +16,5 @@
     "devtools",
     "plugin-development",
     "workspace-audit"
-  ],
-  "dependencies": [
-    "runesmith-core"
   ]
 }

@@ -17,8 +17,5 @@
     "folder-structure",
     "inbox",
     "plans"
-  ],
-  "dependencies": [
-    "runesmith-core"
   ]
 }

@@ -17,8 +17,5 @@
     "jira",
     "tickets",
     "sprint"
-  ],
-  "dependencies": [
-    "runesmith-core"
   ]
 }

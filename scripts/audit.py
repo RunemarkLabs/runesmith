@@ -237,6 +237,27 @@ def check_frontmatter_placeholders(fails):
             )
 
 
+def check_forbidden_plugin_fields(fails):
+    """Cowork's plugin loader silently drops plugins whose plugin.json carries
+    unsupported fields. Known offender: `dependencies` (not part of the Claude
+    plugin schema; loader interprets it as a gate it can't satisfy and rejects
+    the plugin from the runtime skill registry). The plugin still appears in
+    the session-start manifest but `/<plugin>:<skill>` returns 'Unknown command'.
+    Add more entries here as new offenders are identified."""
+    FORBIDDEN = {"dependencies"}
+    for pj in Path("plugins").rglob(".claude-plugin/plugin.json"):
+        try:
+            d = json.loads(pj.read_text(encoding='utf-8'))
+        except Exception:
+            continue
+        for key in FORBIDDEN:
+            if key in d:
+                fail(
+                    f"{pj}: forbidden field '{key}' — Cowork's plugin loader rejects plugins carrying this. Remove the field.",
+                    fails,
+                )
+
+
 def main():
     fails = []
     m = check_marketplace_json(fails)
@@ -246,6 +267,7 @@ def main():
     check_forbidden_patterns(fails)
     check_frontmatter_placeholders(fails)
     check_command_descriptions(fails)
+    check_forbidden_plugin_fields(fails)
     check_references(fails)
 
     print(f"Plugins: {len(plugin_names)}")

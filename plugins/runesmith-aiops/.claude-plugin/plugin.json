@@ -1,7 +1,7 @@
 {
   "name": "runesmith-aiops",
   "version": "0.6.0",
-  "description": "[RuneSmith] Populates an AI Operations Confluence space from six template pages (Quick Start, Full Integration, Architecture, Best Practices, FAQ, Reference). All canonical tokens ({COMPANY}, {SITE}, {SPACE_KEY}, {PROJECT_KEY}, etc.) are substituted at publish time so the same templates work for any tenant. Space must already exist in Confluence — skill is a one-shot populator.",
+  "description": "[RuneSmith] Populates an AI Operations Confluence space from six template pages (Quick Start, Full Integration, Architecture, Best Practices, FAQ, Reference). All canonical tokens ({COMPANY}, {SITE}, {SPACE_KEY}, {PROJECT_KEY}, etc.) are substituted at publish time so the same templates work for any tenant. Space must already exist in Confluence \u2014 skill is a one-shot populator.",
   "author": {
     "name": "Runemark Labs"
   },
@@ -17,9 +17,5 @@
     "confluence",
     "aiops",
     "templates"
-  ],
-  "dependencies": [
-    "runesmith-core",
-    "runesmith-confluence"
   ]
 }

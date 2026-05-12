@@ -17,8 +17,5 @@
     "confluence",
     "documentation",
     "wiki"
-  ],
-  "dependencies": [
-    "runesmith-core"
   ]
 }

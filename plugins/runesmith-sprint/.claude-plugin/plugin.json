@@ -1,7 +1,7 @@
 {
   "name": "runesmith-sprint",
   "version": "0.6.0",
-  "description": "[RuneSmith] Atlassian sprint workflow + Cowork↔CC interconnect. /enable wires Atlassian into a project (CLAUDE.md updates, CC-side skill deployment), /start-sprint and /sprint-status manage the active sprint handshake, /check-comms triages the comms folder, /plan-to-tickets converts plans into Jira tickets organized by sprint. CC reads sprints via read-only REST while mutations route through Cowork.",
+  "description": "[RuneSmith] Atlassian sprint workflow + Cowork\u2194CC interconnect. /enable wires Atlassian into a project (CLAUDE.md updates, CC-side skill deployment), /start-sprint and /sprint-status manage the active sprint handshake, /check-comms triages the comms folder, /plan-to-tickets converts plans into Jira tickets organized by sprint. CC reads sprints via read-only REST while mutations route through Cowork.",
   "author": {
     "name": "Runemark Labs"
   },
@@ -18,11 +18,5 @@
     "sprint",
     "comms",
     "interconnect"
-  ],
-  "dependencies": [
-    "runesmith-core",
-    "runesmith-cc",
-    "runesmith-jira",
-    "runesmith-confluence"
   ]
 }

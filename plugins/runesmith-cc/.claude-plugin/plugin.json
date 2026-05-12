@@ -1,7 +1,7 @@
 {
   "name": "runesmith-cc",
   "version": "0.6.0",
-  "description": "[RuneSmith] Builds the {PROJECT}.cc/ Claude Code monorepo head at your workspace root: CLAUDE.md constitution, .claude/ scaffolding (skills, commands, agents, hooks), comms/ folder for Cowork-CC exchange, and marker files. Optionally creates new GitHub repos or clones existing ones using a PAT from .credentials. Idempotent — safe to re-run as you add repos.",
+  "description": "[RuneSmith] Builds the {PROJECT}.cc/ Claude Code monorepo head at your workspace root: CLAUDE.md constitution, .claude/ scaffolding (skills, commands, agents, hooks), comms/ folder for Cowork-CC exchange, and marker files. Optionally creates new GitHub repos or clones existing ones using a PAT from .credentials. Idempotent \u2014 safe to re-run as you add repos.",
   "author": {
     "name": "Runemark Labs"
   },
@@ -17,9 +17,5 @@
     "monorepo",
     "bootstrap",
     "github"
-  ],
-  "dependencies": [
-    "runesmith-core",
-    "runesmith-workspace"
   ]
 }
