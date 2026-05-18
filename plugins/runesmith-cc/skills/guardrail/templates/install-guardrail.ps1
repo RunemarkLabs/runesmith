@@ -1,4 +1,4 @@
-# install-guardrail.ps1
+﻿# install-guardrail.ps1
 #
 # Self-contained installer for the RuneSmith CC project-boundary guardrail.
 # Run once per Windows machine. Writes user-level ~/.claude/settings.json
@@ -11,7 +11,7 @@
 #   .\install-guardrail.ps1 -Mode uninstall # remove
 #
 # What this writes:
-#   %USERPROFILE%\.claude\settings.json  (merged — preserves your user keys)
+#   %USERPROFILE%\.claude\settings.json  (merged - preserves your user keys)
 #   %USERPROFILE%\.claude\hooks\enforce-project-boundary.sh  (Git Bash variant)
 #   %USERPROFILE%\.claude\hooks\enforce-project-boundary.ps1 (PowerShell shim)
 #
@@ -467,7 +467,7 @@ function Invoke-Verify {
     $hookPath = if ($useGitBash) { $HookBash } else { $HookPs1 }
     if (-not (Test-Path $hookPath)) {
         Write-Fail "Hook script missing: $hookPath"
-        Write-Host "Status: PARTIAL — run install to repair" -ForegroundColor Red
+        Write-Host "Status: PARTIAL - run install to repair" -ForegroundColor Red
         exit 1
     }
     Write-Ok "Hook script present: $hookPath"
@@ -484,7 +484,7 @@ function Invoke-Verify {
     if ($result.DenyPass)  { Write-Ok "Hook deny case:  PASS" } else { Write-Fail "Hook deny case:  FAIL ($($result.DenyCode))" }
 
     Write-Host ""
-    Write-Host "Status: $(if ($result.AllowPass -and $result.DenyPass) { 'OK' } else { 'PARTIAL — run install to repair' })" `
+    Write-Host "Status: $(if ($result.AllowPass -and $result.DenyPass) { 'OK' } else { 'PARTIAL - run install to repair' })" `
         -ForegroundColor $(if ($result.AllowPass -and $result.DenyPass) { 'Green' } else { 'Yellow' })
 }
 
@@ -514,7 +514,7 @@ function Invoke-Uninstall {
     $existing.Remove($MarkerKey) | Out-Null
     $existing.Remove($KeysKey) | Out-Null
 
-    # We do NOT strip permissions.allow/deny entries by content — they may
+    # We do NOT strip permissions.allow/deny entries by content - they may
     # include user-managed copies. Warn the user instead.
     Write-Warn "Note: permission rule entries added by the guardrail remain in"
     Write-Warn "  permissions.allow / permissions.deny. They are no-ops without"
@@ -529,7 +529,7 @@ function Invoke-Uninstall {
     if (Test-Path $HookPs1)  { Remove-Item $HookPs1  -Force }
 
     Write-Host ""
-    Write-Host "Status: OK — guardrail uninstalled" -ForegroundColor Green
+    Write-Host "Status: OK - guardrail uninstalled" -ForegroundColor Green
     Write-Host ""
     Write-Host "Warning: Claude Code sessions on this machine no longer have a project boundary." -ForegroundColor Yellow
     Write-Host "Restart any open CC sessions for the change to take effect." -ForegroundColor Yellow
