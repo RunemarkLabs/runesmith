@@ -1,0 +1,90 @@
+{
+  "_runesmith_guardrail_marker": "REPLACE_AT_INSTALL_WITH_UUID",
+  "_runesmith_guardrail_keys": [
+    "permissions.defaultMode",
+    "permissions.allow[runesmith-guardrail]",
+    "permissions.deny[runesmith-guardrail]",
+    "hooks.PreToolUse[runesmith-guardrail]"
+  ],
+  "permissions": {
+    "defaultMode": "dontAsk",
+    "allow": [
+      "Read(/**)",
+      "Edit(/**)",
+      "Write(/**)",
+      "Grep",
+      "Glob",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(echo *)",
+      "Bash(pwd)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(find *)",
+      "Bash(wc *)",
+      "Bash(which *)",
+      "Bash(diff *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git branch *)",
+      "Bash(git show *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git fetch *)",
+      "Bash(npm test*)",
+      "Bash(npm run *)",
+      "Bash(npx *)",
+      "Bash(pytest*)",
+      "Bash(python *)",
+      "Bash(node *)"
+    ],
+    "deny": [
+      "Read(//**/.credentials*)",
+      "Read(//**/.env)",
+      "Read(//**/.env.*)",
+      "Read(//**/id_rsa*)",
+      "Read(//**/id_ed25519*)",
+      "Read(//**/*.key)",
+      "Read(//**/*.pem)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.gnupg/**)",
+      "Edit(//**/.credentials*)",
+      "Edit(//**/.env)",
+      "Edit(//**/.env.*)",
+      "Write(//**/.credentials*)",
+      "Write(//**/.env)",
+      "Write(//**/.env.*)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "Bash(nc *)",
+      "Bash(ssh *)",
+      "Bash(scp *)",
+      "Bash(rsync *)",
+      "Bash(cat *credentials*)",
+      "Bash(cat *.env*)",
+      "Bash(cat *id_rsa*)",
+      "Bash(cat *.key)",
+      "Bash(cat *.pem)",
+      "Bash(type *credentials*)",
+      "Bash(type *.env*)",
+      "Bash(Get-Content *credentials*)",
+      "Bash(Get-Content *.env*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/.claude/hooks/enforce-project-boundary.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}

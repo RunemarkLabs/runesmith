@@ -1,0 +1,8 @@
+{
+  "_comment": "Project-level Claude Code settings. RuneSmith guardrail writes this on bootstrap-cc. Use `additionalDirectories` to extend the boundary for legitimate cross-project access (monorepo siblings, shared configs). Document any additions in .claude/README.md so future maintainers understand the escape hatch.",
+  "additionalDirectories": [],
+  "permissions": {
+    "allow": [],
+    "deny": []
+  }
+}

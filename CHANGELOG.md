@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 > **Rename note**: this marketplace was previously named "Claude Forge". Renamed to **RuneSmith** in v0.6.0 to avoid trademark confusion with Anthropic's "Claude" mark and conflict with Atlassian's "Forge" developer platform. Historical changelog entries below have been mechanically updated to reference plugins by their new names (`runesmith-*`) for consistency; the substance of past releases is unchanged.
 
+## [0.7.0] — 2026-05-17
+
+### Added
+- **`runesmith-cc:guardrail` skill.** Two-layer project-boundary enforcement for Claude Code sessions. Layer 1 (behavioral) — two new refusal rules in the `agent-operating-principles.md` source, propagated into the `<!-- agent-ops:start/end -->` marker block of every workspace + CC-head CLAUDE.md by `reallocate` and `bootstrap-cc`: a cross-project refusal rule and a credentials-class refusal rule (`*credentials*`, `*.env`, `id_rsa*`, `*.key`, `*.pem`). Layer 2 (harness enforcement) — user-level `~/.claude/settings.json` block with `defaultMode: "dontAsk"`, project-relative `Read(/**)`/`Edit(/**)`/`Write(/**)` allow rules, categorical secret/exfil denies, plus a `PreToolUse` hook (`enforce-project-boundary.sh` + PowerShell shim) for Bash subprocess containment. Install / uninstall / verify each gated by structured-prompt consent. Marker-bounded JSON-aware merge so user-managed keys in `settings.json` survive uninstall.
+- **`runesmith-cc:bootstrap-cc` extension.** Now writes project-level `<project>/.claude/settings.json` (with `additionalDirectories: []` escape hatch) and `<project>/.claude/README.md` (boundary explanation). Surfaces a clear next-step nudge if the user-level guardrail isn't installed yet.
+- **`/runesmith-cc:guardrail` slash command** wrapping the new skill.
+
+### Driver — 2026-05-17 incident
+A Cowork session in another workspace dispatched Claude Code, which read `.credentials` from a sibling project and echoed plaintext keys into the transcript before the misdirection was caught. The behavioral boundary in CLAUDE.md was the only catch and almost failed. Verification spike (`plans/active/cc-project-boundary/refs/2026-05-17-hook-contract-findings.md`) found that the handoff's hook contract draft was wrong and that Claude Code's `dontAsk` permission mode + project-relative `/path` anchor make most of the file-access boundary achievable via permission rules alone. The hook is now a narrow Bash-and-subagent backstop, not the primary enforcement.
+
+### Known residual risks (documented, not solved)
+- Subagents launched via Task tool do NOT inherit PreToolUse hooks or permission rules (platform bugs #27661, #23983). Layer 1 advisory rules are the only protection inside a subagent.
+- Bash on Windows is unsandboxed; PowerShell pipes, indirect invocation, and shell escaping can evade the substring matchers. Hook is best-effort against accidents, not airtight against adversarial Bash.
+- MCP tool calls are not boundary-aware. Follow-up plan (MCP scoping) to be tracked separately.
+
+### Notes
+- Marketplace version bump 0.6.0 → 0.7.0. `runesmith-cc` plugin version bump 0.6.0 → 0.7.0. Other plugins unchanged.
+- Upgrade path: re-run `/runesmith-cc:bootstrap-cc` in existing workspaces to refresh CLAUDE.md and write project-level settings. Run `/runesmith-cc:guardrail install` once per machine. Pre-existing CC sessions are unprotected until both steps complete.
+
 ## [0.6.0] — 2026-05-11
 
 ### Changed (breaking — rename)

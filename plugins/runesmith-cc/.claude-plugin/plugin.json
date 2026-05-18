@@ -1,7 +1,7 @@
 {
   "name": "runesmith-cc",
-  "version": "0.6.0",
-  "description": "[RuneSmith] Builds the {PROJECT}.cc/ Claude Code monorepo head at your workspace root: CLAUDE.md constitution, .claude/ scaffolding (skills, commands, agents, hooks), comms/ folder for Cowork-CC exchange, and marker files. Optionally creates new GitHub repos or clones existing ones using a PAT from .credentials. Idempotent \u2014 safe to re-run as you add repos.",
+  "version": "0.7.0",
+  "description": "[RuneSmith] Builds the {PROJECT}.cc/ Claude Code monorepo head at your workspace root and installs the project-boundary guardrail that constrains Claude Code sessions to their launch project. /bootstrap-cc writes the CC head (CLAUDE.md, .claude/ scaffolding, comms folder, marker files) and project-level settings; /guardrail installs the user-level permission rules and PreToolUse hook that block cross-project filesystem reads. Idempotent \u2014 safe to re-run.",
   "author": {
     "name": "Runemark Labs"
   },
@@ -16,6 +16,10 @@
     "claude-code",
     "monorepo",
     "bootstrap",
-    "github"
+    "github",
+    "guardrail",
+    "security",
+    "permissions",
+    "hooks"
   ]
 }

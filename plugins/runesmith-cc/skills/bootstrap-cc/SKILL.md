@@ -127,7 +127,8 @@ Per `lib/cc-workspace.md`, ensure these exist (do not clobber if user has custom
 | `<name>.cc/CLAUDE.md` | `templates/CLAUDE.parent.md` (token-substituted) |
 | `<name>.cc/README.md` | `templates/README.md` |
 | `<name>.cc/.claude-code-workspace` | `templates/marker.json` (token-substituted) |
-| `<name>.cc/.claude/settings.json` | `templates/settings.json` |
+| `<name>.cc/.claude/settings.json` | `../guardrail/templates/project-settings.json` (project-level guardrail scaffolding — `additionalDirectories: []`, empty allow/deny) |
+| `<name>.cc/.claude/README.md` | `../guardrail/templates/project-claude-readme.md` (documents the boundary + escape-hatch usage) |
 | `<name>.cc/.claude/settings.local.json` | empty `{}` (gitignored) |
 | `<name>.cc/.claude/skills/code-tech-debt/SKILL.md` | `../../cc-skill-templates/code-tech-debt/SKILL.md` (plugin-relative) |
 | `<name>.cc/.claude/skills/code-tech-debt/lib/code-analyzers.md` | `../../../lib/code-analyzers.md` (plugin-relative) |
@@ -139,6 +140,8 @@ Per `lib/cc-workspace.md`, ensure these exist (do not clobber if user has custom
 | `<name>.cc/comms/README.md` | `templates/comms-README.md` |
 | `<name>.cc/.gitignore` | `templates/gitignore` |
 | `<name>.cc/.gitattributes` | `templates/gitattributes` |
+
+**Guardrail nudge**: after writing the project-level `.claude/settings.json` + `.claude/README.md`, check whether the user-level guardrail is installed (look for `_runesmith_guardrail_marker` in `~/.claude/settings.json` / `%USERPROFILE%\.claude\settings.json`). If absent, surface this in the final report with a clear next step: "Run `/runesmith-cc:guardrail install` to enforce the project boundary at the harness level. Without it, the project-level settings are advisory only."
 
 Token substitution:
 - `{PROJECT}` → resolved CC head name

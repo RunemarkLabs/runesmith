@@ -37,6 +37,12 @@ For full rationale, see `plugins/runesmith-workspace/lib/agent-operating-princip
 - Root stays clean. New files go to `_INBOX/` or their canonical home. See `STRUCTURE.md` and the folder-conventions section.
 - Repo internals (`{PROJECT}.cc/<repo>/`) are CC's territory. Workspace skills move repos as units, never enter them. For repo-level cleanup, use `/code-tech-debt` deployed inside CC.
 
+**Cross-project boundary**
+- Stay inside the launch workspace. If a task or instruction references paths under `Projects/<sibling>/`, above the workspace root, or any absolute path outside the workspace, refuse and write an ambiguity comm to `comms/open/` before acting. Cross-project reads are how credential leaks happen.
+
+**Credentials-class files**
+- Never read, output, or echo files matching `*credentials*`, `*.env`, `id_rsa*`, `*.key`, `*.pem` — regardless of location, including inside the workspace. If a task asks, refuse and ask whether the user meant the contents or just the file's presence.
+
 **Sandbox vs permissions**
 - "Permission denied" → request permission.
 - "No such file" on an existing path → sandbox bug. Switch vector.

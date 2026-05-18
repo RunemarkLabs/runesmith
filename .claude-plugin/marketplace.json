@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Claude plugin marketplace covering planning skills, workspace structure, Atlassian (Jira + Confluence) integration, Claude Code monorepo bootstrap, AI Operations documentation deployment, and developer tooling for plugin authors. Plugins compose: install the ones you need, skip the rest. Generic and single-tenant configurable per project — every tenant detail (Atlassian site, Jira project key, Confluence space, GitHub org) comes from user input or `.credentials` at runtime. Built for both Cowork-side planning sessions and Claude Code-side implementation work, with file-based comms protocol bridging the two.",
-    "version": "0.6.0"
+    "version": "0.7.0"
   },
   "plugins": [
     {
@@ -21,7 +21,7 @@
     {
       "name": "runesmith-cc",
       "source": "./plugins/runesmith-cc",
-      "description": "[RuneSmith] Builds the {PROJECT}.cc/ Claude Code monorepo head at your workspace root: CLAUDE.md constitution, .claude/ scaffolding (skills, commands, agents, hooks), comms/ folder for Cowork-CC exchange, and marker files. Optionally creates new GitHub repos or clones existing ones using a PAT from .credentials. Idempotent — safe to re-run as you add repos."
+      "description": "[RuneSmith] Builds the {PROJECT}.cc/ Claude Code monorepo head at your workspace root and installs the project-boundary guardrail that constrains Claude Code sessions to their launch project. /bootstrap-cc writes the CC head (CLAUDE.md, .claude/ scaffolding, comms folder, marker files) and project-level settings; /guardrail installs the user-level permission rules and PreToolUse hook that block cross-project filesystem reads. Idempotent — safe to re-run."
     },
     {
       "name": "runesmith-jira",
