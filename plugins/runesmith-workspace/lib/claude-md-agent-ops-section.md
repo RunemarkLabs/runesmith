@@ -69,14 +69,4 @@ Never touch content outside the `agent-ops:start` / `agent-ops:end` pair. Worksp
 
 ## Token substitution
 
-The template body contains no host-specific tokens. The path reference to `plugins/runesmith-workspace/lib/agent-operating-principles.md` is informational — it points to the source-of-truth for users who want the full rationale. Path resolution depends on where the user installed the plugin; the section explicitly says "wherever this plugin is installed on your host" rather than asserting a specific path.
-
-## Coordination with folder-conventions section
-
-Both sections are skill-managed and refreshed by `reallocate`. Order in the file:
-1. User preamble (workspace identity, any project-specific rules) — preserved
-2. `<!-- folder-conventions:start -->` ... `<!-- folder-conventions:end -->`
-3. `<!-- agent-ops:start -->` ... `<!-- agent-ops:end -->`
-4. Any trailing user content — preserved
-
-If both markers are missing on a fresh write, `reallocate` appends them in that order with a blank line between.
+The template body contains no host-specific tokens. The path reference to `plugins/runesmith-workspace/lib/agent-operating-principles.md` is informational — it points to the source-of-truth for users who want the full rationale. Path resolution depends on where the user installed the plugin; the section 

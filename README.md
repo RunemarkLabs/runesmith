@@ -12,7 +12,7 @@ Eight plugins, ~30 skills total, ~30 commands. Install only what you need.
 |---|---|---|
 | **`runesmith-core`** | plan, install, sync, setup | Foundation. Credentials, plugin management, chat-first planning. **Required base.** |
 | **`runesmith-workspace`** | reallocate, inbox | Workspace folder structure: `_INBOX/` drop zone, `plans/active/`, `plans/archive/`, snapshots. |
-| **`runesmith-cc`** | bootstrap-cc | Build the `{PROJECT}.cc/` Claude Code monorepo head with comms folder; create or clone repos via PAT. |
+| **`runesmith-cc`** | bootstrap-cc, guardrail | Build the `{PROJECT}.cc/` Claude Code monorepo head with comms folder; create or clone repos via PAT. Install the user-level project-boundary guardrail that constrains CC sessions to their launch project. |
 | **`runesmith-jira`** | ticket, bug-report, project-status, new-project | Jira tickets and project basics with current Cloud REST endpoints. |
 | **`runesmith-confluence`** | feature-doc, architecture-doc, project-overview, decisions-log, known-issues, roadmap, session-log | Confluence pages with storage XHTML conversion. |
 | **`runesmith-sprint`** | enable, disable, start-sprint, sprint-status, check-comms, plan-to-tickets | Sprint workflow + Cowork↔Claude Code interconnect via comms protocol. |
@@ -41,6 +41,18 @@ Eight plugins, ~30 skills total, ~30 commands. Install only what you need.
 ```
 
 After install, run `/runesmith-core:setup` to configure credentials. See [INSTALL.md](INSTALL.md) for full options.
+
+## Documentation
+
+- [Agent Primer](docs/AGENT_PRIMER.md) — how the system works end to end. Read this first.
+- [How-to guides](docs/howto/) — workflow-keyed recipes:
+  - [Set up a new project workspace](docs/howto/new-workspace.md)
+  - [Migrate an existing workspace](docs/howto/migrate-workspace.md)
+  - [Add a repo to a CC head](docs/howto/add-repo.md)
+  - [Install the project-boundary guardrail](docs/howto/install-guardrail.md)
+  - [Enable Atlassian on a workspace](docs/howto/enable-atlassian.md)
+  - [Daily workflow](docs/howto/daily-workflow.md)
+  - [Publish docs to Confluence](docs/howto/publish-to-confluence.md)
 
 ### Manual `.plugin` files (Cowork desktop)
 
@@ -161,19 +173,4 @@ python scripts/build.py path/to/output
 The build performs three transformations:
 
 1. Strips retired/orphan content from `cc-skill-templates/` and removed skills before zipping.
-2. Renames `cc-skill-templates/<n>/skill-template.md` → `.txt` so Cowork's plugin validator (which scans `**/SKILL.md` and `**/*.md` with skill frontmatter) ignores deploy-time templates.
-3. Zips with forward-slash paths inside the archive (zip spec requirement; bypasses Windows tooling that uses backslash separators).
-
-Run `python scripts/audit.py` before any release — CI enforces it on every push.
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md). Three principles:
-
-1. **Generic, single-tenant configurable.** No company-specific values in plugin source.
-2. **Consent before any write.** See `lib/consent.md`.
-3. **Plugin-relative library references.** Each plugin self-contained.
-
-## License
-
-Apache-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+2. Renames `cc-skill-templ
