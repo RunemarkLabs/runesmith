@@ -33,7 +33,6 @@ except ImportError:
 ROOT = Path(__file__).resolve().parent.parent
 os.chdir(ROOT)
 
-# Forbidden patterns -- the upload scanner rejects content matching these
 FORBIDDEN_PATTERNS = {
     r"<project>": "angle-bracket placeholder (use {PROJECT})",
     r"\binject(s|ed|ing|ion)?\b": "injection vocabulary (use apply or embed)",
@@ -43,8 +42,7 @@ FORBIDDEN_PATTERNS = {
     r"\[y\]es\s*/\s*\[n\]o": "plain-text yes/no prompt (use structured form)",
 }
 
-# Files exempt from FORBIDDEN_PATTERNS (they document the forbidden patterns)
-EXEMPT_FILES = {"user-prompts.md", "naming.md"}
+EXEMPT_FILES = {"user-prompts.md", "naming.md", "cowork-hard-rules.md"}
 
 
 def fail(msg, fails):
@@ -181,11 +179,6 @@ def check_references(fails):
 
 
 def check_command_descriptions(fails):
-    """Command descriptions get registered as Cowork slash-command tooltips.
-    A description truncated mid-sentence (e.g. ending with '{PROJECT}.' or 'CLAUDE.')
-    causes Cowork to silently skip command registration - the slash command then
-    returns 'Unknown command'. Reject descriptions shorter than 30 chars or that
-    appear truncated at a placeholder boundary."""
     truncated_re = re.compile(r"(\{[A-Z_]+\}|CLAUDE)\.\s*$")
     for cmd_md in Path("plugins").rglob("commands/*.md"):
         text = cmd_md.read_text(encoding='utf-8')
@@ -200,16 +193,13 @@ def check_command_descriptions(fails):
             continue
         desc = (fm.get("description") or "").strip()
         if len(desc) < 30:
-            fail(f"{cmd_md}: description too short ({len(desc)} chars) - likely truncated", fails)
+            fail(f"{cmd_md}: description too short ({len(desc)} chars)", fails)
             continue
         if truncated_re.search(desc):
             fail(f"{cmd_md}: description appears truncated at placeholder boundary: '{desc[-40:]}'", fails)
 
 
 def check_frontmatter_placeholders(fails):
-    """Cowork's upload validator rejects <word> patterns in SKILL.md frontmatter.
-    Canonical placeholder syntax is {WORD} (curly braces). Body content is exempt -
-    it can legitimately contain HTML/XML examples in code blocks."""
     angle_re = re.compile(r"<[a-zA-Z][a-zA-Z0-9_-]*>")
     for sk_md in Path("plugins").rglob("SKILL.md"):
         text = sk_md.read_text(encoding='utf-8')
@@ -218,12 +208,8 @@ def check_frontmatter_placeholders(fails):
             continue
         frontmatter = parts[1]
         for m in angle_re.finditer(frontmatter):
-            line = frontmatter[: m.start()].count("\n") + 2  # +2 for opening ---
-            fail(
-                f"{sk_md}:{line}: angle-bracket placeholder '{m.group()}' in frontmatter - use {{WORD}} (curly braces). Cowork rejects <word> as unsubstituted templating syntax.",
-                fails,
-            )
-    # Also check plugin.json description fields (Cowork's metadata scanner reads these)
+            line = frontmatter[: m.start()].count("\n") + 2
+            fail(f"{sk_md}:{line}: angle-bracket placeholder '{m.group()}' in frontmatter", fails)
     for pj in Path("plugins").rglob(".claude-plugin/plugin.json"):
         try:
             d = json.loads(pj.read_text(encoding='utf-8'))
@@ -231,19 +217,10 @@ def check_frontmatter_placeholders(fails):
             continue
         desc = d.get("description", "")
         for m in angle_re.finditer(desc):
-            fail(
-                f"{pj}: angle-bracket placeholder '{m.group()}' in description - use {{WORD}}.",
-                fails,
-            )
+            fail(f"{pj}: angle-bracket placeholder '{m.group()}' in description", fails)
 
 
 def check_forbidden_plugin_fields(fails):
-    """Cowork's plugin loader silently drops plugins whose plugin.json carries
-    unsupported fields. Known offender: `dependencies` (not part of the Claude
-    plugin schema; loader interprets it as a gate it can't satisfy and rejects
-    the plugin from the runtime skill registry). The plugin still appears in
-    the session-start manifest but `/<plugin>:<skill>` returns 'Unknown command'.
-    Add more entries here as new offenders are identified."""
     FORBIDDEN = {"dependencies"}
     for pj in Path("plugins").rglob(".claude-plugin/plugin.json"):
         try:
@@ -252,19 +229,10 @@ def check_forbidden_plugin_fields(fails):
             continue
         for key in FORBIDDEN:
             if key in d:
-                fail(
-                    f"{pj}: forbidden field '{key}' - Cowork's plugin loader rejects plugins carrying this. Remove the field.",
-                    fails,
-                )
-
+                fail(f"{pj}: forbidden field '{key}'", fails)
 
 
 def check_no_emdashes(fails):
-    """Em-dashes (U+2014) and en-dashes (U+2013) are banned across all generated
-    content in this marketplace. Style preference + PowerShell on Windows reads
-    .ps1 as Windows-1252 by default and misinterprets UTF-8 multi-byte em-dash
-    sequences, breaking string parsing. Use ASCII hyphens or restructure prose.
-    LICENSE / NOTICE excluded (upstream Apache content)."""
     EMDASH = chr(0x2014)
     ENDASH = chr(0x2013)
     EXTS = ('.md', '.json', '.ps1', '.sh', '.py', '.txt', '.xhtml', '.yml', '.yaml')
@@ -285,7 +253,35 @@ def check_no_emdashes(fails):
         em = t.count(EMDASH)
         en = t.count(ENDASH)
         if em + en > 0:
-            fail(f"{f}: {em} em-dash(es), {en} en-dash(es). Replace with ASCII hyphens.", fails)
+            fail(f"{f}: {em} em-dash(es), {en} en-dash(es)", fails)
+
+
+def check_no_emdash_json_escapes(fails):
+    EMDASH = chr(0x2014)
+    ENDASH = chr(0x2013)
+
+    def scan_strings(node, path, fails_local):
+        if isinstance(node, str):
+            if EMDASH in node or ENDASH in node:
+                fails_local.append((path, node[:80]))
+        elif isinstance(node, dict):
+            for k, v in node.items():
+                scan_strings(v, f"{path}.{k}", fails_local)
+        elif isinstance(node, list):
+            for i, v in enumerate(node):
+                scan_strings(v, f"{path}[{i}]", fails_local)
+
+    for f in Path('.').rglob('*.json'):
+        if '.git' in f.parts:
+            continue
+        try:
+            data = json.loads(f.read_text(encoding='utf-8'))
+        except Exception:
+            continue
+        hits = []
+        scan_strings(data, "", hits)
+        for path, sample in hits:
+            fail(f"{f}: em/en-dash unicode escape at {path or '<root>'}: '{sample}'", fails)
 
 
 def main():
@@ -299,6 +295,7 @@ def main():
     check_command_descriptions(fails)
     check_forbidden_plugin_fields(fails)
     check_no_emdashes(fails)
+    check_no_emdash_json_escapes(fails)
     check_references(fails)
 
     print(f"Plugins: {len(plugin_names)}")

@@ -10,6 +10,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 (See 0.7.3 below - format conversion alone was not the fix.)
 
+## [0.8.1] - 2026-05-19
+
+### Added (runesmith-workspace)
+- **PROJECT mission inference in reallocate.** Step 12 now scans workspace signal (`README.md` at root → `source-docs/*.md` → prior `CLAUDE.md` content outside markers → package manifest description) and drafts a 1-3 sentence PROJECT mission. Surfaces via structured prompt with Accept / Edit / Skip options. Falls back to the static `{Fill in: ...}` placeholder only when no signal hits OR the user picks Skip. Documented in new `lib/project-mission-inference.md`.
+
+### Why
+Reallocate previously emitted the same fill-in placeholder on every re-run, forcing the user to retype their project's mission every time, even when the workspace already had clear signal in README and source-docs. Reported on Resume Unbound 2026-05-19. Now the skill reads the signal it could already see and proposes the draft.
+
+### Notes
+- ROLE / RULES / HOW WE WORK sections still emit verbatim from template. Inference is PROJECT-only; ROLE is the canonical Cowork pair-programming role.
+- Inference is read-only: no edits land without the user accepting the draft via structured prompt.
+- `plans/active/*/plan.md` and `tickets/*` are explicitly excluded as signal sources (too narrow - they describe current work, not project mission).
+
+### Added (devtools)
+- **Plugin-builder skill rewrite.** Now reads four new lib files (`plugin-json-schema.md`, `skill-md-frontmatter.md`, `cowork-hard-rules.md`, `build-and-audit.md`) before generating any plugin content. Skills built from this point pass audit out of the box and dispatch reliably under Cowork. Captures the production-tested conventions from RuneSmith v0.7-v0.8 development.
+
+### Fixed (audit)
+- **JSON unicode em-dash escape detection.** New `check_no_emdash_json_escapes()` decodes JSON strings before scanning, catching U+2014 / U+2013 escapes the byte-level audit misses. Cowork JSON-parses files at load time so these escapes render as em-dash to users; audit now flags them.
+- **Em-dash escape sweep across 16 plugin.json files + 2 marketplace.json files.** Replaced all U+2014 escapes with literal ASCII hyphen.
+
+### Fixed (docs + cleanup)
+- **`docs/howto/install-guardrail.md` rewritten** for the v0.8.x one-shot installer flow. Previous version taught the retired v0.7 CC-side install path.
+- **Pruned dead reference** to `cc-skill-templates/guardrail/skill-template.md` in `runesmith-cc:guardrail` SKILL.md (path removed in v0.8.0).
+- **README.md `cc-skill-templates/` claim** updated in both repos to reflect what the build script actually does today.
+- **Sapient mirror installer scripts** rebranded JSON marker tokens from `_runesmith_guardrail_*` to `_claude_forge_guardrail_*` with legacy-key migration to preserve idempotence.
+- **Sapient mirror `scripts/audit.py`** docstring rebranded to Claude Forge.
+- **Sapient mirror README.md** restored truncated Contributing + License sections.
+
+### Versions
+- `runesmith-workspace` 0.8.0 → 0.8.1
+- `runesmith-devtools` 0.8.0 → 0.8.1
+- Marketplace 0.8.0 → 0.8.1
+- Other plugins unchanged at 0.8.0
+
 ## [0.8.0] - 2026-05-18
 
 ### Changed (breaking - guardrail install path)
@@ -149,14 +183,4 @@ A Cowork session in another workspace dispatched Claude Code, which read `.crede
 - **`/runesmith-devtools:verify-separation`** - retired. The workspace/repo boundary is enforced by the canonical structure (`{PROJECT}.cc/` contains source repos; everything else is workspace) and by forking as the customization path. The skill's check logic predated the plugin model and referenced a `.claude/skills/` workspace pattern that no longer exists.
 
 ### Fixed
-- `runesmith-workspace:reallocate` no longer auto-routes `research/`, `source-docs/`, or loose root markdown into `_INBOX/`. The skill previously inherited stale assumptions from pre-plugin-era `cowork-bootstrap` config.
-- `runesmith-workspace:reallocate` now has an explicit hard boundary at `{PROJECT}.cc/<repo>/`. Repo internals are CC's territory; reallocate moves repos as whole units when migrating and stops at the boundary.
-- `runesmith-devtools:tech-debt` rewritten around a cross-reference graph (plans → refs/tickets/decisions → research/source-docs/drafts) rather than age heuristics. Identifies what is ACTUALLY tech debt (unreferenced from any live plan or recent note), not just what is old. On-the-fly graph by default; structured option for cached mode on heavy workspaces.
-- All 4 copies of `lib/plan-format.md` (workspace, sprint, confluence, core) now agree on the per-plan directory shape and the post-push ticket archive path.
-
-### Upgrade notes
-Re-install plugins or run `/runesmith-core:sync` to pick up 0.5.0. Then run `/runesmith-workspace:reallocate` in any existing workspace to normalize to the new layout (snapshots first). If a `tickets/` directory exists at workspace root, reallocate will prompt for each JSON: which plan does it belong to, or archive to `archive/superseded/<YYYY-MM>/tickets-orphan/`.
-
-### Known issues (tracked, not blocking ship)
-- 73 files across plugins still reference the pre-rename plugin shorthand (`core:`, `atlassian:`, etc.) in documentation prose. Functional impact: none - slash commands use the full `runesmith-*` names. Documentation sweep is a follow-up.
-- `plugins/runesmith-devtools/commands/verify-separation.md` exists as a tombstone (dev sandbox could not dele
+- `runesmith-workspace:reallocate` no longer auto-routes `research/`, `so

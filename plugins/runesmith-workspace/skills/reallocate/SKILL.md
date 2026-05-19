@@ -15,6 +15,7 @@ Move the workspace to the canonical structure. Detect current state, propose a m
 - `lib/claude-md-agent-ops-section.md` - marker-bounded agent-ops section template written into workspace CLAUDE.md
 - `lib/agent-operating-principles.md` - full rationale for the agent-ops section
 - `lib/project-instructions.md` - two-tier project context model (`CLAUDE.md` vs Cowork UI Project Instructions field). Reallocate emits proposed Project Instructions text for the user to paste.
+- `lib/project-mission-inference.md` - signal sources and procedure for drafting the PROJECT mission from existing workspace content instead of emitting a static fill-in placeholder.
 - `lib/STRUCTURE.template.md` - template for the `STRUCTURE.md` written at workspace root
 - `lib/cc-workspace.md` - CC head structure spec
 - `lib/plan-format.md` - `plans/active/<slug>/` schema
@@ -202,8 +203,8 @@ If any of those appear in the text, you've written the wrong content for this fi
 - `## HOW WE WORK`
 - `## ATLASSIAN` (only if atlassian-enabled)
 
-**User-filled section** (reallocate leaves a clear TODO placeholder):
-- `## PROJECT` - one to three sentences describing what the project IS. Reallocate does NOT auto-write this; it doesn't know what the user's project is about. Leave a placeholder like `{Fill in: what is this project? Why does it exist? What's the goal?}`.
+**Inferred section** (reallocate scans existing workspace signal, drafts content, asks user via structured prompt):
+- `## PROJECT` - one to three sentences describing what the project IS. Per `lib/project-mission-inference.md`, scan signal sources in order (README.md at root → source-docs/*.md → prior CLAUDE.md content outside markers → package manifest description → top-level notes/). On first strong hit, draft 1-3 sentences and surface a structured prompt with options: **Accept** (use draft as-is), **Edit** (text-input form pre-filled with the draft), **Skip** (fall back to the `{Fill in: ...}` placeholder). If no signal produces a usable draft, emit the placeholder without prompting. Never auto-write without the structured prompt.
 
 Format in the report (use this exact preamble so the user knows what to do):
 
@@ -304,6 +305,7 @@ If the workspace is already in canonical shape:
 - [ ] Content outside marker pairs in `CLAUDE.md` untouched
 - [ ] `.gitignore` patterns added
 - [ ] **Project Instructions text emitted at the end of the report** (Cowork UI field; agent can't write directly - user pastes). Skipping this leaves the workspace half-configured. See `lib/project-instructions.md`.
+- [ ] **PROJECT mission inferred from workspace signal when possible** (README, source-docs, prior CLAUDE.md preamble, package manifest). Draft surfaced via structured prompt: Accept / Edit / Skip. Fall back to `{Fill in: ...}` placeholder only when no signal hits. See `lib/project-mission-inference.md`.
 - [ ] Atlassian section markers preserved (suggest re-run if detected)
 - [ ] Security warnings surfaced (PAT in remote URL, leaked secrets in moved repos)
 - [ ] Idempotent on re-run

@@ -76,15 +76,16 @@ Any skill that mutates project-level context (`reallocate`, `bootstrap-cc`, `ena
 
 This is the canonical template. It is PURELY behavioral - no file paths, no folder layouts, no version numbers. Everything structural lives in CLAUDE.md and is referenced via `@CLAUDE.md`.
 
-When reallocate emits this for a user, it substitutes only `{PROJECT_NAME}` (workspace folder name) and leaves the rest verbatim. If atlassian is enabled (`.atlassian-enabled` marker present), append the atlassian block at the bottom.
+When reallocate emits this for a user, it substitutes `{PROJECT_NAME}` (workspace folder name) and, per `lib/project-mission-inference.md`, attempts to fill the PROJECT section by scanning workspace signal (README, source-docs, prior CLAUDE.md preamble, package manifest). The user always sees the draft via a structured prompt and can Accept / Edit / Skip. If no signal hits or the user picks Skip, the placeholder shown below is emitted instead. If atlassian is enabled (`.atlassian-enabled` marker present), append the atlassian block at the bottom.
 
 ```
 # {PROJECT_NAME}
 
 ## PROJECT
-{One- to three-sentence description of the project. Reallocate leaves this as
-a TODO placeholder; the user fills in their project's mission. Reallocate must
-NOT auto-write a mission - it doesn't know what the project IS.}
+{One- to three-sentence description of the project. Reallocate scans workspace
+signal (README, source-docs, prior CLAUDE.md preamble, package manifest) and
+proposes a draft via structured prompt; user can Accept, Edit, or Skip. This
+placeholder appears only when no signal hits or the user picks Skip.}
 
 ## ROLE
 You are Cowork - a pair-programming and planning partner for {PROJECT_NAME}.
