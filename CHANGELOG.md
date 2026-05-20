@@ -10,6 +10,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 (See 0.7.3 below - format conversion alone was not the fix.)
 
+## [0.8.2] - 2026-05-19
+
+### Added (devtools)
+- **`lib/release-maintenance.md`** - new HARD-RULES lib file covering per-plugin versioning (no blanket bumps), `[MarketplaceName vX.Y.Z]` description prefix, marketplace.metadata.version max tracking, CHANGELOG-only-what-moved, and the per-bump checklist. Referenced from plugin-builder SKILL.md so the rules surface at scaffold time, not just during ongoing maintenance.
+
+### Why
+The per-plugin versioning rule was documented in lib/build-and-audit.md (added v0.8.1) but needed a dedicated lib file with a self-contained restatement. Extracting it into release-maintenance.md makes it easier to cite from plugin-builder's References block and from CHANGELOG entries for future bumps.
+
+### Versions
+- runesmith-devtools 0.8.1 -> 0.8.2
+- Marketplace 0.8.1 -> 0.8.2
+- Other plugins unchanged
+
 ## [0.8.1] - 2026-05-19
 
 ### Added (runesmith-workspace)
@@ -177,10 +190,4 @@ A Cowork session in another workspace dispatched Claude Code, which read `.crede
 - `runesmith-sprint:plan-to-tickets` now persists ticket drafts to `plans/active/<slug>/tickets/<DRAFT-ID>.json` BEFORE push (survives across sessions, reviewable on disk) and archives pushed drafts to `archive/tickets-pushed/<YYYY-MM>/<JIRA-KEY>.json`.
 - **`runesmith-cc/cc-skill-templates/code-tech-debt/SKILL.md`** - new CC-side skill template for repo-level dead-code / unused-export / unused-dep scanning. Deployed by `bootstrap-cc` into `{PROJECT}.cc/.claude/skills/code-tech-debt/` so the skill is callable from CC via slash command. Per-language analyzers (TS, JS/Node, React, Next.js, Python in v1) governed by an extensible registry.
 - **`runesmith-cc/lib/code-analyzers.md`** - per-language analyzer registry (detection signal, preferred tool, fallback heuristic, findings categories, cross-reference checks). Extensible by adding new language entries; the skill reads from the registry without code change.
-- **Agent operating principles baked into every Forge-bootstrapped workspace.** Standard operating knowledge (sandbox-vs-real-fs distinction, file-ops as agent territory, destructive-op gates, structured prompts) now ships as a marker-bounded section (`<!-- agent-ops:start/end -->`) written into both the workspace root `CLAUDE.md` (by `reallocate`) and the CC head `CLAUDE.md` (by `bootstrap-cc`). Idempotent - re-runs refresh content between markers, user additions outside markers preserved. Source: `runesmith-workspace/lib/agent-operating-principles.md` (copied into `runesmith-cc/lib/` per the self-contained plugin rule). New marker template: `runesmith-workspace/lib/claude-md-agent-ops-section.md`.
-
-### Removed
-- **`/runesmith-devtools:verify-separation`** - retired. The workspace/repo boundary is enforced by the canonical structure (`{PROJECT}.cc/` contains source repos; everything else is workspace) and by forking as the customization path. The skill's check logic predated the plugin model and referenced a `.claude/skills/` workspace pattern that no longer exists.
-
-### Fixed
-- `runesmith-workspace:reallocate` no longer auto-routes `research/`, `so
+- **Agent operating principles baked into every Forge-bootstrapped workspace.** Standard operating knowledge (sandbox-vs-real-fs distinction, file-ops as agent territory, destructive-op gates, structured prompts) now ships as a marker-bounded section (`<!-- agent-ops:start/end -->`) written into both the workspace root `CLAUDE.m

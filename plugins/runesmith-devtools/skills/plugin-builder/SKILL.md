@@ -1,132 +1,69 @@
 ---
 name: plugin-builder
-description: "Create Cowork plugins and install them into Claude Desktop. Replaces the old create-skill workflow. Use when the user says \"create a plugin\", \"new plugin\", \"add a skill\", \"make a plugin\", \"build a plugin\", \"I need a new skill\", or \"create a skill\". Also triggers on \"package this plugin\" or \"install this plugin\"."
+description: "Create Cowork plugins from scratch with full skill scaffolding, production-ready frontmatter, and audit-passing structure. Use when the user says \"create a plugin\", \"new plugin\", \"add a skill\", \"make a plugin\", \"build a plugin\", \"I need a new skill\", \"scaffold a plugin\", \"start a plugin from scratch\". Also triggers on \"package this plugin\" or \"install this plugin\". Not for editing existing skills (edit directly) or installing from catalog (use /core:install)."
 compatibility: Requires Cowork desktop app environment.
 ---
 
 # Plugin Builder
 
-Create new Cowork plugins from scratch with full skill scaffolding.
+Create new Cowork plugins from scratch. Workflow: describe capability -> scaffold structure -> author with hard rules applied -> audit -> package -> install.
 
-Guided workflow: describe capability → generate skill structure → test → package → install.
+The skill enforces the production-tested conventions documented in this plugin's `lib/` files. Skills built here pass audit out of the box and dispatch reliably under Cowork.
 
+## References
+
+- `lib/plugin-json-schema.md` - minimum manifest schema, forbidden fields, naming
+- `lib/skill-md-frontmatter.md` - required frontmatter, description format, trigger surface
+- `lib/cowork-hard-rules.md` - no em-dash, curly placeholders, structured prompts, marker sections, idempotence, sandbox shadow, two-tier context model, condensed pitfalls table
+- `lib/build-and-audit.md` - audit.py rules, build script, dist convention, CHANGELOG, versioning
+- `lib/release-maintenance.md` - HARD RULES for post-publish maintenance: per-plugin versioning (no blanket bumps), `[MarketplaceName vX.Y.Z]` description prefix, CHANGELOG-only-what-moved, per-bump checklist
+- `lib/user-prompts.md` - structured prompt patterns
+- `lib/consent.md` - consent-gate trigger phrases
+
+Read all five hard-rule lib files (`plugin-json-schema`, `skill-md-frontmatter`, `cowork-hard-rules`, `build-and-audit`, `release-maintenance`) before generating any plugin content. They are load-bearing.
 
 ## User input rules
 
-This skill follows the marketplace-wide user-prompt standard in `lib/user-prompts.md`. Every user prompt MUST use the host client's structured input UI (single-pick, multi-pick, or text-input form). Never freeform plain-text yes/no questions. The only exception is the consent-trigger gate documented in `lib/consent.md`, which waits for user-initiated phrases like "make the ticket".
+Every user prompt in this skill MUST use the host client's structured input UI (single-pick, multi-pick, or text-input form). Never freeform plain-text yes/no questions. Per `lib/user-prompts.md`.
 
-## Pre-Flight Checks
+## When to use
 
-No pre-flight checks needed. This skill creates local plugin files.
-
-## When to Use
-
-Use for:
-- Creating brand new plugins with custom skills
+- Creating brand-new plugins with custom skills
 - Packaging custom workflows
 - Building org-specific capabilities
-- Creating skills beyond bootstrap plugins
+- Scaffolding skills beyond the bootstrap plugins in this marketplace
 
-Do **not** use for:
+**Do NOT use for:**
+
 - Modifying existing plugins (edit directly)
-- Installing plugins from catalog (use /core:install)
-- Creating simple one-off scripts (use chat instead)
+- Installing plugins from catalog (use `/runesmith-core:install`)
+- Creating simple one-off scripts (use chat or a temp file)
 
 ## Workflow
 
-### 1. Describe the Plugin
+### 1. Pre-flight read
 
-Ask user:
-- Plugin name (kebab-case, e.g., my-plugin)
-- Description (one-line: what does it do?)
-- Author/organization
-- How many skills? (1-10 recommended)
+Before any user prompts, read these lib files into context:
 
-### 2. For Each Skill
+- `lib/plugin-json-schema.md`
+- `lib/skill-md-frontmatter.md`
+- `lib/cowork-hard-rules.md`
+- `lib/build-and-audit.md`
 
-Ask:
-- Skill name (kebab-case, e.g., my-skill)
-- Description (when to use it)
-- Trigger keywords (what words invoke it?)
-- What should it do? (workflow description)
+If any are missing, this skill is broken; surface the missing reference and stop.
 
-### 3. Generate Plugin Structure
+### 2. Describe the plugin (structured prompts)
 
-Create directory in workspace:
+Collect via separate structured prompts:
 
-```
-/plugins/{plugin-name}/
-  .claude-plugin/
-    plugin.json
-  skills/
-    {skill-1}/
-      SKILL.md
-    {skill-2}/
-      SKILL.md
-  README.md
-```
+- **Plugin name** (text input): kebab-case-lowercase. Show normalized form alongside raw input. Reject names that collide with installed marketplaces.
+- **One-line description** (text input): single sentence, what the plugin does. Used as the seed for the longer `plugin.json` description in step 4.
+- **Author / org** (text input): defaults to the workspace owner if known.
+- **Number of skills** (single-pick): 1-3 / 4-6 / 7+. Influences the per-skill prompting depth in step 3.
 
-Generate:
-- plugin.json with metadata
-- SKILL.md files with guard rails pattern
-- README.md with plugin overview
+### 3. For each skill (structured prompts, per skill)
 
-### 4. Review & Iterate
+Collect via separate structured prompts:
 
-Show generated files in chat:
-- Ask user to review skill workflows
-- Adjust descriptions or triggers
-- Refine guard rails if needed
-
-### 5. Package Plugin
-
-Zip plugin directory:
-```
-/plugins/{plugin-name}/ → /plugins/{plugin-name}.plugin
-```
-
-Create .plugin file (zipped archive) in workspace root.
-
-### 6. Install Plugin
-
-Instructions for user:
-- Drag .plugin file into Cowork sidebar
-- Restart Claude if needed
-- Skills now available as /plugin-name:skill-name
-
-Report:
-
-```
-✓ Plugin created and packaged
-
-Plugin: {plugin-name}
-Skills: {skill-1}, {skill-2}, ...
-
-Package: {plugin-name}.plugin
-Location: /plugins/
-
-To install:
-1. Drag {plugin-name}.plugin into Cowork sidebar
-2. Restart Claude
-3. Try: /{plugin-name}:help
-```
-
-## Guard Rails
-
-- [ ] Plugin name is unique
-- [ ] All skills have descriptions and triggers
-- [ ] Guard rails pattern applied to all skills
-- [ ] plugin.json is valid JSON
-- [ ] Skills reviewed and approved
-- [ ] .plugin file is created and packaged
-- [ ] Installation instructions provided
-
-## Error Cases
-
-**Invalid plugin name:** "Use kebab-case (lowercase, hyphens). No spaces or special characters."
-
-**Duplicate plugin:** "Plugin name already exists. Choose a different name."
-
-**Invalid SKILL.md:** "Each skill needs name, description, and workflow."
-
-**Packaging failed:** "Could not create .plugin file. Check file permissions."
+- **Skill name** (text input): kebab-case-lowercase.
+- **Skill description seed** (
