@@ -1,7 +1,7 @@
 {
   "name": "runesmith-confluence",
   "version": "0.8.0",
-  "description": "[RuneSmith] Confluence page authoring with proper storage XHTML conversion. Skills cover feature specs, architecture decision records (ADRs), project overview landing pages, append-only decisions logs, known issues trackers, roadmap pages, and session logs. Drafts in markdown locally, converts and publishes on user consent. Optionally pulls plans/active/ as prefill source.",
+  "description": "[RuneSmith v0.8.0] Confluence page authoring with proper storage XHTML conversion. Skills cover feature specs, architecture decision records (ADRs), project overview landing pages, append-only decisions logs, known issues trackers, roadmap pages, and session logs. Drafts in markdown locally, converts and publishes on user consent. Optionally pulls plans/active/ as prefill source.",
   "author": {
     "name": "Runemark Labs"
   }

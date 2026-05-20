@@ -1,7 +1,7 @@
 {
   "name": "runesmith-workspace",
   "version": "0.8.1",
-  "description": "[RuneSmith] Workspace structure manager. Single source of truth for the canonical layout (_INBOX drop zone, plans/active with per-plan tickets/refs, notes, drafts, research, source-docs, archive/superseded, archive/tickets-pushed). /reallocate migrates from any prior shape (auto-snapshots) and pins folder-conventions into CLAUDE.md so future sessions stay coherent. /inbox classifies dropped files and routes them to their canonical homes on consent.",
+  "description": "[RuneSmith v0.8.1] Workspace structure manager. Single source of truth for the canonical layout (_INBOX drop zone, plans/active with per-plan tickets/refs, notes, drafts, research, source-docs, archive/superseded, archive/tickets-pushed). /reallocate migrates from any prior shape (auto-snapshots) and pins folder-conventions into CLAUDE.md so future sessions stay coherent. /inbox classifies dropped files and routes them to their canonical homes on consent.",
   "author": {
     "name": "Runemark Labs"
   }
