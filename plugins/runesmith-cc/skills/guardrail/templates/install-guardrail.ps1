@@ -328,16 +328,44 @@ function Test-Hook([string]$HookPath, [bool]$UseGitBash) {
         tool_input      = @{ command = "cat /tmp/.credentials" }
     } | ConvertTo-Json -Compress
 
-    if ($UseGitBash) {
-        $allowExit = $allowEvent | & bash $HookPath 2>$null
-        $allowCode = $LASTEXITCODE
-        $denyExit  = $denyEvent  | & bash $HookPath 2>$null
-        $denyCode  = $LASTEXITCODE
-    } else {
-        $allowExit = $allowEvent | & powershell -ExecutionPolicy Bypass -File $HookPath 2>$null
-        $allowCode = $LASTEXITCODE
-        $denyExit  = $denyEvent  | & powershell -ExecutionPolicy Bypass -File $HookPath 2>$null
-        $denyCode  = $LASTEXITCODE
+    # Write events to temp files. PowerShell's pipe sends pipeline objects,
+    # not actual stdin, so we must use Start-Process -RedirectStandardInput
+    # with a file path to get real stdin behavior into the child process.
+    $tmpAllow = Join-Path $env:TEMP "guardrail-test-allow.json"
+    $tmpDeny  = Join-Path $env:TEMP "guardrail-test-deny.json"
+    Set-Content -Path $tmpAllow -Value $allowEvent -NoNewline -Encoding utf8
+    Set-Content -Path $tmpDeny  -Value $denyEvent  -NoNewline -Encoding utf8
+
+    try {
+        if ($UseGitBash) {
+            $procAllow = Start-Process -FilePath bash -ArgumentList "`"$HookPath`"" `
+                -RedirectStandardInput $tmpAllow -NoNewWindow -Wait -PassThru `
+                -RedirectStandardOutput ([System.IO.Path]::GetTempFileName()) `
+                -RedirectStandardError  ([System.IO.Path]::GetTempFileName())
+            $allowCode = $procAllow.ExitCode
+
+            $procDeny = Start-Process -FilePath bash -ArgumentList "`"$HookPath`"" `
+                -RedirectStandardInput $tmpDeny -NoNewWindow -Wait -PassThru `
+                -RedirectStandardOutput ([System.IO.Path]::GetTempFileName()) `
+                -RedirectStandardError  ([System.IO.Path]::GetTempFileName())
+            $denyCode = $procDeny.ExitCode
+        } else {
+            $procAllow = Start-Process -FilePath powershell `
+                -ArgumentList '-ExecutionPolicy', 'Bypass', '-File', "`"$HookPath`"" `
+                -RedirectStandardInput $tmpAllow -NoNewWindow -Wait -PassThru `
+                -RedirectStandardOutput ([System.IO.Path]::GetTempFileName()) `
+                -RedirectStandardError  ([System.IO.Path]::GetTempFileName())
+            $allowCode = $procAllow.ExitCode
+
+            $procDeny = Start-Process -FilePath powershell `
+                -ArgumentList '-ExecutionPolicy', 'Bypass', '-File', "`"$HookPath`"" `
+                -RedirectStandardInput $tmpDeny -NoNewWindow -Wait -PassThru `
+                -RedirectStandardOutput ([System.IO.Path]::GetTempFileName()) `
+                -RedirectStandardError  ([System.IO.Path]::GetTempFileName())
+            $denyCode = $procDeny.ExitCode
+        }
+    } finally {
+        Remove-Item $tmpAllow, $tmpDeny -ErrorAction SilentlyContinue
     }
 
     return @{
@@ -492,53 +520,4 @@ function Invoke-Uninstall {
     Write-Host "`nRuneSmith CC Project-Boundary Guardrail - Uninstall" -ForegroundColor White
     Write-Host "==================================================="
 
-    if (-not (Test-Path $SettingsP)) {
-        Write-Warn "$SettingsP does not exist. Nothing to remove."
-        exit 0
-    }
-
-    try {
-        $raw = Get-Content $SettingsP -Raw
-        $existing = ConvertTo-Hashtable ($raw | ConvertFrom-Json)
-    } catch {
-        Write-Fail "Cannot parse $SettingsP as JSON. Aborting."
-        exit 1
-    }
-
-    if (-not $existing.ContainsKey($MarkerKey)) {
-        Write-Warn "Marker key absent. Guardrail does not appear to be installed."
-        exit 0
-    }
-
-    Write-Step "Removing marker keys"
-    $existing.Remove($MarkerKey) | Out-Null
-    $existing.Remove($KeysKey) | Out-Null
-
-    # We do NOT strip permissions.allow/deny entries by content - they may
-    # include user-managed copies. Warn the user instead.
-    Write-Warn "Note: permission rule entries added by the guardrail remain in"
-    Write-Warn "  permissions.allow / permissions.deny. They are no-ops without"
-    Write-Warn "  the hook, but you may want to review them manually."
-
-    Write-Step "Writing $SettingsP"
-    $json = $existing | ConvertTo-Json -Depth 20
-    Set-Content -Path $SettingsP -Value $json -Encoding UTF8
-
-    Write-Step "Removing hook scripts"
-    if (Test-Path $HookBash) { Remove-Item $HookBash -Force }
-    if (Test-Path $HookPs1)  { Remove-Item $HookPs1  -Force }
-
-    Write-Host ""
-    Write-Host "Status: OK - guardrail uninstalled" -ForegroundColor Green
-    Write-Host ""
-    Write-Host "Warning: Claude Code sessions on this machine no longer have a project boundary." -ForegroundColor Yellow
-    Write-Host "Restart any open CC sessions for the change to take effect." -ForegroundColor Yellow
-}
-
-# ---------- Dispatch ----------
-
-switch ($Mode) {
-    'install'   { Invoke-Install }
-    'verify'    { Invoke-Verify }
-    'uninstall' { Invoke-Uninstall }
-}
+    if (-not (Test-Path $SettingsP

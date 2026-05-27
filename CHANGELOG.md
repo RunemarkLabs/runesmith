@@ -10,6 +10,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 (See 0.7.3 below - format conversion alone was not the fix.)
 
+## [0.8.4] - 2026-05-27
+
+### Fixed (runesmith-cc)
+- **install-guardrail.ps1 Test-Hook function** - synthetic deny-case verify returned exit 0 instead of exit 2. Root cause: PowerShell pipe `$json | & bash $hook` sends pipeline OBJECTS to child stdin, not actual stdin bytes. The bash hook read empty stdin, hit the catch-all "no event - allow" branch, returned 0. Fix: write JSON to temp file, use `Start-Process -RedirectStandardInput $tempPath` which gives real stdin redirection. Install itself was always working; only the self-verification step was lying.
+
+### Added (scripts/)
+- **scripts/bump-version.py** - atomic per-plugin version bump. Updates plugin.json version + plugin.json description prefix + marketplace.json plugin entry description + marketplace.json metadata.version (max across all plugins). Eliminates the 4-place hand-sync we've been doing manually. Usage: `python scripts/bump-version.py {plugin-name} {new-version}`.
+
+### Versions
+- runesmith-cc 0.8.1 -> 0.8.2
+- Marketplace metadata.version unchanged at 0.8.2 (devtools still the max)
+- Other plugins unchanged
+
 ## [0.8.3] - 2026-05-27
 
 ### Added (runesmith-cc)
@@ -213,12 +226,4 @@ A Cowork session in another workspace dispatched Claude Code, which read `.crede
 ### Fixed
 - `runesmith-workspace:reallocate` no longer auto-routes `research/`, `source-docs/`, or loose root markdown into `_INBOX/`. The skill previously inherited stale assumptions from pre-plugin-era `cowork-bootstrap` config.
 - `runesmith-workspace:reallocate` now has an explicit hard boundary at `{PROJECT}.cc/<repo>/`. Repo internals are CC's territory; reallocate moves repos as whole units when migrating and stops at the boundary.
-- `runesmith-devtools:tech-debt` rewritten around a cross-reference graph (plans → refs/tickets/decisions → research/source-docs/drafts) rather than age heuristics. Identifies what is ACTUALLY tech debt (unreferenced from any live plan or recent note), not just what is old. On-the-fly graph by default; structured option for cached mode on heavy workspaces.
-- All 4 copies of `lib/plan-format.md` (workspace, sprint, confluence, core) now agree on the per-plan directory shape and the post-push ticket archive path.
-
-### Upgrade notes
-Re-install plugins or run `/runesmith-core:sync` to pick up 0.5.0. Then run `/runesmith-workspace:reallocate` in any existing workspace to normalize to the new layout (snapshots first). If a `tickets/` directory exists at workspace root, reallocate will prompt for each JSON: which plan does it belong to, or archive to `archive/superseded/<YYYY-MM>/tickets-orphan/`.
-
-### Known issues (tracked, not blocking ship)
-- 73 files across plugins still reference the pre-rename plugin shorthand (`core:`, `atlassian:`, etc.) in documentation prose. Functional impact: none - slash commands use the full `runesmith-*` names. Documentation sweep is a follow-up.
-- `plugins/runesmith-devtools/commands/verify-separation.md` exists as a tombstone (dev sandbox could not dele
+- `runesmith-devtools:tech-debt` rewritten around a cross-reference graph (plans → refs/tickets/decisions → research/source-docs/drafts) rather than age heuristics. Identifies what is ACTUALLY tech debt (unrefer
