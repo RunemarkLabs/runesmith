@@ -68,9 +68,31 @@ Plugin and marketplace versions use SemVer:
 - **Minor (0.8.0 -> 0.9.0):** new skills, new features, backward-compatible changes.
 - **Major (0.x -> 1.0):** breaking changes to skill behavior, plugin schema, or user-facing workflow.
 
-Marketplace SemVer is independent of plugin SemVer. A common convention: bump marketplace version whenever any plugin inside bumps, tracking the highest plugin version.
+**Per-plugin versioning, not blanket bumps (HARD RULE).** Each plugin gets its own independent SemVer track. When a release touches `runesmith-workspace` and `runesmith-devtools` but not the other six plugins, ONLY those two bump. The unchanged plugins stay at their current version.
 
-Bump the version in `plugin.json` and in `marketplace.json` (the `metadata.version` field AND any per-plugin `description` if it changed) in the same commit as the change. Add a CHANGELOG entry.
+Wrong (do not do this):
+```
+v0.7.3: all 8 plugin.json bumped to 0.7.3
+```
+
+Right:
+```
+v0.8.1: runesmith-workspace 0.8.0 -> 0.8.1, runesmith-devtools 0.8.0 -> 0.8.1, other six unchanged
+```
+
+Why: each plugin is independently installable. A user installing one plugin should see the version that reflects that plugin's actual change history, not the marketplace-wide release counter. Blanket-bumping breaks the contract.
+
+**Marketplace SemVer is independent.** Convention: bump marketplace `metadata.version` whenever any plugin inside bumps, tracking the highest plugin version. So if any plugin moves to 0.8.1, marketplace moves to 0.8.1.
+
+**Description prefix carries the version.** Cowork's plugin directory UI shows the description but not the version field. Lead the description with the version: `"[MarketplaceName vX.Y.Z] {existing description}"`. Update both `plugin.json` and the corresponding `marketplace.json` plugin entry when the version bumps. A `scripts/bump-version.py` that updates all locations atomically for a single plugin is recommended.
+
+Per-bump checklist:
+1. Update the plugin's `plugin.json` `version` field.
+2. Update the plugin's `plugin.json` `description` prefix to the new version.
+3. Update the corresponding entry in `marketplace.json` `plugins[]` - same description prefix.
+4. Update `marketplace.json` `metadata.version` to the new highest version across all plugins.
+5. Add a CHANGELOG entry listing ONLY the plugins that actually moved.
+6. Run audit + build.
 
 ## Pre-flight before push
 

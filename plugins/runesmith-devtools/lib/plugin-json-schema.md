@@ -49,4 +49,4 @@ Kebab-case-lowercase. Pick a prefix that won't collide with public marketplaces 
 - `check_forbidden_plugin_fields()` - rejects `dependencies` explicitly. Extend the list as new offenders are identified.
 - `check_frontmatter_placeholders()` - scans plugin.json `description` for angle-bracket placeholders.
 - `check_no_emdashes()` - byte-level em-dash scan.
-- `check_no_emdash_json_escapes()
+- `check_no_emdash_json_escapes()` - JSON-decode then scan parsed strings for U+2014/U+2013.

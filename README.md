@@ -170,11 +170,10 @@ Produces `.plugin` zip files in `./dist/` (gitignored). For a custom output loca
 python scripts/build.py path/to/output
 ```
 
-The build performs three transformations:
+The build performs two transformations:
 
-1. Strips retired/orphan content from `cc-skill-templates/` and removed skills before zipping.
-2. Renames `cc-skill-templates/<n>/skill-template.md` → `.txt` so Cowork's plugin validator (which scans `**/SKILL.md` and `**/*.md` with skill frontmatter) ignores deploy-time templates.
-3. Zips with forward-slash paths inside the archive (zip spec requirement; bypasses Windows tooling that uses backslash separators).
+1. Strips retired skills and commands from the staged plugin before zipping (e.g. legacy `skills/verify-separation/` and `commands/verify-separation.md` if any tree still carries them). Defensive handling for any future `cc-skill-templates/` deploy-time templates remains in the script (delete `SKILL.md`, rename `skill-template.md` to `.txt`) so the Cowork validator never sees deploy-time skill stubs.
+2. Zips with forward-slash paths inside the archive (zip spec requirement; bypasses Windows tooling that uses backslash separators).
 
 Run `python scripts/audit.py` before any release - CI enforces it on every push.
 

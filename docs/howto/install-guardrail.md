@@ -2,16 +2,39 @@
 
 The guardrail constrains every Claude Code session on your machine to its launch project's root. It's the harness-level enforcement (Layer 2) that backs up the behavioral rules in `CLAUDE.md` (Layer 1).
 
-Install once per machine. Take this seriously - without it, a misdirected CC session can read `.credentials` from a sibling project and echo plaintext keys into the transcript. That's not theoretical; it's the 2026-05-17 incident that drove this skill into the marketplace.
+Install once per machine. Take this seriously - without it, a misdirected CC session can read `.credentials` from a sibling project and echo plaintext keys into the transcript. That's the 2026-05-17 incident that drove this skill into the marketplace.
 
-**The install runs INSIDE Claude Code, not Cowork.** Cowork's sandbox can't write to `~/.claude/` (it's outside the mounted workspace). CC has the right permissions and context to install its own user-level config.
+## One-shot install flow (v0.8.x)
+
+CC's own permission system blocks writes to `~/.claude/` from a CC session, so the install can't run inside CC itself. Instead, a self-contained installer script is copied to your workspace root and you run it once from your OS shell.
+
+1. From Cowork (any workspace), invoke `/runesmith-cc:guardrail install`.
+2. The skill copies `install-guardrail.ps1` (Windows) or `install-guardrail.sh` (macOS/Linux) to the workspace root.
+3. Open PowerShell or Terminal in the workspace root and run:
+   - Windows: `.\install-guardrail.ps1`
+   - macOS/Linux: `./install-guardrail.sh`
+4. The installer writes the `~/.claude/settings.json` permission block + `~/.claude/hooks/enforce-project-boundary.sh`, runs synthetic verification (allow case returns 0, deny case returns 2), and reports paths and residual risks.
+5. Restart any open Claude Code sessions to pick up the new user-level config.
+
+That's the whole install. No multi-step copy-paste. No JSON merge by hand.
 
 ## Prerequisites
 
 - RuneSmith marketplace installed in Cowork (specifically `runesmith-cc`).
-- A workspace bootstrapped with `/runesmith-cc:bootstrap-cc` - this deploys the CC-side guardrail skill template into `{PROJECT}.cc/.claude/skills/guardrail/`.
-- A code repo exists at `{PROJECT}.cc/<repo>/` to launch CC from.
-- `jq` installed (for the bash hook variant). Install via `brew install jq` (macOS), `apt install jq` (Debian/Ubuntu), `choco install jq` (Windows).
+- `jq` installed. Install via `brew install jq` (macOS), `apt install jq` (Debian/Ubuntu), `choco install jq` (Windows).
+- On Windows, Git Bash is required if you want the bash variant of the hook; otherwise the PowerShell variant ships alongside.
+
+## Installer modes
+
+The installer accepts a mode argument so the same script handles install, verify, and uninstall.
+
+| Action | PowerShell | Bash |
+|---|---|---|
+| Install (default) | `.\install-guardrail.ps1` | `./install-guardrail.sh` |
+| Verify | `.\install-guardrail.ps1 -Mode verify` | `./install-guardrail.sh verify` |
+| Uninstall | `.\install-guardrail.ps1 -Mode uninstall` | `./install-guardrail.sh uninstall` |
+
+Re-running the install mode is idempotent and repairs drift.
 
 ## What gets installed
 
@@ -26,11 +49,11 @@ User-level `~/.claude/settings.json` gains a marker-bounded block (so uninstall 
     "allow": [
       "Read(/**)", "Edit(/**)", "Write(/**)",
       "Grep", "Glob",
-      "Bash(ls *)", "Bash(cat *)", ...
+      "Bash(ls *)", "Bash(cat *)", "..."
     ],
     "deny": [
-      "Read(//**/.credentials*)", "Read(//**/.env)", ...,
-      "Bash(curl *)", "Bash(wget *)", ...
+      "Read(//**/.credentials*)", "Read(//**/.env)", "...",
+      "Bash(curl *)", "Bash(wget *)", "..."
     ]
   },
   "hooks": {
@@ -45,92 +68,16 @@ User-level `~/.claude/settings.json` gains a marker-bounded block (so uninstall 
 }
 ```
 
-Plus the hook script at `~/.claude/hooks/enforce-project-boundary.sh` (bash) and `enforce-project-boundary.ps1` (PowerShell shim, Windows without Git Bash).
+Plus the hook script at `~/.claude/hooks/enforce-project-boundary.sh` (bash) and `enforce-project-boundary.ps1` (PowerShell shim on Windows).
 
-The `/path` syntax in `Read(/**)` is **project-relative** in Claude Code's permission system. It resolves to whichever project the session was launched in. User-level rules with `/path` anchors automatically scope to the active project.
-
-## Install
-
-### Step 1 - Launch Claude Code in a CC-headed repo
-
-From a terminal:
-
-```bash
-cd ~/Projects/<your-project>/<your-project>.cc/<repo>/
-claude
-```
-
-Or open Claude Desktop's Code tab and point it at the same folder. The CC session must be inside a folder where `bootstrap-cc` has deployed the guardrail skill template (`<repo>/.claude/skills/guardrail/SKILL.md` exists).
-
-### Step 2 - Run the install
-
-Inside the CC session:
-
-```
-/guardrail install
-```
-
-(Or invoke by name: "install the guardrail," "set up the project boundary.")
-
-What happens:
-1. Detects OS (macOS / Linux / Windows). Sets target paths accordingly.
-2. Structured prompt: install / cancel.
-3. If `~/.claude/settings.json` doesn't exist, creates it as `{}`. If it does, parses it. Fails loudly on invalid JSON; never overwrites unreadable files.
-4. JSON-aware merge of the guardrail block. User-managed keys outside the block survive.
-5. Writes the hook script to `~/.claude/hooks/enforce-project-boundary.sh` (+ PowerShell variant on Windows). `chmod +x` on Unix.
-6. Verify: pipes a synthetic deny case + allow case through the hook, confirms exit codes are 2 and 0.
-7. Reports settings path, hook script path, what's covered, residual risks, and the next step (restart open CC sessions).
-
-If the file already contains a `_runesmith_guardrail_marker` from a prior install, the skill prompts: `update existing` / `reinstall fresh` / `cancel`.
-
-### Step 3 - Restart Cowork and any open CC sessions
-
-The user-level permission rules and hook load at session start. Existing sessions don't pick up the changes until they restart.
-
-## Cowork-side helper
-
-If you don't want to remember the CC-side commands, run from Cowork:
-
-```
-/runesmith-cc:guardrail
-```
-
-This Cowork-side skill produces an instructional report with the exact commands for your OS, paths substituted for your host, and a confirmation that bootstrap-cc has been run. It does NOT install - Cowork's sandbox can't reach `~/.claude/`. It just walks you to the CC-side install.
-
-## Uninstall
-
-From inside CC:
-
-```
-/guardrail uninstall
-```
-
-Removes only the entries the skill added (identified by `_runesmith_guardrail_keys`). User-managed entries in `permissions.allow`, `permissions.deny`, and `hooks.PreToolUse` survive.
-
-Removes both the bash and PowerShell hook scripts from `~/.claude/hooks/`.
-
-Prints a warning: CC sessions on this machine no longer have a project boundary until you re-install.
-
-## Verify
-
-```
-/runesmith-cc:guardrail verify
-```
-
-Checks:
-- `_runesmith_guardrail_marker` is present in settings.
-- All curated allow/deny entries are present.
-- `hooks.PreToolUse` includes the boundary matcher.
-- Hook script smoke-tests pass (synthetic deny case returns exit 2, synthetic allow case returns exit 0).
-
-Reports each check. If anything fails, suggests `install` to repair.
+The `/path` syntax in `Read(/**)` is project-relative in Claude Code's permission system. It resolves to whichever project the session was launched in. User-level rules with `/path` anchors automatically scope to the active project.
 
 ## What this prevents
 
 - **Cross-project filesystem reads.** `Read(/**)` allows reads inside the active project root only. Outside is denied by `defaultMode: "dontAsk"`. Sibling-project `.credentials` reads return permission deny.
-- **Categorical credential reads.** `Read(//**/.credentials*)`, `Read(//**/.env*)`, `Read(//**/id_rsa*)`, `Read(//**/*.key)`, `Read(//**/*.pem)`, `Read(~/.ssh/**)`, `Read(~/.aws/**)`. Deny-first precedence wins even if an allow rule would otherwise match.
+- **Categorical credential reads.** `Read(//**/.credentials*)`, `Read(//**/.env*)`, `Read(//**/id_rsa*)`, `Read(//**/*.key)`, `Read(//**/*.pem)`, `Read(~/.ssh/**)`, `Read(~/.aws/**)`. Deny-first precedence wins even if an allow rule would match.
 - **Bash exfil verbs.** `Bash(curl *)`, `Bash(wget *)`, `Bash(nc *)`, `Bash(ssh *)`, `Bash(scp *)`. Best-effort; the hook also scans command strings for sensitive-name reads via `cat`/`head`/`tail`/`type`/`Get-Content`.
-- **Bash subprocess file access.** Permission rules don't protect against `python -c "open('../sibling/.env').read()"` - that's a subprocess, not a tool call. The hook inspects Bash command strings and blocks reads of sensitive paths or paths outside the project boundary. Best-effort against accidents.
+- **Bash subprocess file access.** The hook inspects Bash command strings and blocks reads of sensitive paths or paths outside the project boundary. Best-effort against accidents, not adversarial bash.
 
 ## What this does NOT prevent
 
@@ -157,13 +104,11 @@ Reports each check. If anything fails, suggests `install` to repair.
 }
 ```
 
-Document the reason in the project's `.claude/README.md`. Future maintainers should know why the boundary was widened.
-
-You cannot allow what the user-level guardrail denies - deny-first precedence wins. Categorical secret-name and exfil denies always apply.
+Document the reason in the project's `.claude/README.md`. You cannot allow what the user-level guardrail denies - deny-first precedence wins. Categorical secret-name and exfil denies always apply.
 
 ## Sapient Industries managed-settings option (Team / Enterprise)
 
-If your org is on Cowork Team or Enterprise, an admin can ship the guardrail block as **managed settings** instead of user-level. Two extra keys:
+If your org is on Cowork Team or Enterprise, an admin can ship the guardrail block as managed settings instead of user-level. Two extra keys:
 
 ```json
 {
@@ -174,18 +119,16 @@ If your org is on Cowork Team or Enterprise, an admin can ship the guardrail blo
 }
 ```
 
-Result: every CC session in the org loads only managed hooks and managed permission rules. Users can't disable the boundary. Stronger guarantee for enforcement-mandated environments.
-
-The marketplace doesn't ship this directly - managed settings deployment is an admin workflow. Use the user-level install pattern as the template; deploy through your org's MDM or managed-settings file delivery mechanism.
+Result: every CC session in the org loads only managed hooks and managed permission rules. Users can't disable the boundary. Deploy through your org's MDM or managed-settings file delivery mechanism.
 
 ## Troubleshooting
 
-**Hook runs but doesn't block.** Check `~/.claude/hooks/boundary.log` for the action trail. If the file is empty, the hook isn't being called - verify `settings.json` includes the `hooks.PreToolUse` entry pointing at the script's absolute path.
+**Hook runs but doesn't block.** Check `~/.claude/hooks/boundary.log` for the action trail. If empty, the hook isn't being called - verify `settings.json` includes the `hooks.PreToolUse` entry pointing at the script's absolute path. Re-run install to repair.
 
-**`jq: command not found`.** Install jq or use the PowerShell variant. The hook short-circuits with an advisory-only warning if jq is missing; you don't get the Bash containment in that case.
+**`jq: command not found`.** Install jq or use the PowerShell variant. The hook short-circuits with an advisory-only warning if jq is missing.
 
-**`CLAUDE_PROJECT_DIR not set` warning in logs.** The hook is being invoked outside a Claude Code project session. Harmless - the hook allows the call and logs a notice. If you see this on every CC tool call, verify your session was launched with `--cwd` or inside a project root.
+**`CLAUDE_PROJECT_DIR not set` warning in logs.** The hook is being invoked outside a Claude Code project session. Harmless - the hook allows the call and logs a notice.
 
-**Settings file got mangled.** The skill aborts and rolls back if the install verify step fails. If it didn't roll back cleanly (rare), uninstall to remove the guardrail block, then manually inspect `~/.claude/settings.json` for any leftover `_runesmith_guardrail_*` keys.
+**Settings file got mangled.** The installer aborts and rolls back if verify fails. If rollback didn't run cleanly, run `uninstall` to remove the guardrail block, then inspect `~/.claude/settings.json` for leftover `_runesmith_guardrail_*` keys.
 
-**Plugin update broke the guardrail.** Run `/runesmith-cc:guardrail verify`. If anything reports FAIL, run `install` again - it's idempotent and will repair drift.
+**Verify reports FAIL after a plugin update.** Re-run install. It's idempotent and repairs drift.

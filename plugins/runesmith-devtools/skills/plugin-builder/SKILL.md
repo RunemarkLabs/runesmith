@@ -66,4 +66,5 @@ Collect via separate structured prompts:
 Collect via separate structured prompts:
 
 - **Skill name** (text input): kebab-case-lowercase.
-- **Skill description seed** (
+- **Skill description seed** (text input): one sentence stating what the skill does. The full description in step 5 will pack this with trigger phrases.
+- **Trigger phrases** (text input, multi-line): list of natural-language phrases users might say to invoke this skill. 

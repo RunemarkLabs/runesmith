@@ -43,6 +43,22 @@ Don't conflate the two. Don't surrender on a sandbox bug as if it were a permiss
 
 **Confirm scope before acting.** When the user asks for something that touches files, external systems, or destructive operations, restate the plan briefly and wait for go. Don't assume.
 
+### Comms hygiene (reply STATUS line)
+
+**Every CC reply comm starts with an explicit `STATUS:` line** immediately after the `# Title` header, before any "Done" section or prose. Allowed values: `complete`, `partial`, `blocked`, `failed`. Partial/blocked/failed include a one-line context field (`Why partial:`, `Blocker:`, `Error:` respectively).
+
+**Why:** Cowork (and the human reading over Cowork's shoulder) needs scannable triage signal. Without STATUS, every reply has to be read in full to know whether it's a celebration, a triage, or a fix request. Reply comms accumulate fast in sprint mode; without the convention they become unreadable as a stream.
+
+**How to apply:** When writing any reply comm, the first content line under `# Title` is `STATUS: <value>`. No prose before it. Pair with an outcome-specific context line on partial/blocked/failed. The terminal banner rule below depends on this vocabulary.
+
+### End-of-task terminal signal
+
+**Every CC task ends with a high-visibility ANSI-colored terminal banner** as the LAST thing printed before stopping. The banner only prints AFTER the reply comm is written AND both task and reply comms are archived. Banner present = task is genuinely done at file level + terminal level. No banner = keep working.
+
+**Why:** On 2026-05-26, a CC session finished all the work of a Resend domain swap (notes written, .credentials updated, DNS verified) but never wrote the reply comm or archived the task files. From the terminal view it was indistinguishable from "still working." User had to inspect files manually to confirm. The fix: require terminal-level proof of completion in addition to the file-level STATUS line. Two channels, one contract.
+
+**How to apply:** When the task is functionally complete, execute the close-out sequence in order: (1) write reply comm with STATUS line; (2) move task + reply comms to `comms/archive/{YYYY-MM}/{slug}/`; (3) stage commits (do NOT push unless explicitly told); (4) print the ANSI banner via `echo -e` with color matching the STATUS value (green for complete, yellow for partial, red for blocked/failed). The banner shape - divider, headline, status/reply/archive/commits/next fields, divider - must be unmistakable even in mono-color fallback. See the CC head CLAUDE.md marker block for the exact banner format. Until the banner prints, the task is NOT done even if the work landed.
+
 ### Placeholder syntax
 
 **Always use curly braces** `{PLACEHOLDER}` for template values. **Never** use angle brackets `<placeholder>` in plugin SKILL.md frontmatter, `plugin.json` descriptions, or any plugin metadata that ships to users. Cowork's upload validator rejects `<word>` as unsubstituted templating syntax with a generic "Plugin validation failed" error that's hard to debug.

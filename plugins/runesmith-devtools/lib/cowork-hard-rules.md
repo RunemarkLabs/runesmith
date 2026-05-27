@@ -120,4 +120,4 @@ If behavior bleeds into CLAUDE.md, the role drifts whenever folder structure cha
 | 9 | Sandbox shadow desync | Bash "No such file" on real path | Switch to direct file tools |
 | 10 | Skill not idempotent | Second run mutates state again | Detect canonical state, no-op |
 | 11 | Marker block clobbers user content | User edits lost | Replace only between markers |
-| 12 | Behavior/structure leaking between CLAUDE.md and Project Instructions | Stale or drifti
+| 12 | Behavior/structure leaking between CLAUDE.md and Project Instructions | Stale or drifting role | Strict separation, behavior in UI field |

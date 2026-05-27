@@ -10,6 +10,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 (See 0.7.3 below - format conversion alone was not the fix.)
 
+## [0.8.3] - 2026-05-27
+
+### Added (runesmith-cc)
+- **Comms hygiene rule** in the CC head agent-ops marker block: every reply comm starts with an explicit `STATUS:` line (`complete` / `partial` / `blocked` / `failed`) before any prose. Pairs partial/blocked/failed with a context line (`Why partial:`, `Blocker:`, `Error:`).
+- **End-of-task terminal banner** rule: every CC task ends with a high-visibility ANSI-colored terminal banner as the LAST thing printed, only after the reply comm is written AND comms are archived. Color matches the STATUS value (green/yellow/red). Banner visible = task done at both file level and terminal level. No banner = keep working.
+- Both rules in lib/agent-operating-principles.md (CC-side rationale) and bootstrap-cc/templates/CLAUDE.parent.md (deployed marker block).
+
+### Why
+On 2026-05-26 a Resume Unbound CC session finished all the functional work of a domain swap but never wrote the reply comm or archived the task files. From the terminal view it was indistinguishable from "still working." File-level STATUS line + terminal-level banner together give two-channel certainty about task state.
+
+### Versions
+- runesmith-cc 0.8.0 -> 0.8.1 (or claude-forge-cc for Sapient)
+- Marketplace metadata.version unchanged at 0.8.2 (devtools is still the highest)
+- Other plugins unchanged
+
 ## [0.8.2] - 2026-05-19
 
 ### Added (devtools)
@@ -190,4 +205,20 @@ A Cowork session in another workspace dispatched Claude Code, which read `.crede
 - `runesmith-sprint:plan-to-tickets` now persists ticket drafts to `plans/active/<slug>/tickets/<DRAFT-ID>.json` BEFORE push (survives across sessions, reviewable on disk) and archives pushed drafts to `archive/tickets-pushed/<YYYY-MM>/<JIRA-KEY>.json`.
 - **`runesmith-cc/cc-skill-templates/code-tech-debt/SKILL.md`** - new CC-side skill template for repo-level dead-code / unused-export / unused-dep scanning. Deployed by `bootstrap-cc` into `{PROJECT}.cc/.claude/skills/code-tech-debt/` so the skill is callable from CC via slash command. Per-language analyzers (TS, JS/Node, React, Next.js, Python in v1) governed by an extensible registry.
 - **`runesmith-cc/lib/code-analyzers.md`** - per-language analyzer registry (detection signal, preferred tool, fallback heuristic, findings categories, cross-reference checks). Extensible by adding new language entries; the skill reads from the registry without code change.
-- **Agent operating principles baked into every Forge-bootstrapped workspace.** Standard operating knowledge (sandbox-vs-real-fs distinction, file-ops as agent territory, destructive-op gates, structured prompts) now ships as a marker-bounded section (`<!-- agent-ops:start/end -->`) written into both the workspace root `CLAUDE.m
+- **Agent operating principles baked into every Forge-bootstrapped workspace.** Standard operating knowledge (sandbox-vs-real-fs distinction, file-ops as agent territory, destructive-op gates, structured prompts) now ships as a marker-bounded section (`<!-- agent-ops:start/end -->`) written into both the workspace root `CLAUDE.md` (by `reallocate`) and the CC head `CLAUDE.md` (by `bootstrap-cc`). Idempotent - re-runs refresh content between markers, user additions outside markers preserved. Source: `runesmith-workspace/lib/agent-operating-principles.md` (copied into `runesmith-cc/lib/` per the self-contained plugin rule). New marker template: `runesmith-workspace/lib/claude-md-agent-ops-section.md`.
+
+### Removed
+- **`/runesmith-devtools:verify-separation`** - retired. The workspace/repo boundary is enforced by the canonical structure (`{PROJECT}.cc/` contains source repos; everything else is workspace) and by forking as the customization path. The skill's check logic predated the plugin model and referenced a `.claude/skills/` workspace pattern that no longer exists.
+
+### Fixed
+- `runesmith-workspace:reallocate` no longer auto-routes `research/`, `source-docs/`, or loose root markdown into `_INBOX/`. The skill previously inherited stale assumptions from pre-plugin-era `cowork-bootstrap` config.
+- `runesmith-workspace:reallocate` now has an explicit hard boundary at `{PROJECT}.cc/<repo>/`. Repo internals are CC's territory; reallocate moves repos as whole units when migrating and stops at the boundary.
+- `runesmith-devtools:tech-debt` rewritten around a cross-reference graph (plans → refs/tickets/decisions → research/source-docs/drafts) rather than age heuristics. Identifies what is ACTUALLY tech debt (unreferenced from any live plan or recent note), not just what is old. On-the-fly graph by default; structured option for cached mode on heavy workspaces.
+- All 4 copies of `lib/plan-format.md` (workspace, sprint, confluence, core) now agree on the per-plan directory shape and the post-push ticket archive path.
+
+### Upgrade notes
+Re-install plugins or run `/runesmith-core:sync` to pick up 0.5.0. Then run `/runesmith-workspace:reallocate` in any existing workspace to normalize to the new layout (snapshots first). If a `tickets/` directory exists at workspace root, reallocate will prompt for each JSON: which plan does it belong to, or archive to `archive/superseded/<YYYY-MM>/tickets-orphan/`.
+
+### Known issues (tracked, not blocking ship)
+- 73 files across plugins still reference the pre-rename plugin shorthand (`core:`, `atlassian:`, etc.) in documentation prose. Functional impact: none - slash commands use the full `runesmith-*` names. Documentation sweep is a follow-up.
+- `plugins/runesmith-devtools/commands/verify-separation.md` exists as a tombstone (dev sandbox could not dele
