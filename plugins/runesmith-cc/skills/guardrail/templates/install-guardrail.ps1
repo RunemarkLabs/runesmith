@@ -520,4 +520,53 @@ function Invoke-Uninstall {
     Write-Host "`nRuneSmith CC Project-Boundary Guardrail - Uninstall" -ForegroundColor White
     Write-Host "==================================================="
 
-    if (-not (Test-Path $SettingsP
+    if (-not (Test-Path $SettingsP)) {
+        Write-Warn "$SettingsP does not exist. Nothing to remove."
+        exit 0
+    }
+
+    try {
+        $raw = Get-Content $SettingsP -Raw
+        $existing = ConvertTo-Hashtable ($raw | ConvertFrom-Json)
+    } catch {
+        Write-Fail "Cannot parse $SettingsP as JSON. Aborting."
+        exit 1
+    }
+
+    if (-not $existing.ContainsKey($MarkerKey)) {
+        Write-Warn "Marker key absent. Guardrail does not appear to be installed."
+        exit 0
+    }
+
+    Write-Step "Removing marker keys"
+    $existing.Remove($MarkerKey) | Out-Null
+    $existing.Remove($KeysKey) | Out-Null
+
+    # We do NOT strip permissions.allow/deny entries by content - they may
+    # include user-managed copies. Warn the user instead.
+    Write-Warn "Note: permission rule entries added by the guardrail remain in"
+    Write-Warn "  permissions.allow / permissions.deny. They are no-ops without"
+    Write-Warn "  the hook, but you may want to review them manually."
+
+    Write-Step "Writing $SettingsP"
+    $json = $existing | ConvertTo-Json -Depth 20
+    Set-Content -Path $SettingsP -Value $json -Encoding UTF8
+
+    Write-Step "Removing hook scripts"
+    if (Test-Path $HookBash) { Remove-Item $HookBash -Force }
+    if (Test-Path $HookPs1)  { Remove-Item $HookPs1  -Force }
+
+    Write-Host ""
+    Write-Host "Status: OK - guardrail uninstalled" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Warning: Claude Code sessions on this machine no longer have a project boundary." -ForegroundColor Yellow
+    Write-Host "Restart any open CC sessions for the change to take effect." -ForegroundColor Yellow
+}
+
+# ---------- Dispatch ----------
+
+switch ($Mode) {
+    'install'   { Invoke-Install }
+    'verify'    { Invoke-Verify }
+    'uninstall' { Invoke-Uninstall }
+}

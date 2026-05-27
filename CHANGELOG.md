@@ -10,6 +10,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 (See 0.7.3 below - format conversion alone was not the fix.)
 
+## [0.8.5] - 2026-05-27
+
+### Fixed (runesmith-cc)
+- **agent-operating-principles.md cross-plugin refs.** The CC-side rationale file referenced `lib/folder-conventions.md` and `lib/claude-md-agent-ops-section.md` as if they lived in `runesmith-cc/lib/`, but those files actually live in `runesmith-workspace/lib/`. Per the cross-project boundary rule, CC-side docs should be self-contained; rewrote to drop the cross-plugin refs.
+
+### Changed (runesmith-devtools)
+- **Plugin-builder SKILL.md restructure.** Moved detailed workflow steps + Guard Rails + Error cases + Release maintenance into new `lib/plugin-builder-workflow.md`. SKILL.md is now compact (intent + references + workflow overview). Sidesteps a Cowork-side linter that was truncating writes past ~70 lines on this specific SKILL.md.
+
+### Versions
+- runesmith-cc 0.8.2 -> 0.8.3
+- runesmith-devtools 0.8.2 -> 0.8.3
+- Marketplace metadata.version 0.8.3 -> 0.8.5 (release counter advance; max plugin version is 0.8.3; convention: marketplace.metadata.version may exceed max plugin version when shipping multi-plugin coordinated releases)
+- Other plugins unchanged
+
 ## [0.8.4] - 2026-05-27
 
 ### Fixed (runesmith-cc)
@@ -221,9 +235,4 @@ A Cowork session in another workspace dispatched Claude Code, which read `.crede
 - **Agent operating principles baked into every Forge-bootstrapped workspace.** Standard operating knowledge (sandbox-vs-real-fs distinction, file-ops as agent territory, destructive-op gates, structured prompts) now ships as a marker-bounded section (`<!-- agent-ops:start/end -->`) written into both the workspace root `CLAUDE.md` (by `reallocate`) and the CC head `CLAUDE.md` (by `bootstrap-cc`). Idempotent - re-runs refresh content between markers, user additions outside markers preserved. Source: `runesmith-workspace/lib/agent-operating-principles.md` (copied into `runesmith-cc/lib/` per the self-contained plugin rule). New marker template: `runesmith-workspace/lib/claude-md-agent-ops-section.md`.
 
 ### Removed
-- **`/runesmith-devtools:verify-separation`** - retired. The workspace/repo boundary is enforced by the canonical structure (`{PROJECT}.cc/` contains source repos; everything else is workspace) and by forking as the customization path. The skill's check logic predated the plugin model and referenced a `.claude/skills/` workspace pattern that no longer exists.
-
-### Fixed
-- `runesmith-workspace:reallocate` no longer auto-routes `research/`, `source-docs/`, or loose root markdown into `_INBOX/`. The skill previously inherited stale assumptions from pre-plugin-era `cowork-bootstrap` config.
-- `runesmith-workspace:reallocate` now has an explicit hard boundary at `{PROJECT}.cc/<repo>/`. Repo internals are CC's territory; reallocate moves repos as whole units when migrating and stops at the boundary.
-- `runesmith-devtools:tech-debt` rewritten around a cross-reference graph (plans → refs/tickets/decisions → research/source-docs/drafts) rather than age heuristics. Identifies what is ACTUALLY tech debt (unrefer
+- **`/runesmith-devtools:ve

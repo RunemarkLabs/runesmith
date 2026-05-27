@@ -12,11 +12,12 @@ The skill enforces the production-tested conventions documented in this plugin's
 
 ## References
 
+- `lib/plugin-builder-workflow.md` - detailed steps 3-9, idempotent re-run, guard rails, error cases, release maintenance
 - `lib/plugin-json-schema.md` - minimum manifest schema, forbidden fields, naming
 - `lib/skill-md-frontmatter.md` - required frontmatter, description format, trigger surface
 - `lib/cowork-hard-rules.md` - no em-dash, curly placeholders, structured prompts, marker sections, idempotence, sandbox shadow, two-tier context model, condensed pitfalls table
 - `lib/build-and-audit.md` - audit.py rules, build script, dist convention, CHANGELOG, versioning
-- `lib/release-maintenance.md` - HARD RULES for post-publish maintenance: per-plugin versioning (no blanket bumps), `[MarketplaceName vX.Y.Z]` description prefix, CHANGELOG-only-what-moved, per-bump checklist
+- `lib/release-maintenance.md` - HARD RULES for post-publish maintenance: per-plugin versioning, description prefix, CHANGELOG-only-what-moved, per-bump checklist
 - `lib/user-prompts.md` - structured prompt patterns
 - `lib/consent.md` - consent-gate trigger phrases
 
@@ -39,32 +40,14 @@ Every user prompt in this skill MUST use the host client's structured input UI (
 - Installing plugins from catalog (use `/runesmith-core:install`)
 - Creating simple one-off scripts (use chat or a temp file)
 
-## Workflow
+## Workflow overview
 
-### 1. Pre-flight read
+See `lib/plugin-builder-workflow.md` for detail on every step below.
 
-Before any user prompts, read these lib files into context:
-
-- `lib/plugin-json-schema.md`
-- `lib/skill-md-frontmatter.md`
-- `lib/cowork-hard-rules.md`
-- `lib/build-and-audit.md`
-
-If any are missing, this skill is broken; surface the missing reference and stop.
-
-### 2. Describe the plugin (structured prompts)
-
-Collect via separate structured prompts:
-
-- **Plugin name** (text input): kebab-case-lowercase. Show normalized form alongside raw input. Reject names that collide with installed marketplaces.
-- **One-line description** (text input): single sentence, what the plugin does. Used as the seed for the longer `plugin.json` description in step 4.
-- **Author / org** (text input): defaults to the workspace owner if known.
-- **Number of skills** (single-pick): 1-3 / 4-6 / 7+. Influences the per-skill prompting depth in step 3.
-
-### 3. For each skill (structured prompts, per skill)
-
-Collect via separate structured prompts:
-
-- **Skill name** (text input): kebab-case-lowercase.
-- **Skill description seed** (text input): one sentence stating what the skill does. The full description in step 5 will pack this with trigger phrases.
-- **Trigger phrases** (text input, multi-line): list of natural-language phrases users might say to invoke this skill. 
+1. **Pre-flight read** - load the four hard-rule lib files into context. If any are missing, the skill is broken; surface and stop.
+2. **Describe the plugin** (structured prompts) - plugin name, one-line description, author, number of skills.
+3. **For each skill** (structured prompts, per skill) - name, description seed, trigger phrases, workflow summary, mutations flag. See lib for full prompt list.
+4. **Generate plugin scaffold** - create `plugins/{plugin-name}/` with `.claude-plugin/plugin.json`, per-skill `SKILL.md`, empty `lib/`, and `README.md`. Plugin.json uses minimum schema only (name, version, description, author).
+5. **Generate each SKILL.md** - YAML frontmatter (single-line quoted description, compatibility field, name matches folder), body with References / User input rules / Pre-flight / When-to-use / Workflow / Idempotent re-run / Guard Rails / Error cases. Mutation skills include consent gate; file-writing skills use marker-bounded sections.
+6. **Review and iterate** - surface generated files, prompt looks-good / edit / cancel.
+7. **Run audit** - `scripts/audit.py` if present. Do not proceed on

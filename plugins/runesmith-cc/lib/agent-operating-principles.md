@@ -67,7 +67,7 @@ Canonical placeholders: `{PROJECT}`, `{slug}`, `{KEY}`, `{YYYY-MM}`, `{PATH}`. S
 
 ### Workspace boundaries
 
-**Root stays clean** per the canonical folder conventions. New files go to `_INBOX/` or directly to their canonical home; never park transients at workspace root. See `lib/folder-conventions.md` for the destination map.
+**Root stays clean** per the canonical folder conventions. New files go to `_INBOX/` or directly to their canonical home; never park transients at workspace root. The workspace plugin owns the destination map; CC inherits the rule via the marker section written into the CC head `CLAUDE.md` at bootstrap.
 
 **Repo internals are off-limits to workspace skills.** Anything inside `{PROJECT}.cc/<repo>/` is CC's territory. Workspace skills (reallocate, inbox, tech-debt) move repos as whole units but never enter them. For repo-level cleanup, use the CC-side `code-tech-debt` skill deployed by `bootstrap-cc`.
 
@@ -103,7 +103,7 @@ Canonical placeholders: `{PROJECT}`, `{slug}`, `{KEY}`, `{YYYY-MM}`, `{PATH}`. S
 
 ## How agents inherit these principles
 
-1. `runesmith-workspace:reallocate` writes a marker-bounded section into the workspace root `CLAUDE.md` (template: `lib/claude-md-agent-ops-section.md`) on every run.
+1. The workspace plugin writes a marker-bounded section into the workspace root `CLAUDE.md` on every reallocate run.
 2. `runesmith-cc:bootstrap-cc` writes the same marker-bounded section into `{PROJECT}.cc/CLAUDE.md` so CC inherits the principles.
 3. Both Cowork and Claude Code load `CLAUDE.md` at session start. The marker section is part of the agent's working context.
 4. This source file (`agent-operating-principles.md`) is plugin-internal; the section in `CLAUDE.md` references it for users who want the full rationale but stays compact for daily session load.
@@ -116,4 +116,5 @@ If a recurring failure mode emerges across multiple sessions, add it here. Each 
 - A `**Why:**` line (the failure mode or pattern it prevents)
 - A `**How to apply:**` line (when/where it kicks in)
 
-Then update the marker template in `lib/claude-md-agent-ops-section.md` to reflect the new principle in summary form. Both files ship in the next plugin version; the new principle propagates to every workspace on the next `reallocate` run.
+When adding a principle, update the corresponding marker-block summary that ships into user CLAUDE.md files so the new principle propagates on the next bootstrap-cc or reallocate run.
+                     
