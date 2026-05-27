@@ -51,13 +51,17 @@ Don't conflate the two. Don't surrender on a sandbox bug as if it were a permiss
 
 **How to apply:** When writing any reply comm, the first content line under `# Title` is `STATUS: <value>`. No prose before it. Pair with an outcome-specific context line on partial/blocked/failed. The terminal banner rule below depends on this vocabulary.
 
-### End-of-task terminal signal
+### End-of-task signal banner
 
-**Every CC task ends with a high-visibility ANSI-colored terminal banner** as the LAST thing printed before stopping. The banner only prints AFTER the reply comm is written AND both task and reply comms are archived. Banner present = task is genuinely done at file level + terminal level. No banner = keep working.
+**Every CC task ends with a high-visibility markdown banner** as the LAST element in CC's final assistant text response. The banner is rendered as a fenced code block in markdown, NOT echoed via bash. The banner only prints AFTER the reply comm is written AND both task and reply comms are archived. Banner present in the chat = task is genuinely done at file level + chat level. No banner = keep working.
 
-**Why:** On 2026-05-26, a CC session finished all the work of a Resend domain swap (notes written, .credentials updated, DNS verified) but never wrote the reply comm or archived the task files. From the terminal view it was indistinguishable from "still working." User had to inspect files manually to confirm. The fix: require terminal-level proof of completion in addition to the file-level STATUS line. Two channels, one contract.
+**Why:** On 2026-05-26 a CC session finished the functional work of a Resend domain swap but never wrote the reply comm or archived the task files. From the chat view it was indistinguishable from "still working." Initial fix (v0.8.3) had CC echo an ANSI-colored banner via bash. That failed in real use: CC operates in Claude Desktop UI where bash tool output collapses to "Ran a command" rows the user must click to expand. The ANSI banner was technically printed but invisible by default. Refined fix (v0.8.4) puts the banner in CC's markdown response text where it renders inline.
 
-**How to apply:** When the task is functionally complete, execute the close-out sequence in order: (1) write reply comm with STATUS line; (2) move task + reply comms to `comms/archive/{YYYY-MM}/{slug}/`; (3) stage commits (do NOT push unless explicitly told); (4) print the ANSI banner via `echo -e` with color matching the STATUS value (green for complete, yellow for partial, red for blocked/failed). The banner shape - divider, headline, status/reply/archive/commits/next fields, divider - must be unmistakable even in mono-color fallback. See the CC head CLAUDE.md marker block for the exact banner format. Until the banner prints, the task is NOT done even if the work landed.
+**How to apply:** When the task is functionally complete (or stopping at a blocker / partial / failure), execute the close-out sequence in order: (1) write reply comm with STATUS line; (2) move task + reply comms to `comms/archive/{YYYY-MM}/{slug}/`; (3) stage commits (do NOT push unless explicitly told); (4) render the banner as a fenced markdown code block at the end of your final assistant message. The banner shape - divider, headline with glyph, status/reply/archive/commits/next fields, divider - must be unmistakable. ASCII box characters and bracketed glyphs only (`===`, `[OK]`, `[!]`, `[X]`) - no Unicode box-drawing, no ANSI escapes. The banner is the contract; no banner = task is not done. See the CC head CLAUDE.md marker block for the exact banner format.
+
+**Surface rule:** banner applies to ANY CC halting point, not just success. Includes blocker comms, ambiguity comms, partial completions. The only no-banner case is when CC is continuing work in the same response.
+
+**No bash:** never echo the banner via bash. Always render as markdown in the text response. Bash tool output collapses in the CC UI.
 
 ### Placeholder syntax
 
@@ -106,15 +110,4 @@ Canonical placeholders: `{PROJECT}`, `{slug}`, `{KEY}`, `{YYYY-MM}`, `{PATH}`. S
 1. The workspace plugin writes a marker-bounded section into the workspace root `CLAUDE.md` on every reallocate run.
 2. `runesmith-cc:bootstrap-cc` writes the same marker-bounded section into `{PROJECT}.cc/CLAUDE.md` so CC inherits the principles.
 3. Both Cowork and Claude Code load `CLAUDE.md` at session start. The marker section is part of the agent's working context.
-4. This source file (`agent-operating-principles.md`) is plugin-internal; the section in `CLAUDE.md` references it for users who want the full rationale but stays compact for daily session load.
-
-## Extending the principles
-
-If a recurring failure mode emerges across multiple sessions, add it here. Each new principle gets:
-
-- A short rule statement (one sentence)
-- A `**Why:**` line (the failure mode or pattern it prevents)
-- A `**How to apply:**` line (when/where it kicks in)
-
-When adding a principle, update the corresponding marker-block summary that ships into user CLAUDE.md files so the new principle propagates on the next bootstrap-cc or reallocate run.
-                     
+4. Thi

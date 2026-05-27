@@ -10,6 +10,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 (See 0.7.3 below - format conversion alone was not the fix.)
 
+## [0.8.6] - 2026-05-27
+
+### Fixed (runesmith-cc)
+- **End-of-task banner: bash echo replaced with markdown response.** v0.8.3 banner rule had CC `echo -e` an ANSI-colored banner via bash. That was the wrong vector: CC operates in Claude Desktop UI where bash tool output collapses to "Ran a command" rows the user must click to expand. The banner was technically printed but invisible by default. Refined version puts the banner in CC's MARKDOWN text response as a fenced code block, rendered inline as visible chat content. ASCII box characters (`===`) and bracketed glyphs (`[OK]`, `[!]`, `[X]`) replace the prior Unicode + ANSI codes for portability and hygiene compliance. Section title renamed from "End-of-task terminal signal" to "End-of-task signal banner" since the surface is no longer a terminal.
+
+### Why
+v0.8.3 was tested in concept but not in real-world CC use against the Claude Desktop UI. First production session with the rule discovered the bash output was invisible. Refined to render the banner as inline markdown which is the correct surface for CC's actual UI.
+
+### Versions
+- runesmith-cc 0.8.3 -> 0.8.4
+- Marketplace metadata.version 0.8.5 -> 0.8.6
+- Other plugins unchanged
+
 ## [0.8.5] - 2026-05-27
 
 ### Fixed (runesmith-cc)
@@ -230,9 +243,4 @@ A Cowork session in another workspace dispatched Claude Code, which read `.crede
 - **`runesmith-workspace/lib/STRUCTURE.template.md`** - moved from workspace root into the plugin. `reallocate` reads from here and writes `STRUCTURE.md` to the workspace root.
 - New inbox categories: `handoff`, `research`, `source-doc`, `image`, `superseded` - each with a canonical destination.
 - `runesmith-sprint:plan-to-tickets` now persists ticket drafts to `plans/active/<slug>/tickets/<DRAFT-ID>.json` BEFORE push (survives across sessions, reviewable on disk) and archives pushed drafts to `archive/tickets-pushed/<YYYY-MM>/<JIRA-KEY>.json`.
-- **`runesmith-cc/cc-skill-templates/code-tech-debt/SKILL.md`** - new CC-side skill template for repo-level dead-code / unused-export / unused-dep scanning. Deployed by `bootstrap-cc` into `{PROJECT}.cc/.claude/skills/code-tech-debt/` so the skill is callable from CC via slash command. Per-language analyzers (TS, JS/Node, React, Next.js, Python in v1) governed by an extensible registry.
-- **`runesmith-cc/lib/code-analyzers.md`** - per-language analyzer registry (detection signal, preferred tool, fallback heuristic, findings categories, cross-reference checks). Extensible by adding new language entries; the skill reads from the registry without code change.
-- **Agent operating principles baked into every Forge-bootstrapped workspace.** Standard operating knowledge (sandbox-vs-real-fs distinction, file-ops as agent territory, destructive-op gates, structured prompts) now ships as a marker-bounded section (`<!-- agent-ops:start/end -->`) written into both the workspace root `CLAUDE.md` (by `reallocate`) and the CC head `CLAUDE.md` (by `bootstrap-cc`). Idempotent - re-runs refresh content between markers, user additions outside markers preserved. Source: `runesmith-workspace/lib/agent-operating-principles.md` (copied into `runesmith-cc/lib/` per the self-contained plugin rule). New marker template: `runesmith-workspace/lib/claude-md-agent-ops-section.md`.
-
-### Removed
-- **`/runesmith-devtools:ve
+- **`runesmith-cc/cc-skill-templates/code-tech-debt/SKILL.md`** - new CC-side skill template for repo-level dead-code / unused-export / unused-dep scanning. Deployed by `bootstrap-cc` into `{PROJECT}.cc/.claude/sk

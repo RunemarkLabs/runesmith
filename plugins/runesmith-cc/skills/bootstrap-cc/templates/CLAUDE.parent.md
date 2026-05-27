@@ -75,31 +75,37 @@ files in `comms/`.
   - `STATUS: failed` - attempted but errored unrecoverably. Include an `Error:` line with the relevant message verbatim.
 - The STATUS line is for scannability - Cowork and the user need to know at a glance whether to read the rest as a celebration, a triage, or a fix request.
 
-**End-of-task terminal signal**
-- Every task ends with a high-visibility terminal banner as the LAST thing printed before stopping. No prose after the banner. The banner makes "I'm done" unmissable in the terminal scrollback.
-- Required steps BEFORE the banner prints, in this order:
+**End-of-task signal banner**
+- Every task ends with a high-visibility banner as the LAST thing in your text response - NOT echoed via bash. Bash tool output collapses to "Ran a command" rows in the CC UI; the user can't see it without expanding. The banner must appear as markdown in your final assistant message so it renders inline as a code block, visible without interaction.
+- Required steps BEFORE printing the banner, in this order:
   1. Reply comm written to `comms/open/{reply-id}.md` with the STATUS line per "Comms hygiene" above.
   2. Original task comm AND reply comm BOTH moved to `comms/archive/{YYYY-MM}/{task-slug}/`.
   3. Any commits signed + staged. Do NOT push unless the task explicitly says push.
-- Banner format (use ANSI green for `complete`, yellow for `partial`, red for `blocked` / `failed`):
+- Banner format - paste verbatim into your final assistant text response, fill in the placeholders. Use a fenced code block so the box-drawing characters render monospaced:
+
+  ````
   ```
-  echo -e "\n\033[1;32m===================================================================\033[0m"
-  echo -e "\033[1;32m  TASK COMPLETE\033[0m"
-  echo -e "\033[1;32m===================================================================\033[0m"
-  echo -e "  Status:   STATUS: complete"
-  echo -e "  Reply:    comms/archive/{YYYY-MM}/{task-slug}/{reply-id}.md"
-  echo -e "  Archive:  comms/archive/{YYYY-MM}/{task-slug}/"
-  echo -e "  Commits:  {hash} staged, not pushed   (or: no commits)"
-  echo -e "  Next:     {one-line next-task suggestion, or 'awaiting cowork'}"
-  echo -e "\033[1;32m===================================================================\033[0m\n"
+  ===================================================================
+    [GLYPH] TASK [HEADLINE]
+  ===================================================================
+    Status:   {complete | partial | blocked | failed}
+    Reply:    comms/archive/{YYYY-MM}/{task-slug}/{reply-id}.md
+    Archive:  comms/archive/{YYYY-MM}/{task-slug}/
+    Commits:  {hash} staged, not pushed   (or: no commits)
+    Next:     {one-line next-task suggestion, or "awaiting cowork"}
+  ===================================================================
   ```
-- Color + headline by STATUS value:
-  - `complete` -> `\033[1;32m` (bold green) + `TASK COMPLETE`
-  - `partial` -> `\033[1;33m` (bold yellow) + `TASK PARTIAL`
-  - `blocked` -> `\033[1;31m` (bold red) + `TASK BLOCKED`
-  - `failed` -> `\033[1;31m` (bold red) + `TASK FAILED`
-- If ANSI cannot be printed for any reason, fall back to the same text with `===` dividers - the banner shape must still be unmistakable.
-- The banner is the contract: until the user sees the banner, the task is NOT done, even if all the work landed in files. No banner = keep working (write the reply, archive the files, then print).
+  ````
+
+- Headline + glyph by STATUS:
+  - `complete` -> `[OK] TASK COMPLETE`
+  - `partial`  -> `[!] TASK PARTIAL`   (include a `Why partial:` line above the banner)
+  - `blocked`  -> `[X] TASK BLOCKED`   (include the `Blocker:` line above the banner)
+  - `failed`   -> `[X] TASK FAILED`    (include the `Error:` line above the banner)
+- The banner applies to ANY CC stopping point, not just successful completion. Blocker comms, ambiguity comms, partial completions all require a banner. The only no-banner case is when CC is continuing work in the same response (no halt).
+- Until the user sees the banner code block in your final response, the task is NOT done. No banner = keep working.
+- Do NOT write any prose AFTER the banner. The banner is terminal in the response - literally the last thing in your message.
+- Do NOT echo the banner via bash. Always render as markdown in your text response.
 
 **Placeholder syntax**
 - Curly braces `{PLACEHOLDER}` only when authoring plugin metadata. Never angle brackets `<placeholder>` - Cowork's upload validator rejects them.
@@ -110,14 +116,4 @@ files in `comms/`.
 
 **Sandbox vs permissions**
 - "Permission denied" → request permission.
-- "No such file" on an existing path → sandbox bug. Switch vector.
-- Don't conflate the two.
-
-This section is skill-managed. Re-running `/runesmith-cc:bootstrap-cc` (from Cowork) refreshes the content between markers. User additions belong outside the marker pair.
-<!-- agent-ops:end -->
-
-<!--
-  Deployed from RuneSmith marketplace.
-  Copyright 2026 Runemark Labs. Licensed under Apache-2.0.
-  Source: https://github.com/runemarklabs/runesmith
--->
+- "No such file" on an existing path → sandbox b
