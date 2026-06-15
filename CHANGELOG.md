@@ -10,6 +10,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 (See 0.7.3 below - format conversion alone was not the fix.)
 
+## [0.8.7] - 2026-06-15
+
+### Changed (BREAKING - comms protocol)
+- **Comm ID format:** `{ISO}-{slug}` -> `{PREFIX}-{NNN}-{slug}` (sub-tasks `A`/`B`/`C` suffixes). Per-project prefix lets multiple projects coexist without ID collision; incrementing N is human-scannable.
+- **Folder structure:** flat files in `comms/open/` -> per-comm subfolder `comms/open/{PREFIX}-{NNN}-{slug}/` with task, reply, and `attachments/` colocated. Single move when triaging.
+- **Reply filename:** now `{PREFIX}-{NNN}-{slug}-reply.md` in the SAME folder as the task.
+- **Archive ownership clarified:** CC writes reply, sets BOTH files to `status: resolved`, and LEAVES them in `comms/open/`. Cowork (via `runesmith-sprint:check-comms`) moves resolved folders to `comms/archive/{YYYY-MM}/`. Resolves three-way contradiction between prior CC parent / check-comms / protocol-doc rules.
+
+### Added (runesmith-cc)
+- **Push policy override** in CC parent CLAUDE.md: clean STATUS:complete with verification passing -> push to `origin/dev` then banner. NEVER push `main`. Partial/blocked/failed -> stage but don't push. Explicit override of the generic agent-ops "never push" default.
+- **Repo-read boundary + attachments mechanism:** CC can only read INSIDE its repo. External paths must be attached under the comm's `attachments/` folder OR CC uses defaults and FLAGS the gap. Never guess silently.
+- **`/clear` durability note:** comm/banner/push rules hold on freshly `/clear`-ed sessions; live in CLAUDE.md; don't depend on chat history.
+- **Banner Reply field** updated to point at `comms/open/{folder}/` (since CC leaves files there now).
+- **Banner Commits line** explicitly shows push status: `{hash} pushed to origin/dev` or `{hash} staged, not pushed`.
+
+### Added (runesmith-workspace)
+- **`lib/cowork-prompt-methodology.md`** - 8 principles for writing task comms that a context-fresh CC can act on: self-contained, behavioral acceptance, problem-not-implementation, train of small ordered comms, STOP+banner on risk, numbering discipline, confirm scope, standard body template (`## Context / ## Model / ## Scope / ## Out of scope / ## Preserve / ## Acceptance / ## Notes`). Referenced from the workspace CLAUDE.md agent-ops emission so Cowork sessions inherit the methodology.
+
+### Removed (deprecation)
+- Comm type enum trimmed from 9 values to 4 core (`task | answer | blocker | ambiguity`) + 2 gated (`ticket-transition` atlassian-only, `user-action` cc->user manual step). Removed: `session-init`, `confirmation`, `handshake` (unused in current flow).
+
+### Fixed
+- **Angle-bracket placeholder cleanup** in `comms-protocol.md` (3 copies) and CC parent template - `<ISO>`, `<slug>`, `<id>` replaced with `{ISO}`, `{slug}`, `{id}` per hygiene rule. The angle forms have been quietly violating rule #2 since the protocol doc was first written.
+
+### Versions
+- runesmith-cc 0.8.4 -> 0.8.5
+- runesmith-workspace 0.8.1 -> 0.8.2
+- runesmith-sprint 0.8.0 -> 0.8.1
+- Marketplace metadata.version 0.8.6 -> 0.8.7
+- Other plugins unchanged
+
 ## [0.8.6] - 2026-05-27
 
 ### Fixed (runesmith-cc)
@@ -243,4 +274,9 @@ A Cowork session in another workspace dispatched Claude Code, which read `.crede
 - **`runesmith-workspace/lib/STRUCTURE.template.md`** - moved from workspace root into the plugin. `reallocate` reads from here and writes `STRUCTURE.md` to the workspace root.
 - New inbox categories: `handoff`, `research`, `source-doc`, `image`, `superseded` - each with a canonical destination.
 - `runesmith-sprint:plan-to-tickets` now persists ticket drafts to `plans/active/<slug>/tickets/<DRAFT-ID>.json` BEFORE push (survives across sessions, reviewable on disk) and archives pushed drafts to `archive/tickets-pushed/<YYYY-MM>/<JIRA-KEY>.json`.
-- **`runesmith-cc/cc-skill-templates/code-tech-debt/SKILL.md`** - new CC-side skill template for repo-level dead-code / unused-export / unused-dep scanning. Deployed by `bootstrap-cc` into `{PROJECT}.cc/.claude/sk
+- **`runesmith-cc/cc-skill-templates/code-tech-debt/SKILL.md`** - new CC-side skill template for repo-level dead-code / unused-export / unused-dep scanning. Deployed by `bootstrap-cc` into `{PROJECT}.cc/.claude/skills/code-tech-debt/` so the skill is callable from CC via slash command. Per-language analyzers (TS, JS/Node, React, Next.js, Python in v1) governed by an extensible registry.
+- **`runesmith-cc/lib/code-analyzers.md`** - per-language analyzer registry (detection signal, preferred tool, fallback heuristic, findings categories, cross-reference checks). Extensible by adding new language entries; the skill reads from the registry without code change.
+- **Agent operating principles baked into every Forge-bootstrapped workspace.** Standard operating knowledge (sandbox-vs-real-fs distinction, file-ops as agent territory, destructive-op gates, structured prompts) now ships as a marker-bounded section (`<!-- agent-ops:start/end -->`) written into both the workspace root `CLAUDE.md` (by `reallocate`) and the CC head `CLAUDE.md` (by `bootstrap-cc`). Idempotent - re-runs refresh content between markers, user additions outside markers preserved. Source: `runesmith-workspace/lib/agent-operating-principles.md` (copied into `runesmith-cc/lib/` per the self-contained plugin rule). New marker template: `runesmith-workspace/lib/claude-md-agent-ops-section.md`.
+
+### Removed
+- **`/runesmith-devtools:ve

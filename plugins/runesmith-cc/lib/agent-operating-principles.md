@@ -37,11 +37,31 @@ Don't conflate the two. Don't surrender on a sandbox bug as if it were a permiss
 
 **Never push commits or release artifacts unless explicitly told.** Stop at `git add` / `git rm`. Stop at staged. The user decides when to commit and push.
 
+**Exception for CC repos with a comms workflow.** The CC parent template carries an explicit override: on a CLEAN completion (`STATUS: complete` with the task's verification passing), CC pushes to `origin/dev` as the final filesystem step, then banners. Never `main`. On partial / blocked / failed: stage but do NOT push. This override is scoped to CC repos that ship with the bootstrap-cc parent template - it does not apply to Cowork-side workspace skills.
+
 ### User interaction
 
 **Structured prompts over freeform yes/no.** Per `lib/user-prompts.md`, every user prompt MUST use the host client's structured input UI (single-pick, multi-pick, text-input form) - for example `AskUserQuestion` in Cowork. If the tool isn't loaded in the current session, load it via `ToolSearch` before asking. Never freeform plain-text yes/no questions in chat - including for consent before destructive operations. "Should I proceed?" or "Sound good?" in plain text is a protocol violation, not a stylistic preference.
 
 **Confirm scope before acting.** When the user asks for something that touches files, external systems, or destructive operations, restate the plan briefly and wait for go. Don't assume.
+
+### Comm IDs and folder layout
+
+**Comm IDs are `{PREFIX}-{NNN}-{slug}`.** `{PREFIX}` is a 2-4 letter project short code (e.g. `RU`, `MT`, `AC`). `{NNN}` is an incrementing zero-padded integer, never skipped or reused. `{slug}` is short kebab-case. Sub-tasks of one effort get A/B/C suffixes immediately after the number (`{PREFIX}-{NNN}A-{slug}`, `{PREFIX}-{NNN}B-{slug}`). No ISO timestamps in IDs - numbering is human-scannable and project-prefixed so multiple projects never collide.
+
+**Comms live in per-comm subfolders.** A single work item is `comms/open/{PREFIX}-{NNN}-{slug}/` containing the task file (`{PREFIX}-{NNN}-{slug}.md`), the reply (`{PREFIX}-{NNN}-{slug}-reply.md`), and an `attachments/` subdir for any files CC needs from outside the repo. Archive on triage moves the WHOLE folder to `comms/archive/{YYYY-MM}/{PREFIX}-{NNN}-{slug}/`.
+
+### Comm type enum
+
+**Four core types, two gated extras.** Core: `task` (cowork → cc), `answer` (cc → cowork, done), `blocker` (cc → cowork, cannot proceed), `ambiguity` (cc → cowork, need a decision). Gated: `ticket-transition` (atlassian-enabled projects only - CC asks Cowork to transition a Jira ticket) and `user-action` (cc → user via cowork, manual step required). Older values `session-init`, `confirmation`, `handshake` are deprecated and removed from the active enum.
+
+### Archive ownership
+
+**CC writes the reply and flips status; Cowork archives.** CC's last filesystem action on a comm is writing the reply file and setting BOTH task and reply to `status: resolved`. Both files stay in `comms/open/` until Cowork (via `runesmith-sprint:check-comms`) triages and moves the entire folder to `comms/archive/{YYYY-MM}/`. This split resolves an earlier three-way contradiction (CC parent said "CC archives", check-comms said "Cowork archives", protocol doc was ambiguous). The canonical rule: CC writes + flips status, Cowork moves.
+
+### Repo read boundary (CC-side only)
+
+**CC can only read files inside its own repo.** If a task references paths outside the repo and they are not attached under the comm's `attachments/` folder, CC uses reasonable defaults and FLAGS the gap in its reply. Never guess silently. Reaching across the workspace to satisfy a task's reference is how credential leaks happen - treat the repo boundary as hard even when the harness doesn't enforce it.
 
 ### Comms hygiene (reply STATUS line)
 
@@ -57,7 +77,7 @@ Don't conflate the two. Don't surrender on a sandbox bug as if it were a permiss
 
 **Why:** On 2026-05-26 a CC session finished the functional work of a Resend domain swap but never wrote the reply comm or archived the task files. From the chat view it was indistinguishable from "still working." Initial fix (v0.8.3) had CC echo an ANSI-colored banner via bash. That failed in real use: CC operates in Claude Desktop UI where bash tool output collapses to "Ran a command" rows the user must click to expand. The ANSI banner was technically printed but invisible by default. Refined fix (v0.8.4) puts the banner in CC's markdown response text where it renders inline.
 
-**How to apply:** When the task is functionally complete (or stopping at a blocker / partial / failure), execute the close-out sequence in order: (1) write reply comm with STATUS line; (2) move task + reply comms to `comms/archive/{YYYY-MM}/{slug}/`; (3) stage commits (do NOT push unless explicitly told); (4) render the banner as a fenced markdown code block at the end of your final assistant message. The banner shape - divider, headline with glyph, status/reply/archive/commits/next fields, divider - must be unmistakable. ASCII box characters and bracketed glyphs only (`===`, `[OK]`, `[!]`, `[X]`) - no Unicode box-drawing, no ANSI escapes. The banner is the contract; no banner = task is not done. See the CC head CLAUDE.md marker block for the exact banner format.
+**How to apply:** When the task is functionally complete (or stopping at a blocker / partial / failure), execute the close-out sequence in order: (1) write reply comm with STATUS line in the SAME folder as the task; (2) set BOTH task and reply files to `status: resolved`, leave them in `comms/open/` (Cowork archives on triage); (3) commit per the push policy - push to `origin/dev` on clean complete, stage on halt, never push `main`; (4) render the banner as a fenced markdown code block at the end of your final assistant message. The banner's `Reply:` field points at `comms/open/{PREFIX}-{NNN}-{slug}/{PREFIX}-{NNN}-{slug}-reply.md` (CC leaves the file there); the `Commits:` field reflects whether the commit was pushed or just staged. The banner shape - divider, headline with glyph, status/reply/archive/commits/next fields, divider - must be unmistakable. ASCII box characters and bracketed glyphs only (`===`, `[OK]`, `[!]`, `[X]`) - no Unicode box-drawing, no ANSI escapes. The banner is the contract; no banner = task is not done. See the CC head CLAUDE.md marker block for the exact banner format.
 
 **Surface rule:** banner applies to ANY CC halting point, not just success. Includes blocker comms, ambiguity comms, partial completions. The only no-banner case is when CC is continuing work in the same response.
 
@@ -99,6 +119,10 @@ Canonical placeholders: `{PROJECT}`, `{slug}`, `{KEY}`, `{YYYY-MM}`, `{PATH}`. S
 
 **How to apply:** Treat these filenames as instant-refuse triggers. Reading is the same risk as outputting - once it's in the agent's context, it's at risk of being echoed. If a workflow legitimately requires accessing one of these files (e.g. validating it exists), refuse the read and ask the user how to proceed.
 
+### Cleared-session durability
+
+**All comm conventions, banner rules, and push rules hold on a freshly `/clear`-ed CC session.** They live in the CC head `CLAUDE.md` (written by `bootstrap-cc`), are read at every session start, and do NOT depend on chat history. A context-fresh CC trusts the rules as soon as it loads CLAUDE.md. If the rules drift between sessions, that's a bug in the template or the bootstrap-cc skill, not in the agent's memory.
+
 ### Memory and persistence
 
 **Personal memory is per-user, per-instance.** It doesn't transfer to other users or other workspaces. Operating knowledge that should apply to every project lives in plugin libs (like this file), not in personal memory.
@@ -110,4 +134,15 @@ Canonical placeholders: `{PROJECT}`, `{slug}`, `{KEY}`, `{YYYY-MM}`, `{PATH}`. S
 1. The workspace plugin writes a marker-bounded section into the workspace root `CLAUDE.md` on every reallocate run.
 2. `runesmith-cc:bootstrap-cc` writes the same marker-bounded section into `{PROJECT}.cc/CLAUDE.md` so CC inherits the principles.
 3. Both Cowork and Claude Code load `CLAUDE.md` at session start. The marker section is part of the agent's working context.
-4. Thi
+4. This source file (`agent-operating-principles.md`) is plugin-internal; the section in `CLAUDE.md` references it for users who want the full rationale but stays compact for daily session load.
+
+## Extending the principles
+
+If a recurring failure mode emerges across multiple sessions, add it here. Each new principle gets:
+
+- A short rule statement (one sentence)
+- A `**Why:**` line (the failure mode or pattern it prevents)
+- A `**How to apply:**` line (when/where it kicks in)
+
+When adding a principle, update the corresponding marker-block summary that ships into user CLAUDE.md files so the new principle propagates on the next bootstrap-cc or reallocate run.
+                     

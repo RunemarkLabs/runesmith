@@ -170,7 +170,7 @@ Also copy `plugins/lib/jira-tags.md` → `{PROJECT}.cc/.claude/skills/atlassian/
 
 ### 11. Trigger first sprint handshake (optional)
 
-Ask user: "Start the active sprint now? (Cowork will write a session-init comm to CC.)"
+Ask user: "Start the active sprint now? (Cowork will write a sprint-init task comm to CC.)"
 
 If yes: hand off to `/atlassian:start-sprint` with `sprintId = current-active`. If no: skip; user can run `/atlassian:start-sprint` later.
 
@@ -205,6 +205,19 @@ Confluence pages.
   document", "publish the page".
 - For Claude Code-side work on tickets, see the comms-protocol details in
   @CLAUDE.md.
+
+### Atlassian-supplemental comm type
+
+This project's comms enum adds one gated value on top of the four core types
+(`task | answer | blocker | ambiguity`):
+
+- `ticket-transition` (cc -> cowork) - CC has read-only Jira access; when CC
+  needs to transition a ticket (e.g. "Done"), it writes a comm of this type
+  and Cowork executes the transition via MCP on triage.
+
+The other gated value, `user-action`, is still available across all projects
+(cc -> user via cowork, manual step). `session-init`, `confirmation`, and
+`handshake` are not in the active enum.
 <!-- runesmith:atlassian-end -->
 ```
 

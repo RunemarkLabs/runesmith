@@ -1,7 +1,7 @@
 {
   "name": "runesmith-cc",
-  "version": "0.8.4",
-  "description": "[RuneSmith v0.8.4] Builds the {PROJECT}.cc/ Claude Code monorepo head at your workspace root and installs the project-boundary guardrail that constrains Claude Code sessions to their launch project. /bootstrap-cc writes the CC head (CLAUDE.md, .claude/ scaffolding, comms folder, marker files) and project-level settings; /guardrail installs the user-level permission rules and PreToolUse hook that block cross-project filesystem reads. Idempotent - safe to re-run.",
+  "version": "0.8.5",
+  "description": "[RuneSmith v0.8.5] Builds the {PROJECT}.cc/ Claude Code monorepo head at your workspace root and installs the project-boundary guardrail that constrains Claude Code sessions to their launch project. /bootstrap-cc writes the CC head (CLAUDE.md, .claude/ scaffolding, comms folder, marker files) and project-level settings; /guardrail installs the user-level permission rules and PreToolUse hook that block cross-project filesystem reads. Idempotent - safe to re-run.",
   "author": {
     "name": "Runemark Labs"
   }

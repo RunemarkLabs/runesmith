@@ -51,6 +51,17 @@ For full rationale, see `plugins/runesmith-workspace/lib/agent-operating-princip
 - "No such file" on an existing path → sandbox bug. Switch vector.
 - Don't conflate the two; don't surrender on a sandbox bug as if it were a permission boundary.
 
+**Cowork-side prompt methodology (when writing task comms for CC)**
+- Every task comm is SELF-CONTAINED. CC may be context-fresh; restate the model, prior work (by commit hash or "this exists now"), scope, and acceptance. Never "as we discussed."
+- Acceptance is BEHAVIORAL, not "it compiles." Spell out what CC must SHOW (paste DB rows, rendered output, real numbers, `git log --oneline`). Compile-green is necessary but never sufficient.
+- Describe the PROBLEM + end-state, not the implementation. Let CC choose the mechanism.
+- Break big work into a TRAIN of small ordered cars (`{PREFIX}-{NNN}A-...`, `-{NNN}B-...`). Each car restates the model and what the previous car shipped. CC can be cleared between cars.
+- STOP + banner built into acceptance. Tell CC to halt and banner on data-loss risk, ambiguity, or any blocker.
+- Numbering discipline. `{PREFIX}-{NNN}-{slug}`, incrementing, never skipped or reused. A/B/C for sub-tasks.
+- Confirm scope before far-reaching/destructive work; snapshot before destructive moves.
+- Standard comm body: `## Context / ## Model / ## Scope / ## Out of scope / ## Preserve / ## Acceptance / ## Notes` with "Banner at end" in Notes.
+- Full rationale + worked example: `plugins/runesmith-workspace/lib/cowork-prompt-methodology.md`.
+
 This section is skill-managed. Re-running `/runesmith-workspace:reallocate` (workspace) or `/runesmith-cc:bootstrap-cc` (CC head) refreshes the content between markers. User additions belong outside the marker pair.
 <!-- agent-ops:end -->
 ```
