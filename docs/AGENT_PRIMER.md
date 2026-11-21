@@ -1,230 +1,219 @@
 # Agent Primer
 
-How the RuneSmith marketplace actually works, end to end. Read this once. The how-to guides under `docs/howto/` are recipes; this is the model that makes the recipes make sense.
+How RuneSmith works, end to end. Read this once. The guides under `docs/howto/` are recipes; this is the model behind them.
 
-## The shape of the system
+## Roles
 
-RuneSmith is a plugin marketplace for two Anthropic agent products that coexist on the same project:
+Three parties work on a RuneSmith project:
 
-- **Cowork** - the desktop app for non-developer / planning work. Reads project context, drives chat-first plans, dispatches mutations to external systems (Jira, Confluence, GitHub).
-- **Claude Code (CC)** - the CLI tool for repo-internal coding work. Runs inside a `{PROJECT}.cc/<repo>/` directory. Reads tasks dispatched from Cowork, executes code changes.
+- **Owner:** the person. Decides every product question, approves every promotion, marks the QA checklist.
+- **Planner:** Claude in chat (a Claude Project), working on the workspace folder. Plans, writes task comms and `/goal` lines, answers the builder, verifies its replies against the repository, archives finished work, and talks to Jira, Confluence and GitHub. In a code project it writes no application code. In front matter it is `cowork`.
+- **Builder:** Claude Code, running in `{PROJECT}.cc/`. Works one goal at a time: builds, tests, opens and merges pull requests, numbers the build, writes replies, prints one banner. It never talks to the owner directly. In front matter it is `cc`.
 
-Both load `CLAUDE.md` at session start. Both follow the same operating principles. They communicate via files in `{PROJECT}.cc/comms/` (the comms protocol), never directly.
+They talk through files in `{PROJECT}.cc/comms/`, never directly.
 
-The marketplace is generic and single-tenant configurable. Plugins ship with no company names, project keys, or site URLs baked in. Every tenant detail lands at runtime from user input or `.credentials`.
+The marketplace is generic. No company names, project keys or site addresses are baked in; every tenant detail comes from the owner's answers or `.credentials` at runtime.
 
-## Two-tier project context
+## Two kinds of project context
 
-Every RuneSmith-bootstrapped project carries context across two surfaces. They look similar; they hold different things.
-
-| Surface | Carries | Why it lives there |
+| Surface | Holds | Why |
 |---|---|---|
-| **Project Instructions** (Cowork UI field) | **Behavioral** - project mission, Cowork's role, rules that apply to every conversation | Doesn't change with files. Loaded as system prompt for every chat. |
-| **`CLAUDE.md`** (file at workspace root) | **Structural** - folder layout, where things live, plugin paths, file conventions | Changes as the workspace grows. Auto-loaded as file context at session start. |
+| **Project Instructions** (the Claude Project's instructions field) | Behavior: what the project is, the planner's role, rules for every conversation. No file paths. | Doesn't change when files move. |
+| **`CLAUDE.md`** (workspace root) | Structure: folder layout, where things live, current work, operating rules tied to paths. | Changes as the workspace grows. |
 
-The line is **behavior vs structure**. "Use structured prompts" → behavioral → Project Instructions. "Plans live at `plans/active/<slug>/`" → structural → CLAUDE.md.
+"Every decision is a structured prompt" is behavior, so it goes in Project Instructions. "Plans live at `plans/active/{slug}/`" is structure, so it goes in `CLAUDE.md`. `/runesmith-workspace:init` writes both: the file directly, the instructions as a block for the owner to paste.
 
-Why this matters: if behavior bleeds into CLAUDE.md, the role drifts when the file structure changes. If structure bleeds into Project Instructions, the role goes stale when a folder moves. They have different update cadences.
+Claude Code has no instructions field. Its context is `{PROJECT}.cc/CLAUDE.md`, which carries the builder's standing rules.
 
-Project Instructions is a Cowork-only feature. Claude Code has no Project Instructions UI - its project context is the `CLAUDE.md` inside the repo. So Cowork-side skills produce Project Instructions text for the user to paste; CC-side skills don't.
+## Workspace layout
 
-## Workspace structure
-
-Every RuneSmith workspace follows the same canonical layout. The `runesmith-workspace:reallocate` skill enforces it; the `STRUCTURE.md` file at workspace root documents it.
+`/runesmith-workspace:init` lays this down and `STRUCTURE.md` documents it.
 
 ```
 {PROJECT}/                          workspace root
-├── _INBOX/                         drop zone - run /inbox to classify
+├── _INBOX/                         drop zone; /inbox routes it
 ├── plans/
-│   ├── active/<slug>/
-│   │   ├── plan.md                 canonical plan format
-│   │   ├── decisions.md            optional append-only log
-│   │   ├── refs/                   supporting docs
-│   │   └── tickets/                pre-push Jira ticket JSON drafts
-│   └── archive/<YYYY-MM>/<slug>/
-├── notes/                          working notes across sessions
-├── drafts/{features,project-docs,bugs}/<slug>/
-├── research/<topic>/               pre-decision analysis
-├── source-docs/<topic>/            external uploads being processed
+│   ├── active/{slug}/
+│   │   ├── plan.md
+│   │   ├── decisions.md            required, append-only
+│   │   ├── refs/
+│   │   └── tickets/                Jira ticket drafts before push
+│   └── archive/{YYYY-MM}/{slug}/
+├── notes/
+├── drafts/{features,project-docs,bugs,handoffs}/{slug}/
+├── research/{topic}/
+├── source-docs/{topic}/
 ├── archive/
-│   ├── _pre-{operation}/<ISO>/     destructive-op snapshots
-│   ├── superseded/<YYYY-MM>/       consumed content
-│   └── tickets-pushed/<YYYY-MM>/   Jira ticket draft history
-├── {PROJECT}.cc/                   CC head (gitignored - its own git repo)
-│   ├── CLAUDE.md                   CC-side project context
-│   ├── .claude/                    CC scaffolding (skills, commands, agents, hooks)
-│   ├── comms/                      Cowork ↔ CC handoff
-│   └── <repo-folder>/              actual code repo, one or more
-├── CLAUDE.md                       workspace-side project context
-├── STRUCTURE.md                    canonical layout reference
-└── .credentials                    gitignored secrets
+│   ├── _pre-{operation}-{UTC}/     snapshots before any move, delete or large edit
+│   ├── superseded/{YYYY-MM}/
+│   └── tickets-pushed/{YYYY-MM}/
+├── {PROJECT}.cc/                   Claude Code head (code projects only)
+│   ├── CLAUDE.md                   builder standing rules
+│   ├── .claude/                    settings, hooks, runesmith-* skills
+│   ├── .credentials                Claude Code's keys
+│   ├── comms/                      planner and builder channel
+│   └── {repo}/                     the code repo, one or more
+├── CLAUDE.md
+├── STRUCTURE.md
+└── .credentials                    the planner's keys
 ```
 
-**Rules:**
-- Root stays clean. Marketplace standard files + canonical dirs only.
-- New files go to `_INBOX/`. Run `/runesmith-workspace:inbox` to classify and route.
-- Tickets live under their plan: `plans/active/<slug>/tickets/<KEY>.json`. Pushed tickets archive to `archive/tickets-pushed/<YYYY-MM>/`.
-- Consumed or superseded content goes to `archive/superseded/<YYYY-MM>/`. Never park transients at root.
+- The root stays clean. New files go to `_INBOX/`.
+- Tickets live with their plan; pushed tickets move to `archive/tickets-pushed/`.
+- Consumed content goes to `archive/superseded/{YYYY-MM}/`.
+- Init is safe to re-run. It snapshots before it moves anything.
 
-To migrate a non-conforming workspace, run `/runesmith-workspace:reallocate`. Idempotent. Snapshots first.
+## Marker sections
 
-## Marker-bounded skill-managed sections
-
-`CLAUDE.md` is part skill-managed, part user-managed. Skills own marker-bounded sections; everything outside the markers is yours.
-
-Three marker blocks ship today:
+Skills own sections of `CLAUDE.md` between marker lines; everything outside them belongs to the project.
 
 ```
-<!-- folder-conventions:start -->  managed by reallocate
-...
-<!-- folder-conventions:end -->
-
-<!-- agent-ops:start -->            managed by reallocate (workspace) and bootstrap-cc (CC head)
-...
-<!-- agent-ops:end -->
-
-<!-- runesmith:atlassian-start -->  managed by sprint:enable / sprint:disable (workspace only)
-...
-<!-- runesmith:atlassian-end -->
+<!-- folder-conventions:start -->    init (workspace)
+<!-- agent-ops:start -->             init (workspace)
+<!-- atlassian-section:start -->     sprint:enable and sprint:disable (workspace and head)
 ```
 
-Re-running the owning skill refreshes the content between its markers. User additions outside the markers are preserved.
+Each has a matching `:end` line. Re-running the owning skill refreshes only its section. A start marker with no end marker stops the skill: the file is damaged, and it reports rather than appending a second copy. Sections owned by other tools (for example `runestack-credentials` or `runestack-stack`) are preserved byte for byte.
 
-Same pattern in Cowork Project Instructions: `runesmith-sprint:enable` emits a `<!-- runesmith:atlassian-start/end -->` block for the user to append; `runesmith-sprint:disable` emits removal instructions for the same range. Reallocate's base emission carries no atlassian markers.
+In Project Instructions, the Jira supplement sits between `<!-- runesmith:atlassian-start -->` and `<!-- runesmith:atlassian-end -->`.
 
-## The plan-driven workflow
+## Plans
 
-RuneSmith is plan-driven. Every substantive change opens a plan first.
+Every substantive change opens a plan first.
 
-**Plan lifecycle:**
+1. **Create:** `/runesmith-core:plan` writes `plans/active/{slug}/plan.md` and `decisions.md`, after checking open issues. Status `open`.
+2. **Build:** status `building`. With Jira, `/runesmith-sprint:plan-to-tickets` drafts tickets under the plan.
+3. **Execute:** `/runesmith-sprint:task` turns the plan's work into task comms for the builder.
+4. **Record:** every decision and test finding goes into `decisions.md`, with who set it and when.
+5. **Done:** status `done`; init archives the plan to `plans/archive/{YYYY-MM}/{slug}/`.
+6. **Supersede:** a new plan lists the old slug in `supersedes:`; both archive.
 
-1. **Create** - `/runesmith-core:plan` writes `plans/active/<slug>/plan.md`. Status: `open`. User iterates on Problem / Decision / Why now / Scope / Trade-offs.
-2. **Build** - set `status: building` when work starts. If atlassian-enabled, `/runesmith-sprint:plan-to-tickets` converts the plan into Jira ticket JSON drafts under `plans/active/<slug>/tickets/`.
-3. **Push tickets** - on consent ("push the tickets"), drafts POST to Jira, pushed JSONs archive to `archive/tickets-pushed/<YYYY-MM>/`, plan frontmatter `tickets:` array populates.
-4. **Execute** - Cowork hands off to CC via `comms/open/<id>-task.md` for repo-internal work. CC reports back via `comms/open/<id>-result.md`. User triages on `/runesmith-sprint:check-comms`.
-5. **Done** - set `status: done`. `/runesmith-workspace:reallocate` moves to `plans/archive/<YYYY-MM>/<slug>/`. Refs + unpushed tickets travel with it.
-6. **Supersede** - when a new plan replaces this one, the new plan lists this slug in `supersedes:`. Old plan's status flips to `superseded`. Both archive.
-
-Plans are the source of truth for project intent. Confluence pages, when generated, pull from plans. One plan can feed multiple Confluence pages; one Confluence page may pull from multiple plans.
-
-## The comms protocol
-
-Cowork ↔ CC handoff happens via files in `{PROJECT}.cc/comms/`.
+## The comms loop
 
 ```
 {PROJECT}.cc/comms/
-├── open/                           active comms
-│   ├── <iso>-<id>-task.md          Cowork → CC: do this
-│   ├── <iso>-<id>-result.md        CC → Cowork: done, here's what happened
-│   ├── <iso>-<id>-blocker.md       CC → Cowork: blocked, here's why
-│   └── <iso>-<id>-ambiguity.md     CC → Cowork: need user input
-└── archive/
-    └── <YYYY-MM>/                  resolved pairs
+├── open/                                active work (not committed)
+│   ├── {UTC}-{slug}/
+│   │   ├── {UTC}-{slug}.md              the task (planner)
+│   │   ├── {UTC}-{slug}-reply.md        the reply (builder)
+│   │   ├── references/  assets/         from the planner
+│   │   └── evidence/                    from the builder
+│   └── {UTC}-goal-status/               the goal status comm (builder)
+├── archive/{YYYY-MM}/                   finished work (committed; the audit trail)
+└── README.md
 ```
 
-**Rules:**
-- CC never contacts the user directly. User reaches CC only through Cowork.
-- Cowork checks `comms/open/` on entry to every planning skill (the check-on-entry pattern). Open `to: user` items surface first.
-- `/runesmith-sprint:check-comms` triages: draft replies for Cowork's response, archive resolved pairs.
-- Comms are a local accelerator. Persistent records live in plans (`plans/active/<slug>/`) and on Jira tickets (with canonical tags - see `plugins/runesmith-sprint/lib/jira-tags.md`).
+1. The planner writes a task with Acceptance, and anything from outside the repo copied into `references/` or `assets/`.
+2. The planner gives the owner a `/goal` line. Its fixed ending: "Done when each task's Acceptance is met, or each item that needs the owner is named in the reply as an owner action."
+3. The builder writes the goal status comm first, then works each task on a goal branch and merges into `dev` when tests pass.
+4. Each reply starts with a STATUS line: `complete`, `partial`, `blocked` or `failed`.
+5. The builder prints one banner at the end of the goal and stops. The head's settings cap the stop hook at three blocks (`CLAUDE_CODE_STOP_HOOK_BLOCK_CAP=3`), so it can't loop.
+6. `/runesmith-sprint:check-comms` reads the goal status comm, verifies each reply against the repository (read only), archives finished folders, and logs the outcome in `decisions.md`.
 
-## The Atlassian config split
+When a task hits a question, the builder writes an `ambiguity` or `blocker` comm in its folder, marks it blocked, finishes the goal's other tasks, and names it under "Needs you" in the banner. The planner answers with an `answer` comm and a new `/goal` line.
 
-The marketplace ships in one of two configurations on a per-project basis:
+The builder never archives. The planner never edits a reply. Full rules: `lib/comms-protocol.md`.
 
-- **Base config** - plans drive work end to end. Cowork writes tasks to `comms/`, CC executes. No Atlassian dependency. Most personal projects sit here.
-- **Atlassian-enabled** - plans become Jira tickets in sprints. Decisions and design docs flow into Confluence pages. CC reads sprints (via read-only token); mutations route through Cowork via MCP.
+## Branches, builds and promotions
 
-Toggle with `/runesmith-sprint:enable` (wire it in) and `/runesmith-sprint:disable` (unwire). Each adds or removes the `<!-- runesmith:atlassian-start/end -->` markers in both CLAUDE.md files plus the Cowork Project Instructions supplement.
+- Branches: `dev`, `qa`, `beta`, `main`. The head creates `dev`, `qa` and `beta` from `main` on a new repo and protects all four: pull request required, no force-push, no deletion, plus the build check once the project's CI reports one. Protection is a guardrail on Claude Code, so RuneSmith sets it; the CI that produces the check belongs to the stack tooling.
+- Every goal gets its own branch and a pull request into `dev`.
+- Build numbers: `MAJOR.MINOR.BUILD` with a four-digit build, one per finished goal, tagged `v{number}`. A new project starts at `0.1.0001`.
+- `/runesmith-sprint:promote` moves `dev` to `qa` to `beta` to `main`, only on the owner's word. Before `qa`, the builder runs the full test suite against `dev`.
+- The builder keeps the repo's `CHANGELOG.md` for the readers init recorded (default: users and admins).
 
-The `.atlassian-enabled` marker file at workspace root is the canonical signal. Skills check for it to decide whether atlassian rules apply.
+## The QA checklist
 
-## The CC project-boundary guardrail
+- The source is `qa/checklist.md` in the repo: one `### Title` per item, a `Build:` line, Steps, Expect, and the checker line. The builder adds items as it builds.
+- `/runesmith-sprint:qa-checklist` publishes one Claude artifact page per project (never a new one each time) and stores the checklist and results in the page's database.
+- The owner marks each item pass or fail on the page. An item's key is the first 16 hex characters of the sha256 of its title, steps and expect lines, so a changed item needs checking again.
+- A failure becomes a fix task. The builder opens the GitHub issue with the `bug-report` and `env:{dev|qa|beta|prod}` labels, plus `component:{name}` when it applies.
 
-Every CC session is constrained to its launch project's root via two layers:
+## Jira is optional
 
-**Layer 1 - behavioral.** Two refusal rules in `CLAUDE.md` (cross-project paths, credentials-class files) inside the `agent-ops` marker block. Advisory; the agent is supposed to honor them.
+- **Without Jira:** plans and comms drive the work.
+- **With Jira:** `/runesmith-sprint:enable` writes the `atlassian-section` into both `CLAUDE.md` files, drops `.atlassian-enabled` at the root, deploys the builder's ticket skills, and asks the owner to paste Claude Code's read-only token. The builder reads sprints; when a ticket must move, it writes a `ticket-transition` comm and the planner moves it. `/runesmith-sprint:disable` reverses it.
 
-**Layer 2 - harness enforcement.** User-level `~/.claude/settings.json` block (`defaultMode: "dontAsk"` + curated allow/deny rules) plus a `PreToolUse` hook for Bash subprocess containment. Permission system enforces; the agent cannot bypass.
+## Credentials
 
-Install once per machine **from inside Claude Code, not Cowork** - Cowork's sandbox can't write to `~/.claude/`. After bootstrap-cc has deployed the CC-side `guardrail` skill template into `{PROJECT}.cc/.claude/skills/guardrail/`, launch CC in any CC-headed repo and run `/guardrail install`. `/runesmith-cc:bootstrap-cc` also writes the project-level `<project>/.claude/settings.json` with an empty `additionalDirectories: []` escape hatch - populate it when you need legitimate cross-project access (monorepo siblings, shared configs).
+Keys live where the thing that uses them runs:
 
-The Cowork-side `/runesmith-cc:guardrail` skill is a pointer/walkthrough - it explains the design and shows the exact commands to run in CC for your host's OS, but doesn't perform the install itself.
+- Planner keys: `{WORKSPACE_ROOT}/.credentials`. Claude Code never reads this file.
+- Claude Code keys: `{PROJECT}.cc/.credentials`, beside the repos and never inside one.
 
-**Known residual risks (documented, not solved):**
+Values are single-quoted. Skills report each key as set or missing, never print a value, and never ask for a secret in chat. Full rules: `lib/credentials.md`.
 
-- Subagents launched via Task tool do NOT inherit `PreToolUse` hooks or permission rules (platform bugs #27661, #23983). Layer 1 advisory rules are the only protection inside a subagent.
-- Bash on Windows is unsandboxed. PowerShell pipes, indirect invocation, and shell escaping can evade substring matchers. Hook catches accidents, not attacks.
-- MCP tool calls are not boundary-aware. A session can call any installed MCP tool regardless of which project enabled the workflow.
+## The project-boundary guardrail
 
-## The agent operating principles
+Two layers keep each Claude Code session inside its project:
 
-A small set of behaviors all RuneSmith-bootstrapped agents follow. Source: `plugins/runesmith-workspace/lib/agent-operating-principles.md`. Summary version lives in the `<!-- agent-ops -->` marker block of every workspace + CC-head CLAUDE.md.
+- **Rules:** the builder's `CLAUDE.md` forbids cross-project paths and reading credential-class files.
+- **Enforcement:** a user-level block in `~/.claude/settings.json` (`defaultMode: "dontAsk"` with allow and deny lists) and a `PreToolUse` hook that checks shell commands.
 
-**File operations.** Direct file tools first (Read/Write/Edit/Glob); bash is for scripts and pipelines. When bash fails with "No such file" on an existing path, the sandbox is stale - switch vectors, don't retry. File ops in the workspace are agent territory; don't defer file chores to the user.
+`/runesmith-cc:guardrail` copies a one-shot installer into the workspace and gives the one command to run; it takes `verify` and `uninstall` too. The head's `.claude/settings.json` has an empty `permissions.additionalDirectories` list for legitimate cross-project access; `.claude/README.md` explains it and records each approved path.
 
-**Sandbox vs permissions.** "Permission denied" = request permission. "No such file or directory" on an existing path = sandbox bug; switch vectors. Don't conflate.
+Known gaps, documented and not solved:
 
-**Destructive operations.** Snapshot before any move or delete to `archive/_pre-{operation}/{ISO}/`. Confirm scope before mutating external systems (Jira, Confluence, git push). Wait for explicit trigger phrases. Never commit or push unless told.
+- Subagents launched through the Task tool don't inherit hooks or permission rules. Only the written rules apply there.
+- Shell commands on Windows aren't sandboxed; indirect invocation can slip past the hook. It catches accidents, not attacks.
+- MCP tool calls aren't boundary-aware.
 
-**User interaction.** Structured prompts (single-pick / multi-pick / text-input forms) via the host client's structured-input tool. Never freeform yes/no in chat - including for consent before destructive ops. "Should I proceed?" in plain text is a protocol violation.
+## Operating principles
 
-**Placeholder syntax.** Curly braces `{PLACEHOLDER}` only. Never angle brackets `<placeholder>` in any plugin metadata - Cowork's upload validator rejects them.
+Source: `lib/agent-operating-principles.md`; the summary lives in the `agent-ops` section of every workspace `CLAUDE.md`.
 
-**Workspace boundaries.** Root stays clean. Repo internals (`{PROJECT}.cc/<repo>/`) are CC's territory; workspace skills move repos as units, never enter them.
+- **Files:** direct file tools first. File chores are the agent's, never the owner's.
+- **Destructive work:** snapshot first to `archive/_pre-{operation}-{UTC}/`. Confirm scope before changing anything outside the workspace. Commit and push only on the owner's word.
+- **Questions:** every decision is a structured prompt with the recommended option first. Never a freeform yes or no. Ask only when the answer changes what gets built.
+- **Placeholders:** curly braces only.
+- **Boundaries:** stay in the launch project. Never read another project; write a handoff the owner carries.
+- **Credential-class files:** never read or echo them.
+- **No AI attribution** in commits, pull requests or files.
 
-**Cross-project boundary** (post-Mix Tape incident). Stay inside the launch workspace. Refuse cross-project path references. Cross-project reads are how credential leaks happen.
+## Boundaries with other tools
 
-**Credentials-class files.** Never read, output, or echo files matching `*credentials*`, `*.env`, `id_rsa*`, `*.key`, `*.pem` regardless of location. The Layer 2 guardrail enforces; Layer 1 makes the rule explicit.
+RuneSmith decides how work is run: workspace, planning, comms, gates, documentation. It never decides tech stack, environments, hosting or continuous integration, and never requires another marketplace. When a stack tool such as runestack is installed, init calls its init and leaves its skills (`runestack-*`) and marker sections alone.
 
-## How a request flows through the system
+## How a request flows
 
-Concrete walkthrough - "user asks Cowork to add a new feature":
+1. The owner asks the planner for a feature.
+2. `/runesmith-core:plan` writes `plans/active/feature-x/`.
+3. With Jira, `/runesmith-sprint:plan-to-tickets` drafts tickets and pushes them on the owner's word.
+4. `/runesmith-sprint:task` writes the task comm and the `/goal` line.
+5. The owner pastes the line into Claude Code. The builder works the goal and prints one banner.
+6. `/runesmith-sprint:check-comms` verifies and archives, and gives the next `/goal` line if there is one.
+7. `/runesmith-sprint:promote` moves the build to `qa` on the owner's word; the owner runs the checklist page.
+8. Promotions to `beta` and `main` follow the same gate. The plan is marked done.
 
-1. **Cowork loads context** at session start: project root `CLAUDE.md`, Project Instructions UI text, optionally MCP servers (Atlassian, GitHub, Slack).
-2. **User asks** - "Let's plan a feature for X."
-3. **Cowork invokes `runesmith-core:plan`** - chat-first discussion, eventually writes `plans/active/feature-x/plan.md`.
-4. **User confirms** - "Looks good." Plan moves `open → building`.
-5. **If atlassian-enabled** - `/runesmith-sprint:plan-to-tickets` walks the plan, writes ticket JSON drafts to `plans/active/feature-x/tickets/`.
-6. **User says "push the tickets"** - drafts POST to Jira (via MCP), pushed JSONs archive to `archive/tickets-pushed/<YYYY-MM>/`.
-7. **Cowork writes a brief** to `{PROJECT}.cc/comms/open/<iso>-feature-x-task.md` for CC to pick up.
-8. **CC session starts** in `{PROJECT}.cc/<repo>/`. Reads its CLAUDE.md (agent-ops + guardrail rules apply). Reads the task comm. Executes code changes. Writes a result comm back.
-9. **Cowork's next session** - checks `comms/open/` on entry. Surfaces the result. User reviews.
-10. **Plan done** - status flips, reallocate moves it to archive.
+## What the libraries pin down
 
-At every write step the agent waits for an explicit trigger phrase per `lib/consent.md`. Reads are free; writes need consent.
+Each plugin carries its own `lib/`. A library shared by several plugins is identical in every copy, and the audit checks it.
 
-## What the libs pin down
-
-Each plugin has its own `lib/` folder with reference docs. They are NOT shared across plugins - every plugin is self-contained, copies of shared libs travel with each plugin.
-
-| Lib | Pinned |
+| Library | Pinned |
 |---|---|
-| `credentials.md` | `.credentials` location, required keys, Basic auth header |
-| `tokens.md` | Canonical substitution tokens (no synonyms; never `<placeholder>` syntax) |
-| `confluence-format.md` | Markdown → storage XHTML rules, version-bump on PUT, error table |
-| `atlassian-rest.md` | Canonical Jira/Confluence Cloud endpoints (no deprecated paths) |
-| `consent.md` | Trigger phrases that gate every write |
-| `install-paths.md` | Cowork vs. Claude Code vs. Teams plugin directories |
+| `comms-protocol.md` | Comms layout, types, status values, STATUS line, goal lines, archiving |
+| `comms-check.md` | Check on entry for planner skills |
+| `planner-task-method.md` | How a task and its Acceptance are written |
+| `qa-checklist.md` | Checklist format, item keys, the page and its database |
+| `credentials.md` | Where keys live, key names, the zone format |
+| `agent-operating-principles.md` | The `agent-ops` section |
+| `folder-conventions.md` | The workspace layout |
+| `cc-workspace.md` | The Claude Code head layout |
+| `consent.md` | Structured prompts that gate writes |
+| `install-paths.md` | Where plugins and deployed skills live |
 | `plan-format.md` | `plan.md` schema |
-| `cc-workspace.md` | Claude Code monorepo head spec |
-| `comms-protocol.md` | Comms file format and lifecycle |
-| `comms-check.md` | Check-on-entry pattern for planning skills |
-| `atlassian-enabled.md` | Atlassian-config marker detection |
-| `jira-apply.md` | Exact CLAUDE.md sections injected by sprint:enable |
-| `sprint-handshake.md` | Session-init / handshake comm format |
-| `jira-tags.md` | Canonical tag taxonomy |
-| `agent-operating-principles.md` | Source of truth for the agent-ops marker section |
-| `folder-conventions.md` | Source of truth for the workspace layout |
+| `tokens.md` | Canonical substitution tokens |
+| `confluence-format.md`, `atlassian-rest.md` | Storage format and current Cloud endpoints |
+| `atlassian-enabled.md`, `jira-apply.md`, `jira-tags.md` | Jira detection, the applied sections, the tag set |
 
-Change a convention in a lib doc, then run `/runesmith-devtools:skill-updater` to propagate the change across all skills consistently.
+Change a convention in its library, then run `/runesmith-devtools:skill-updater` to carry it everywhere.
 
 ## Where to go next
 
-- New workspace? → `docs/howto/new-workspace.md`
-- Existing workspace to migrate? → `docs/howto/migrate-workspace.md`
-- Wire Atlassian? → `docs/howto/enable-atlassian.md`
-- Lock CC boundaries? → `docs/howto/install-guardrail.md`
-- Daily work? → `docs/howto/daily-workflow.md`
-- Add a repo to CC? → `docs/howto/add-repo.md`
-- Publish docs to Confluence? → `docs/howto/publish-to-confluence.md`
+- New project: `docs/howto/new-workspace.md`
+- Existing workspace: `docs/howto/migrate-workspace.md`
+- Daily work: `docs/howto/daily-workflow.md`
+- Add a repo: `docs/howto/add-repo.md`
+- Jira: `docs/howto/enable-atlassian.md`
+- Guardrail: `docs/howto/install-guardrail.md`
+- Confluence: `docs/howto/publish-to-confluence.md`

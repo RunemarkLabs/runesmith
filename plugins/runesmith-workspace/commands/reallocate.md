@@ -1,5 +1,5 @@
 ---
-description: Migrate or initialize the workspace to the canonical layout. Writes STRUCTURE.md and folder-conventions + agent-ops marker sections into CLAUDE.md.
+description: Renamed to /runesmith-workspace:init.
 ---
 
 Invoke the `reallocate` skill in this plugin.

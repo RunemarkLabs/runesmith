@@ -16,7 +16,7 @@ POST /rest/api/3/issue
     "project": { "key": "{PROJECT_KEY}" },
     "issuetype": { "name": "Task" | "Story" | "Bug" | "Epic" },
     "summary": "...",
-    "description": <ADF document>,
+    "description": {ADF document},
     "labels": ["..."],
     "assignee": { "accountId": "{LEAD_ACCOUNT_ID}" },
     "priority": { "name": "High" }
@@ -51,7 +51,7 @@ Transition (status change):
 ```
 GET  /rest/api/3/issue/{issueIdOrKey}/transitions  (list transition ids)
 POST /rest/api/3/issue/{issueIdOrKey}/transitions
-{ "transition": { "id": "<id>" } }
+{ "transition": { "id": "{id}" } }
 ```
 
 ### Search (JQL)
@@ -98,7 +98,7 @@ Project creation requires Jira admin permissions. Surface required perms before 
 
 Lookup user by email:
 ```
-GET /rest/api/3/user/search?query=<email>
+GET /rest/api/3/user/search?query={email}
 ```
 
 Returns `accountId` for use in `assignee.accountId` and `leadAccountId`.
@@ -128,7 +128,7 @@ GET /wiki/api/v2/pages/{id}?body-format=storage
 
 Lookup by title (always pass `space-id`):
 ```
-GET /wiki/api/v2/pages?space-id={SPACE_ID}&title=<URL-encoded>&status=current
+GET /wiki/api/v2/pages?space-id={SPACE_ID}&title={URL-encoded}&status=current
 ```
 
 Update (must increment version):

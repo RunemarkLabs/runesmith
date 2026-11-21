@@ -1,6 +1,6 @@
 # Jira Section Apply - CLAUDE.md sections
 
-Exact content `atlassian:enable` writes into the workspace and CC parent CLAUDE.md files. Idempotent - uses marker tags so re-running replaces in place without duplicating.
+Exact content `runesmith-sprint:enable` writes into the workspace and CC parent CLAUDE.md files. Idempotent - uses marker tags so re-running replaces in place without duplicating.
 
 ## Workspace `CLAUDE.md` application
 
@@ -14,21 +14,22 @@ This project is connected to Jira project **{JIRA_PROJECT_KEY}** and
 Confluence space **{CONFLUENCE_SPACE_KEY}** at `{SITE_URL}`.
 
 ### Workflow
-- Plans live in `plans/active/<slug>/plan.md`.
-- Plans become Jira tickets via `/atlassian:plan-to-tickets`. Tickets
+- Plans live in `plans/active/{slug}/plan.md`.
+- Plans become Jira tickets via `/runesmith-sprint:plan-to-tickets`. Tickets
   organize into sprints on board {BOARD_ID}.
 - Claude Code works the active sprint from the `{PROJECT}.cc/` workspace.
 - CC reads sprint tickets directly via Jira REST (read-only token in
   `{PROJECT}.cc/.credentials`).
 - CC mutations to Jira (transitions, status changes) go through comms -
-  CC writes a `type: ticket-transition` comm and Cowork executes via MCP.
+  CC writes a `type: ticket-transition` comm in the task's folder and the
+  planner makes the change through the Jira REST API on check comms.
 
 ### Comms checking
 Every planning skill on this project runs a comms-check on entry. Open
 comms in `{PROJECT}.cc/comms/open/` are surfaced before the parent skill
 proceeds.
 
-Run `/atlassian:check-comms` any time to triage manually.
+Run `/runesmith-sprint:check-comms` any time to check Claude Code's work.
 
 ### Tags on tickets
 Both Cowork and CC tag tickets to keep the work record on Jira. See the
@@ -68,7 +69,7 @@ under `atlassian.activeSprintId`.
    yourself - your token is read-only by design.
 
 ### Skills available to you
-Deployed by `/atlassian:enable` into `.claude/skills/atlassian/`:
+Deployed by `/runesmith-sprint:enable` into `.claude/skills/atlassian/`:
 - `sprint-pull` - read active sprint, list ticket details
 - `ticket-document` - append plan/action/decision to a ticket as a comment
 - `blocker-write` - declare a blocker, write a comm, tag the ticket
@@ -76,7 +77,7 @@ Deployed by `/atlassian:enable` into `.claude/skills/atlassian/`:
 
 ### Comms protocol
 Same as base config - see `@comms/README.md`. Comms files MAY include
-`ticket: <KEY>` in frontmatter to associate with a Jira ticket.
+`ticket: {KEY}` in frontmatter to associate with a Jira ticket.
 
 ### Tag taxonomy
 See `@.claude/skills/atlassian/jira-tags.md` (deployed by `enable`).
@@ -92,11 +93,11 @@ Both applications substitute these tokens at apply time:
 - `{SITE_URL}` → user's Atlassian site URL (e.g. "https://acme.atlassian.net")
 - `{BOARD_ID}` → user's board id
 
-Values come from the marker file written by `atlassian:enable`.
+Values come from the marker file written by `runesmith-sprint:enable`.
 
 ## Idempotency
 
-`atlassian:enable` re-running:
+`runesmith-sprint:enable` re-running:
 1. Reads current CLAUDE.md files.
 2. Locates `<!-- atlassian-section:start -->` and `<!-- atlassian-section:end -->`.
 3. Replaces content between markers with freshly-tokenized version.
@@ -106,9 +107,9 @@ Result: re-runs always produce the same file content (modulo updated marker valu
 
 ## Disable
 
-`atlassian:disable`:
+`runesmith-sprint:disable`:
 1. Removes content between markers in both CLAUDE.md files (leaves the empty marker pair behind for future re-enable).
-2. Removes `<workspace-root>/.atlassian-enabled` file.
+2. Removes `{workspace-root}/.atlassian-enabled` file.
 3. Sets `atlassianEnabled: false` in CC marker, clears `atlassian` block.
 4. Removes deployed skills from `{PROJECT}.cc/.claude/skills/atlassian/`.
 5. Leaves `{PROJECT}.cc/.credentials` and existing comms untouched (user can clean up manually).

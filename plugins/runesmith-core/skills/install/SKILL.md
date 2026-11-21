@@ -1,7 +1,7 @@
 ---
 name: install
 description: "Browse and install plugins from the bootstrap catalog and optional sources. Use when the user says \"install a plugin\", \"what plugins are available\", \"show me plugins\", or wants to add new capabilities."
-compatibility: Requires Cowork desktop app environment.
+compatibility: Runs in the planner chat with the project's workspace folder connected.
 ---
 
 # Install Plugins
@@ -31,8 +31,8 @@ Use for:
 - Switching install method (manual vs. marketplace)
 
 Do not use for:
-- Authoring new plugins → `/devtools:plugin-builder`
-- Updating installed plugins → `/core:sync`
+- Authoring new plugins → `/runesmith-devtools:plugin-builder`
+- Updating installed plugins → `/runesmith-core:sync`
 
 ## Workflow
 
@@ -73,7 +73,7 @@ Based on runtime detected:
 
 ### 4. After install
 
-Confirm: "Run /core:setup to configure credentials, then /devtools:help to see all skills."
+Confirm: "Run /runesmith-core:setup to configure credentials, then /runesmith-devtools:help to see all skills."
 
 ## Guard Rails
 

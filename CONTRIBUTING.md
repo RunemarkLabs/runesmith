@@ -5,7 +5,7 @@ Thanks for your interest. RuneSmith is a Claude plugin marketplace built around 
 1. **Generic, single-tenant configurable.** No company-specific values in plugin source. Every tenant detail (Jira project key, Confluence space, GitHub PAT) comes from user input or `.credentials`.
 2. **Consent before any write.** Every skill that mutates Jira / Confluence / repos / state requires an explicit user trigger phrase. See `plugins/runesmith-core/lib/consent.md`.
 3. **Structured prompts only.** Every user-input question MUST use the host client's structured input UI (single-pick, multi-pick, text-input form), never plain-text "yes/no" or "[y/n]". See `plugins/runesmith-core/lib/user-prompts.md`.
-4. **Plugin-relative library references.** Each plugin is self-contained. Skills cite libs as `lib/<name>.md` (relative to the plugin), not cross-plugin paths.
+4. **Plugin-relative library references.** Each plugin is self-contained. Skills cite libs as `lib/{name}.md` (relative to the plugin), not cross-plugin paths.
 
 ## How to contribute
 
@@ -15,7 +15,7 @@ Open an issue describing:
 - Which plugin and skill
 - What you expected vs. what happened
 - Reproduction steps (paste the chat sequence if possible)
-- Cowork or Claude Code version
+- Claude desktop or Claude Code version
 
 ### Proposing changes
 
@@ -36,8 +36,8 @@ Produces `.plugin` zip files in `dist/` ready for manual install or marketplace 
 
 ### Testing a plugin
 
-1. Drag the `.plugin` file from `dist/` into your Cowork sidebar.
-2. Restart the Cowork session.
+1. Drag the `.plugin` file from `dist/` into the Claude desktop plugin sidebar.
+2. Quit and reopen the app.
 3. Run `/runesmith-devtools:help` to confirm the new skills are loaded.
 4. Exercise at least one skill end-to-end.
 
@@ -45,9 +45,9 @@ Produces `.plugin` zip files in `dist/` ready for manual install or marketplace 
 
 ### Plugin manifest
 
-- **Plugin names** are lowercase-kebab-case. Capital letters break Cowork upload validation.
-- **plugin.json** must include `name`, `version`, `description`, `author`. Add `license`, `repository`, `homepage`, `keywords`, `dependencies` for production-grade plugins.
-- **Dependencies** declared in `plugin.json` `dependencies[]` form a DAG with no cycles.
+- **Plugin names** are lowercase-kebab-case. Capital letters break upload validation.
+- **plugin.json** must include `name`, `version`, `description`, `author`. `license`, `repository`, `homepage` and `keywords` are optional. Never add `dependencies`: the loader rejects plugins that carry it, and the audit fails.
+- **Versions:** each plugin has its own SemVer track; bump only what changed (`scripts/bump-version.py`).
 
 ### Skill authoring
 
@@ -57,7 +57,7 @@ Produces `.plugin` zip files in `dist/` ready for manual install or marketplace 
 
 ### User input (CRITICAL)
 
-Every skill that asks the user a question MUST cite `lib/user-prompts.md` and use structured input. **This is enforced by audit script and CI.**
+Every skill that asks the user a question MUST cite `lib/user-prompts.md` and use structured input. The audit and CI reject plain-text yes or no prompts.
 
 | User-input type | What to use |
 |---|---|
@@ -86,7 +86,7 @@ Show the normalized form to the user in structured prompts before committing.
 ### Token references
 
 - **Substitution tokens** use `{TOKEN}` syntax (uppercase inside curly braces). Example: `{PROJECT}.cc/`, `{COMPANY}`, `{SPACE_KEY}`.
-- **No angle-bracket placeholders.** Patterns like `<placeholder>` trip Cowork's upload scanner (it treats them as unknown HTML tags). The literal token `<project>` is the most common offender - always use `{PROJECT}` instead.
+- **No angle-bracket placeholders.** Placeholders written as a word wrapped in `<` and `>` trip the plugin upload scanner (it treats them as unknown HTML tags). The project name written that way is the most common offender - always use `{PROJECT}` instead.
 
 ### Lib references
 
@@ -96,14 +96,14 @@ When adding a new lib doc, copy it into every plugin that cites it. Yes, this du
 
 ### Forbidden vocabulary
 
-These patterns trigger Cowork's content scanner and reject the upload:
+These patterns trigger the plugin upload scanner and reject the upload:
 - `inject` / `injection` / `injected` (use `apply` / `embed`)
 - `paste secret` / `paste your secret` (use `provide a configuration value`)
-- Specific API-key brand names like `stripe`, `aws`, in example text (use generic `<provider>`)
+- Specific API-key brand names like `stripe`, `aws`, in example text (use generic `{provider}`)
 
 ### Agents
 
-When a skill has substantial iteration or context-heavy work, factor a subagent into `agents/<name>.md`. Each agent declares its `tools` list and stays in its lane. Cite the agent from its consuming skill's References block.
+When a skill has substantial iteration or context-heavy work, factor a subagent into `agents/{name}.md`. Each agent declares its `tools` list and stays in its lane. Cite the agent from its consuming skill's References block.
 
 Agents in the marketplace as of this writing:
 - `runesmith-cc/agents/repo-bootstrapper.md`
@@ -114,7 +114,7 @@ Agents in the marketplace as of this writing:
 
 ### Commands
 
-Every skill should have a matching `commands/<name>.md` file so explicit `/plugin:skill` invocation works as a first-class entry point alongside auto-invoke by description match.
+Every skill should have a matching `commands/{name}.md` file so explicit `/plugin:skill` invocation works as a first-class entry point alongside auto-invoke by description match.
 
 ### CI
 

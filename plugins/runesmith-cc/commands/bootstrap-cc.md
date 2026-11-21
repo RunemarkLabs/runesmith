@@ -1,5 +1,5 @@
 ---
-description: Build the Claude Code monorepo head at the workspace root, add comms folder, optionally create or clone repos with PAT-based clone.
+description: Renamed to /runesmith-cc:head.
 ---
 
 Invoke the `bootstrap-cc` skill in this plugin.

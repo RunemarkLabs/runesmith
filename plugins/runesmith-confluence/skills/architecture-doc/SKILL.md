@@ -1,7 +1,7 @@
 ---
 name: architecture-doc
 description: "Create an architecture decision record (ADR) or architecture overview page for Confluence. Template includes context, decision, consequences, alternatives considered, and status. Trigger on \"architecture doc\", \"ADR\", \"document this architecture decision\", \"write an architecture page\", \"architecture record\"."
-compatibility: Requires Cowork desktop app environment.
+compatibility: Runs in the planner chat with the project's workspace folder connected.
 ---
 
 # Architecture Documentation
@@ -34,7 +34,7 @@ See `lib/comms-check.md`. Pause for `to: user` items.
 
 1. Credentials resolved.
 2. `{SPACE_ID}` resolved.
-3. Optional plan prefill: list `plans/active/<slug>/plan.md` files; offer user to pick one or more (a single ADR may be derived from one plan; an architecture overview may pull from many).
+3. Optional plan prefill: list `plans/active/{slug}/plan.md` files; offer user to pick one or more (a single ADR may be derived from one plan; an architecture overview may pull from many).
 
 ## When to Use
 
@@ -60,7 +60,7 @@ Do not use for:
 
 ### 2. Draft
 
-Save to `/drafts/project-docs/adr-<slug>.md`:
+Save to `/drafts/project-docs/adr-{slug}.md`:
 
 ```markdown
 # {Title}

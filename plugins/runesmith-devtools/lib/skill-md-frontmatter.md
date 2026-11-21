@@ -5,8 +5,8 @@ Every skill lives at `{plugin}/skills/{skill-name}/SKILL.md` and starts with YAM
 ```yaml
 ---
 name: skill-name
-description: "Single-line quoted string. No line breaks. Use {WORD} placeholders, never <word>. State the skill's job in the first sentence; list trigger phrases the user might say after that."
-compatibility: Requires Cowork desktop app environment.
+description: "Single-line quoted string. No line breaks. Use {WORD} placeholders, never angle brackets. State the skill's job in the first sentence; list trigger phrases the user might say after that."
+compatibility: Runs in the planner chat with the project's workspace folder connected.
 ---
 ```
 
@@ -14,7 +14,7 @@ compatibility: Requires Cowork desktop app environment.
 
 - `name` - matches the skill folder name exactly. Kebab-case-lowercase.
 - `description` - single-line quoted string. See format rules below.
-- `compatibility` - exactly `Requires Cowork desktop app environment.` for skills that need the desktop client. Skills that work in Claude Code only should say `Requires Claude Code environment.` or similar.
+- `compatibility` - one plain sentence saying where the skill runs. Planner skills: `Runs in the planner chat with the project's workspace folder connected.` Builder skill templates (`cc-skill-templates/`): `Runs in Claude Code, inside the project's head.`
 
 ## Description format
 
@@ -45,7 +45,7 @@ Look at Anthropic's first-party skills for the canonical pattern.
 ## Content rules
 
 - No em-dashes (U+2014) or en-dashes (U+2013) anywhere in the file. ASCII hyphens only.
-- No angle-bracket placeholders in frontmatter (`<word>`). Use curly braces (`{WORD}`).
+- No angle-bracket placeholders in frontmatter (a word wrapped in `<` and `>`). Use curly braces (`{WORD}`).
 - Body content inside fenced code blocks is exempt from the placeholder rule - documentation examples can show HTML/XML.
 
 ## Audit checks that enforce this

@@ -13,15 +13,15 @@ User must explicitly say one of:
 - "publish the page"
 - "publish the doc"
 
-Variations like "yes", "go ahead", "do it" count ONLY when the previous assistant turn presented a draft and asked an explicit confirmation question naming the artifact.
+Picking the approve option in a structured prompt that names the artifact (per `lib/user-prompts.md`) counts the same as a trigger phrase. A freeform "yes", "go ahead" or "do it" counts only as the answer to such a prompt.
 
 ## Skill responsibility
 
 Every write skill (ticket, bug-report, feature-doc, architecture-doc, project-overview, decisions-log, known-issues, roadmap, session-log, new-project, bootstrap-aiops):
 
 1. Gather details and produce a draft in chat or `/drafts/`.
-2. Ask explicit confirmation: "Push this ticket to {PROJECT_KEY}?" or "Publish this page to {SPACE_KEY}?"
-3. Wait for trigger phrase.
+2. Ask with a structured prompt naming the artifact, approve option first: **Push this ticket to {PROJECT_KEY}** / **Keep as draft**, or **Publish this page to {SPACE_KEY}** / **Keep as draft**.
+3. Wait for the owner's pick or a trigger phrase.
 4. Execute REST call.
 5. Report URL.
 

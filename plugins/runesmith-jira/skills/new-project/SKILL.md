@@ -1,7 +1,7 @@
 ---
 name: new-project
 description: "Scaffold a new project in Confluence and Jira. Use when the user says \"new project\", \"set up a project\", \"create a project\", \"scaffold\", or wants to initialize Confluence and Jira for a new codebase. Also triggers on \"start a new repo\", \"project setup\", or \"initialize project\"."
-compatibility: Requires Cowork desktop app environment.
+compatibility: Runs in the planner chat with the project's workspace folder connected.
 ---
 
 # New Project Setup
@@ -56,7 +56,7 @@ Do not use for:
 - Project key (3-10 uppercase chars; Jira validates)
 - Space key (typically same as project key)
 - Description
-- Project lead email → resolve to `{LEAD_ACCOUNT_ID}` via `GET /rest/api/3/user/search?query=<email>`
+- Project lead email → resolve to `{LEAD_ACCOUNT_ID}` via `GET /rest/api/3/user/search?query={email}`
 - Project type: software | business | service_desk
 - Project template: e.g. `com.pyxis.greenhopper.jira:gh-simplified-kanban-classic`
 

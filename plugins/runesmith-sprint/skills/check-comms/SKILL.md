@@ -1,170 +1,111 @@
 ---
 name: check-comms
-description: "Triage open comms in {PROJECT}.cc/comms/open/ - surface to-user items, draft replies, archive resolved folders. Use when the user says \"check comms\", \"any messages from CC\", \"what does CC need\", \"check messages\", \"is CC blocked\", \"triage comms\", or wants to clear out CC's open comms."
-compatibility: Requires Cowork desktop app environment.
+description: "Check Claude Code's work: read the goal status and every reply, verify against the repository read-only, look at the screenshots, archive finished tasks, log the outcome, report what needs the owner and give the next goal line. Use when the user says \"check comms\", \"what did CC do\", \"is CC done\", \"any messages from CC\", \"what does CC need\", or when a finished goal status comm is waiting."
+compatibility: Runs in the planner chat with the project's workspace folder connected.
 ---
 
 # Check Comms
 
-Walk every per-comm folder under `{PROJECT}.cc/comms/open/`. Surface `to: user` items first. Let user reply or defer. Archive resolved folders (the WHOLE folder) to `comms/archive/{YYYY-MM}/`.
-
-Works in both base config and atlassian-enabled config. In atlassian config, comms may carry `ticket: {KEY}` and `type: ticket-transition` - this skill executes the Jira mutation when that's the request, via the workspace's MCP-connected Atlassian tools.
-
-## Archive ownership
-
-**Cowork (this skill) owns the archive move.** CC writes the reply and flips BOTH task and reply files to `status: resolved`, then LEAVES them in `comms/open/`. This skill is the next agent to touch the comm: it verifies the result, then moves the entire `{PREFIX}-{NNN}-{slug}/` folder (task + reply + any `attachments/`) to `comms/archive/{YYYY-MM}/{PREFIX}-{NNN}-{slug}/` as a single atomic move.
-
-This resolves the prior three-way contradiction: CC parent used to say "CC archives", check-comms used to say "Cowork archives", protocol-doc was ambiguous. The canonical rule now: CC writes + flips status, Cowork moves.
+Run when the owner says "check comms", and on your own when you see a goal finished with replies waiting. The protocol is `lib/comms-protocol.md`.
 
 ## References
 
-- `agents/comms-triager.md` - subagent for per-comm parsing and action
-- `lib/comms-protocol.md` - file format, ID conventions (`{PREFIX}-{NNN}-{slug}`), folder layout, type enum, lifecycle
-- `lib/comms-check.md` - same-named lib doc, but DIFFERENT thing (lib is the on-entry helper; this is the standalone triage skill)
-- `lib/atlassian-enabled.md`
-- `lib/jira-tags.md` - tags to add/remove on resolution
-- `lib/user-prompts.md` - structured-input requirement for any user prompt
+- `agents/comms-triager.md` - verifies one task folder in isolation
+- `lib/comms-protocol.md` - layout, types, lifecycle
+- `lib/planner-task-method.md` - for fix tasks and the next goal line
+- `lib/comms-check.md` - the lighter on-entry check other skills run
+- `lib/qa-checklist.md` - the qa checklist page and gate
+- `lib/atlassian-enabled.md`, `lib/jira-tags.md` - `ticket-transition` handling
+- `lib/user-prompts.md` - structured prompts for every decision
 
 ## User input rules
 
-This skill follows the marketplace-wide user-prompt standard in `lib/user-prompts.md`. Every user prompt MUST use the host client's structured input UI (single-pick, multi-pick, or text-input form). Never freeform plain-text yes/no questions. The only exception is the consent-trigger gate documented in `lib/consent.md`, which waits for user-initiated phrases like "make the ticket".
+Every decision that is the owner's is a structured prompt with the recommended option first. Report results plainly; ask only when the answer changes what happens next.
 
 ## Pre-Flight Checks
 
-### 1. Locate comms folder
+### 1. Locate comms
 
-Find `{PROJECT}.cc/comms/open/`. If missing or empty: report and exit clean.
+`{PROJECT}.cc/comms/open/`. Missing: the project has no head; point at `runesmith-workspace:init`. Empty: say so and stop.
 
-### 2. Atlassian-enabled?
+### 2. Atlassian enabled?
 
-Read marker. Used to decide whether to handle `type: ticket-transition` items inline.
-
-## When to Use
-
-Use for:
-- After CC has been working - "what's CC need from me / Cowork?"
-- Before kicking off another planning skill (the on-entry lib does a quick version of this; this skill is the deep version)
-- Closing the loop on resolved comm folders (archive)
-
-Do not use for:
-- Writing new comms yourself (do that within other skills)
-- Cleaning up archive (out of scope; archive is permanent)
+Read the marker. Decides whether `ticket-transition` comms are handled.
 
 ## Workflow
 
-### 1. List open comm folders
+### 1. Read the goal status comm first
 
-Walk every subdirectory of `comms/open/`. Each folder is named `{PREFIX}-{NNN}-{slug}/` and contains:
+The newest `open/{UTC}-goal-status/`. Note the goal text, the tasks it covered, anything the owner changed mid-goal, each task's state and the build number. If it's still `in-progress`, the goal is running: report its state and stop unless the owner asks for more.
 
-- `{PREFIX}-{NNN}-{slug}.md` - the task
-- `{PREFIX}-{NNN}-{slug}-reply.md` - the reply (if CC has answered)
-- `attachments/` - optional, files CC needed from outside the repo
+### 2. Verify each task folder
 
-Parse frontmatter on both task and reply (if present). Group by reply state + `to:`:
+For each `open/{UTC}-{slug}/` with a reply, run the `comms-triager` agent. It returns, per task:
 
-- Reply present, both `status: resolved` → archive candidate
-- Reply present but `to: user` items → highest priority (user must see)
-- No reply, `to: cc` → CC is still working
-- `to: cowork` (typically `ticket-transition`) → Cowork must act
+- the reply's STATUS line, summary, Acceptance with proof, owner actions, what was left out;
+- **repository checks, read only:** the branch and commit named exist; the build tag `v{number}` is on that commit; the goal's branch is gone after merge; no AI attribution in the new commits; the changelog is in the right shape; `dev` contains `qa`, `qa` contains `beta`, `beta` contains `main`;
+- any `ambiguity`, `blocker`, `user-action` or `ticket-transition` comm in the folder.
 
-### 2. Surface to-user items
+Never run git write commands, including fetch, from the planner side.
 
-For each comm folder where the reply has `to: user`:
+### 3. Look at the evidence yourself
 
-```
-[from cc, type: blocker]  {PREFIX}-{NNN}-{slug}
-ticket: PROJ-42  (if atlassian-enabled)
-created: {ISO}
-body: <first 5 lines of reply>
+Open every screenshot in each `evidence/` folder. Compare it with the task and with how the rest of the app looks. Easy to miss:
+- squeezed controls;
+- raw ids or codes where names belong;
+- wording the owner would reject;
+- test data left in the owner's data;
+- a home-made version of something the app already has.
 
-What do you want to do?
-  [r]eply  - write an answer comm in the same folder
-  [d]efer  - leave folder open, move on
-  [s]how   - print full comm
-```
+### 4. Pressure-test the builder's choices
 
-On `[r]eply`: prompt user for answer text. Write a new comm in the SAME folder with `from: user, to: cc, parent: {PREFIX}-{NNN}-{slug}, type: answer`. Flip the reply's `status: resolved`. On next iteration, the folder will archive.
+A choice that adds friction for the owner or users (an extra required setting, an extra step) is raised with a recommendation, even if the owner agreed to it in the builder's session.
 
-On `[d]efer`: skip.
+### 5. Handle what the builder asked
 
-On `[s]how`: print full body, return to action prompt.
+- **`ambiguity` / `blocker`:** put the question to the owner as a structured prompt, then write an `answer` comm in that task's folder (`from: cowork`, `parent:` the question's id). The work resumes with a new goal line.
+- **`ticket-transition`** (Atlassian only): ask the owner, then move the ticket through the Jira REST API and write an `answer`. Update tags per `lib/jira-tags.md`.
+- **`user-action`:** list it for the owner. It stays in `open/` until he's done it.
 
-### 3. Handle to-cowork items
+### 6. Read the qa checklist page (after a promotion to qa)
 
-For each comm folder where the reply (or task, if Cowork is the destination) has `to: cowork`:
+Run `runesmith-sprint:qa-checklist` read (the page id is in the workspace CLAUDE.md; format and gate in `lib/qa-checklist.md`). Record each item's result in the promotion's comm folder and in `decisions.md`. For each failed item, write a fix task through `runesmith-sprint:task` with the owner's description and screenshot in `references/`; the builder opens the GitHub issue as the task's first step. The qa gate is clear when every owner item has passed and nothing is failing.
 
-#### type: ticket-transition (atlassian-enabled only)
+### 7. Archive
 
-CC asked Cowork to transition a Jira ticket. Body specifies `ticket: {KEY}` and target state.
+For each task whose reply is `complete`, or whose remaining items are all owner actions: move the whole folder to `comms/archive/{YYYY-MM}/{UTC}-{slug}/`. Move a finished goal status comm to `comms/archive/{YYYY-MM}/goal-status/`. Folders with an open question stay.
 
-Show user:
-```
-[from cc, type: ticket-transition]  {KEY}: <summary>
-Target state: <state>
-```
+### 8. Log
 
-Surface a structured single-pick prompt: question "Approve transition?", options "Approve" / "Deny" / "Show details first".
+Append to the plan's `decisions.md`: what merged, the build number, decisions made, anything still open.
 
-On approve:
-1. Look up transition id via `GET {SITE_URL}/rest/api/3/issue/{KEY}/transitions`.
-2. Find transition by name matching target state. (Use Cowork's MCP atlassian connector or REST fallback if MCP can't.)
-3. POST the transition.
-4. On 200: write reply comm `from: cowork, to: cc, type: answer, parent: {PREFIX}-{NNN}-{slug}`, status: resolved. Add `cowork-transition` label to the ticket. Remove `cc-done` label per `jira-tags.md`.
-5. Flip both files to resolved, archive the folder.
+### 9. Do what you can yourself
 
-On deny: write reply with reason. Don't archive yet - let user re-engage later.
+A file chore, a non-secret line in a settings file: do it. Don't hand it to the owner.
 
-#### type: ambiguity / blocker where to: cowork
+### 10. Report, briefly
 
-CC is asking Cowork directly (e.g., "what's the convention for X?"). Show user, prompt for guidance, write reply on user's behalf in the same folder.
-
-### 4. Show to-cc items
-
-For folders where the task has `to: cc` and no reply yet (Cowork → CC, awaiting CC pickup):
-- These need CC to act, not the user. Show as informational:
-  ```
-  [from cowork, type: task]  {PREFIX}-{NNN}-{slug}
-  status: open since {ISO}
-  CC will pick this up on next session.
-  ```
-- No action required from user; user can `[c]ancel` an outgoing task if it shouldn't be there.
-
-### 5. Archive resolved folders
-
-For every comm folder where BOTH the task and reply have `status: resolved`:
-- Move the entire folder (task file + reply file + `attachments/` if present) to `comms/archive/{YYYY-MM}/{PREFIX}-{NNN}-{slug}/`.
-- Single move; preserves filenames; the folder name is the comm id.
-
-### 6. Report
-
-```
-[OK] Comms triaged
-Surfaced to user: n
-Handled (replied/transitioned): m
-Archived: k folders
-Still open: x
-
-Open comm folders by audience:
-  to user:    {n}
-  to cowork:  {n}
-  to cc:      {n}
-```
+- what's done, in plain words;
+- what needs the owner: numbered actions, or questions as structured prompts;
+- small issues spotted, queued or offered;
+- any mistake the planner made, owned in one line;
+- the next goal line.
 
 ## Guard Rails
 
-- [ ] Comms folder located; exit clean if empty
-- [ ] Frontmatter parsed for task + reply in every folder (skip with warning if malformed)
-- [ ] User explicitly approves any reply or transition before write
-- [ ] Atlassian transitions only attempted when atlassian-enabled
-- [ ] Tags updated per `jira-tags.md` on transition
-- [ ] Resolved folders archived (whole folder moves); not deleted
-- [ ] Malformed comm files surfaced but not modified
+- [ ] Goal status comm read first
+- [ ] Every reply verified against the repository, read only; no git write commands
+- [ ] Every screenshot opened and compared
+- [ ] Builder choices that add friction raised with a recommendation
+- [ ] Questions answered in the task's folder through `answer` comms
+- [ ] Finished folders archived whole; open questions left in place
+- [ ] Outcome appended to `decisions.md`
+- [ ] Report is short and ends with the next goal line
 
 ## Error Cases
 
-**Malformed frontmatter:** Surface folder + parse error; ask user - fix manually, delete (with consent), or skip.
-**Transition fails (Jira 400/403):** Show error; reply comm captures the failure; ticket stays in current state. User can retry after fixing the cause.
-**Comms folder doesn't exist:** Either CC head doesn't exist (suggest `/runesmith-cc:bootstrap-cc`) or user is in the wrong workspace.
-**User wants to bulk-defer:** Provide a `[d]efer all` shortcut that skips through.
-**Comm references a ticket the user can't access:** Surface the auth error; user fixes Jira permissions; retry.
-**Loose files in `comms/open/` (no parent folder):** Legacy flat layout. Surface, ask user whether to migrate into per-comm folders or treat as orphans.
+**Reply missing for a task the status comm calls merged:** report it; don't archive; the next goal line asks for the reply.
+**Repository check fails** (tag missing, branch not deleted, attribution found, drift): report what failed and write a fix task; don't archive that task.
+**Malformed front matter:** report the file and the parse error; leave it.
+**Legacy numbered folders (`{PREFIX}-{NNN}-{slug}/`) or loose files in `open/`:** treat them as tasks; report them as legacy. `runesmith-workspace:init` renames them.
+**Jira transition fails:** report the status code; leave the comm open.

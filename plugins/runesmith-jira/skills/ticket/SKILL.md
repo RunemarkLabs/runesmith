@@ -1,7 +1,7 @@
 ---
 name: ticket
 description: "Create, format, and push Jira ticket drafts for any issue type (Task, Story, Bug, Epic). Includes JSON format specification, field guidance per issue type, and the push-to-Jira workflow. Trigger on \"create a ticket\", \"make a Jira ticket\", \"write a ticket for this\", \"draft a ticket\", \"create a task for\", \"make the ticket\"."
-compatibility: Requires Cowork desktop app environment.
+compatibility: Runs in the planner chat with the project's workspace folder connected.
 ---
 
 # Create Jira Ticket
@@ -30,9 +30,9 @@ This skill follows the marketplace-wide user-prompt standard in `lib/user-prompt
 
 See `lib/comms-check.md`. Pause for `to: user` items.
 
-1. Resolve `.credentials` per `credentials.md`. Required: `ATLASSIAN_API_URL`, `ATLASSIAN_API_TOKEN`, `ATLASSIAN_API_EMAIL`. If missing → "Run `/core:setup`."
+1. Resolve `.credentials` per `credentials.md`. Required: `ATLASSIAN_API_URL`, `ATLASSIAN_API_TOKEN`, `ATLASSIAN_API_EMAIL`. If missing → "Run `/runesmith-core:setup`."
 2. Resolve `{PROJECT_KEY}`: `ATLASSIAN_JIRA_PROJECT_KEY` from `.credentials`, then CLAUDE.md, else ask user.
-3. Resolve assignee `accountId`: if user provides email, look up via `GET /rest/api/3/user/search?query=<email>`. If no assignee given, leave unset.
+3. Resolve assignee `accountId`: if user provides email, look up via `GET /rest/api/3/user/search?query={email}`. If no assignee given, leave unset.
 4. Discover priority/severity field if needed: `GET /rest/api/3/field`. Use `priority` by default. Map to `ATLASSIAN_BUG_SEVERITY_FIELD` only if set.
 
 ## When to Use
@@ -110,7 +110,7 @@ POST {ATLASSIAN_API_URL}/rest/api/3/issue
 
 On success, response includes `key` and `self`. Construct browse URL:
 ```
-{ATLASSIAN_API_URL}/browse/<key>
+{ATLASSIAN_API_URL}/browse/{key}
 ```
 
 ### 5. Report
@@ -137,7 +137,7 @@ On success, response includes `key` and `self`. Construct browse URL:
 | Status | Response | Action |
 |---|---|---|
 | 400 | `errorMessages: ["customfield_X is required"]` | Discover field via `/rest/api/3/field`, prompt user |
-| 401 | invalid auth | Re-read `.credentials`, retry once, then "Run `/core:setup`." |
+| 401 | invalid auth | Re-read `.credentials`, retry once, then "Run `/runesmith-core:setup`." |
 | 403 | no permission to create in project | Surface, abort |
 | 404 | project not found | Confirm `{PROJECT_KEY}` |
 | 429 | rate limit | Honor `Retry-After`, retry once |

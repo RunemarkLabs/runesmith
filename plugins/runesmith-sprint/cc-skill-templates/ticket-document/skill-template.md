@@ -1,7 +1,7 @@
 ---
 name: ticket-document
 description: "Append a plan, action, or decision as a Jira ticket comment and tag the ticket appropriately. Use when CC starts work, makes a non-obvious decision, or completes a meaningful action on a ticket. Runs in Claude Code."
-compatibility: Requires Cowork desktop app environment.
+compatibility: Runs in Claude Code, inside the project's head.
 ---
 
 # Ticket Document (CC-side)
@@ -44,7 +44,7 @@ Convert markdown → ADF for Jira comment body (per `@lib/atlassian-rest.md`).
 
 ```
 POST {SITE_URL}/rest/api/3/issue/{KEY}/comment
-{ "body": <ADF document> }
+{ "body": {ADF document} }
 ```
 
 Then add the matching label:
@@ -66,21 +66,22 @@ If label add 403: revert to comms route for the label only.
 Write a comm:
 
 ```
-comms/open/<ISO>-document-{KEY}.md
+comms/open/{UTC}-{slug}/{UTC}-{slug}-ticket-transition-{n}.md     (in the current task's folder)
 ```
 
 ```yaml
 ---
-id: <id>
+id: {UTC}-{slug}-ticket-transition-{n}
 from: cc
 to: cowork
 type: ticket-transition
+parent: {UTC}-{slug}
 ticket: {KEY}
 status: open
 ---
 ```
 
-Body specifies "Add comment + label `cc-plan`". Cowork's `check-comms` will execute via MCP.
+Body specifies "Add comment + label `cc-plan`". The planner's `check-comms` makes the change through the Jira REST API.
 
 ### 3. Report (in CC chat)
 

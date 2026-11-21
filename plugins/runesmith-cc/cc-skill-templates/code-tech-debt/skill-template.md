@@ -1,14 +1,14 @@
 ---
-name: code-tech-debt
+name: runesmith-code-tech-debt
 description: "Scan repos inside this CC head for code-level tech debt - unused exports, dead functions, orphaned files, unused dependencies, leftover scaffolding from refactors. Runs in Claude Code, scoped to the current repo. Use when the user says \"code tech debt\", \"dead code\", \"unused imports\", \"what can I remove from this repo\", or proactively after a refactor. Read-only by default; mutations require explicit consent."
-compatibility: Requires Cowork desktop app environment.
+compatibility: Runs in Claude Code, inside the project's head.
 ---
 
 # Code Tech Debt (CC-side)
 
-Scan repos in `{PROJECT}.cc/<repo>/` for unused code, dead exports, orphaned files, and stale dependencies. Per-language analyzers, extensible via the language registry in `@lib/code-analyzers.md`. Read-only by default - flags findings, proposes removals; user consent required for any deletion.
+Scan repos in `{PROJECT}.cc/{repo}/` for unused code, dead exports, orphaned files, and stale dependencies. Per-language analyzers, extensible via the language registry in `@lib/code-analyzers.md`. Read-only by default - flags findings, proposes removals; user consent required for any deletion.
 
-This skill is deployed to `{PROJECT}.cc/.claude/skills/code-tech-debt/SKILL.md` by `/runesmith-cc:bootstrap-cc` running in Cowork. Do not edit it directly here unless you intend the change to flow to all future bootstraps.
+This skill is deployed to `{PROJECT}.cc/.claude/skills/code-tech-debt/SKILL.md` by `/runesmith-cc:head` running in Cowork. Do not edit it directly here unless you intend the change to flow to all future bootstraps.
 
 ## References
 
@@ -18,7 +18,7 @@ This skill is deployed to `{PROJECT}.cc/.claude/skills/code-tech-debt/SKILL.md` 
 
 ## Scope
 
-This skill scans repos under `{PROJECT}.cc/<repo>/`. It does NOT touch:
+This skill scans repos under `{PROJECT}.cc/{repo}/`. It does NOT touch:
 - Workspace-level files outside the CC head
 - `{PROJECT}.cc/comms/` (CC's exchange area)
 - `{PROJECT}.cc/.claude/` (CC's own config and skills)
@@ -153,22 +153,22 @@ For destructive actions (delete file, uninstall dep), require the consent-trigge
 
 ### 6. Execute (if consented)
 
-- Run the corresponding analyzer's fix mode where supported (e.g. `ts-prune --auto-fix` for unused exports if available; `eslint --fix` for unused imports if eslint configured; `npm uninstall <pkg>` for unused deps).
+- Run the corresponding analyzer's fix mode where supported (e.g. `ts-prune --auto-fix` for unused exports if available; `eslint --fix` for unused imports if eslint configured; `npm uninstall {pkg}` for unused deps).
 - For file deletions, use `git rm` if the repo is a git repo (CC head's repos always are), so the deletion is staged for the next commit.
 - Never push, never commit. Stop at staging.
 
 ### 7. Comms output
 
-If running on behalf of a Cowork-driven task (i.e. the request arrived via a `comms/open/<id>-task.md` comm), write a `comms/open/<reply-id>-answer.md`:
+If running on behalf of a Cowork-driven task (i.e. the request arrived via a `comms/open/{id}-task.md` comm), write a `comms/open/{reply-id}-answer.md`:
 
 ```yaml
 ---
 from: cc
 to: cowork
 type: answer
-parent: <original-task-id>
+parent: {original-task-id}
 status: open
-created: <ISO>
+created: {ISO}
 ---
 
 Code tech debt scan: {repo-name}

@@ -1,25 +1,31 @@
 <h1>{COMPANY} - AIOPS Best Practices</h1>
 
-<h2>Consent before writes</h2>
-<p>Every Jira ticket and Confluence page require an explicit user trigger phrase ("make the ticket", "publish the page"). See <code>consent.md</code>. Skills hold drafts in <code>/drafts/</code> until the trigger fires.</p>
+<h2>Plan before you build</h2>
+<p>Every substantive change starts as a plan with a decisions log. Decisions are recorded the day they're made, with who made them.</p>
+
+<h2>Decisions are structured prompts</h2>
+<p>When Claude needs a decision, it asks with choices, the recommended one first. Never a freeform "should I proceed?". It asks only when the answer changes what gets built.</p>
+
+<h2>Approval before any write</h2>
+<p>No Jira ticket, Confluence page, push or promotion happens without the owner's approval. Drafts stay local until then.</p>
+
+<h2>One goal at a time</h2>
+<p>A goal line names the task comms and their outcome, and always ends: "Done when each task's Acceptance is met, or each item that needs the owner is named in the reply as an owner action." Changes to a running goal go in a new task.</p>
+
+<h2>Verify, don't trust</h2>
+<p>The planner checks every reply against the repository: the branch, the commit, the build tag, the changelog, the screenshots. A reply that doesn't match gets a fix task, never an edit.</p>
+
+<h2>Promote only on the owner's word</h2>
+<p>One step of the chain per promotion. A hold on <code>beta</code> stays until the owner lifts it. Overrides are recorded in the owner's own words.</p>
+
+<h2>Secrets stay out of chat and out of repos</h2>
+<p>Credentials are pasted into files, never into chat. Skills report a key as set or missing, never its value. No credentials file inside a repo folder.</p>
+
+<h2>Scope every lookup</h2>
+<p>Confluence title searches cross spaces; always pass <code>space-id={SPACE_ID}</code>. Jira searches use <code>POST /rest/api/3/search/jql</code>.</p>
 
 <h2>Use canonical tokens</h2>
-<p>Always use <code>{COMPANY}</code>, <code>{SITE}</code>, <code>{SPACE_KEY}</code>, <code>{SPACE_ID}</code>, <code>{PROJECT_KEY}</code>. No synonyms (<code>{ORG}</code>, <code>{TEAM}</code>, <code>{TENANT}</code>).</p>
+<p><code>{COMPANY}</code>, <code>{SITE}</code>, <code>{SPACE_KEY}</code>, <code>{SPACE_ID}</code>, <code>{PROJECT_KEY}</code>. No synonyms such as ORG, TEAM or TENANT.</p>
 
-<h2>Always scope page lookups by space</h2>
-<p>Title-only searches return cross-space hits. Always include <code>space-id={SPACE_ID}</code>.</p>
-
-<h2>Bump version on PUT</h2>
-<p>GET the page first, read <code>version.number</code>, PUT with <code>number+1</code>. Skills handle this automatically; manual API users must do it explicitly.</p>
-
-<h2>Prefer <code>/search/jql</code> POST</h2>
-<p>The <code>GET /rest/api/3/search</code> endpoint is deprecated on Cloud. Use <code>POST /rest/api/3/search/jql</code>.</p>
-
-<h2>Resolve users by accountId</h2>
-<p>Jira Cloud rejects <code>assignee.name</code>. Look up email → <code>accountId</code> via <code>GET /rest/api/3/user/search</code>.</p>
-
-<h2>Severity is custom</h2>
-<p>Severity is not a default Jira field. Map to <code>priority</code>, or set <code>ATLASSIAN_BUG_SEVERITY_FIELD</code> in <code>.credentials</code> to your custom field id.</p>
-
-<h2>Keep <code>.credentials</code> out of git</h2>
-<p>The marketplace ships <code>.gitignore</code> entries and a <code>.credentials.example</code>. Never commit real credentials. Never echo full credential values in chat.</p>
+<h2>No AI attribution</h2>
+<p>Commits, pull requests and files carry no AI co-author lines or generated-by footers. The head's settings and commit hook enforce it.</p>

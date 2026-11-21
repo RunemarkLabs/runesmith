@@ -1,18 +1,18 @@
 ---
 name: plan-to-tickets
 description: "Convert a plan (or several) in plans/active/ into Jira ticket drafts organized by sprint. Drafts persist as JSON under plans/active/{slug}/tickets/{KEY}.json until push; after push they archive to archive/tickets-pushed/{YYYY-MM}/. Use when the user says \"convert this plan to tickets\", \"make tickets from this plan\", \"break down the plan\", \"plan to tickets\", \"ticket up the plan\", or wants to materialize plan work as Jira issues."
-compatibility: Requires Cowork desktop app environment.
+compatibility: Runs in the planner chat with the project's workspace folder connected.
 ---
 
 # Plan to Tickets
 
-Read one or more `plans/active/<slug>/plan.md` files. Decompose into Jira tickets. Write each as JSON under `plans/active/<slug>/tickets/` so the draft state survives across sessions. Organize them into a target sprint (or backlog). User confirms; push via existing ticket flow. After push, archive the JSON drafts to `archive/tickets-pushed/<YYYY-MM>/` for history.
+Read one or more `plans/active/{slug}/plan.md` files. Decompose into Jira tickets. Write each as JSON under `plans/active/{slug}/tickets/` so the draft state survives across sessions. Organize them into a target sprint (or backlog). User confirms; push via existing ticket flow. After push, archive the JSON drafts to `archive/tickets-pushed/{YYYY-MM}/` for history.
 
 Atlassian-enabled only.
 
 ## References
 
-- `lib/folder-conventions.md` - canonical home for ticket drafts (`plans/active/<slug>/tickets/`) and post-push archive (`archive/tickets-pushed/<YYYY-MM>/`)
+- `lib/folder-conventions.md` - canonical home for ticket drafts (`plans/active/{slug}/tickets/`) and post-push archive (`archive/tickets-pushed/{YYYY-MM}/`)
 - `lib/plan-format.md` - how to read plans; directory shape includes `tickets/` subfolder
 - `lib/atlassian-rest.md` - endpoints
 - `lib/comms-check.md` - runs first
@@ -32,7 +32,7 @@ This skill follows the marketplace-wide user-prompt standard in `lib/user-prompt
 
 ### 1. Atlassian enabled
 
-If not: "Atlassian not enabled. Run `/atlassian:enable` first."
+If not: "Atlassian not enabled. Run `/runesmith-sprint:enable` first."
 
 ### 2. Plans available
 
@@ -83,7 +83,7 @@ Render every ticket as the JSON the `runesmith-jira:ticket` skill expects:
     "project":   { "key": "{JIRA_PROJECT_KEY}" },
     "issuetype": { "name": "Task" },
     "summary":   "...",
-    "description": <ADF document derived from plan section>,
+    "description": {ADF document derived from plan section},
     "labels":    ["cowork-planned", "bootstrap"],
     "priority":  { "name": "Medium" }
   }
@@ -92,7 +92,7 @@ Render every ticket as the JSON the `runesmith-jira:ticket` skill expects:
 
 Description ADF includes a link to the plan slug (back-reference).
 
-**Write each ticket JSON to `plans/active/<slug>/tickets/<DRAFT-ID>.json`** where `<DRAFT-ID>` is a deterministic local identifier (e.g. `<slug>-001`, `<slug>-002`). These drafts persist on disk so the plan-to-tickets workflow can resume across sessions and so the user can review them outside chat.
+**Write each ticket JSON to `plans/active/{slug}/tickets/{DRAFT-ID}.json`** where `{DRAFT-ID}` is a deterministic local identifier (e.g. `{slug}-001`, `{slug}-002`). These drafts persist on disk so the plan-to-tickets workflow can resume across sessions and so the user can review them outside chat.
 
 If targeting a sprint, also include sprint assignment via `POST /rest/agile/1.0/sprint/{SPRINT_ID}/issue` after creates.
 
@@ -114,7 +114,7 @@ Wait for trigger phrase ("push", "make the tickets", "create them", "yes").
 
 ### 6. Push (delegated to ticket skill flow)
 
-For each ticket, call the same REST flow as `atlassian:ticket`:
+For each ticket, call the same REST flow as `runesmith-jira:ticket`:
 
 ```
 POST {SITE_URL}/rest/api/3/issue
@@ -125,7 +125,7 @@ Capture each response key.
 After all tickets created, if any are sprint-targeted:
 ```
 POST {SITE_URL}/rest/agile/1.0/sprint/{SPRINT_ID}/issue
-{ "issues": [<list of new keys>] }
+{ "issues": [{list of new keys}] }
 ```
 
 If Epic created, link Stories/Tasks to it via the Epic Link custom field (auto-discover via `GET /rest/api/3/field`).
@@ -146,11 +146,11 @@ Touch `updated:` to today's date. If plan was `status: open`, optionally bump to
 
 Per `lib/folder-conventions.md`, after successful Jira push:
 
-- Rename each pushed JSON from `plans/active/<slug>/tickets/<DRAFT-ID>.json` → `plans/active/<slug>/tickets/<JIRA-KEY>.json` (so the on-disk name matches the issued key).
-- Move the renamed file to `archive/tickets-pushed/<YYYY-MM>/<JIRA-KEY>.json` for history.
-- `plans/active/<slug>/tickets/` ends empty (or holds only unpushed drafts if user partially confirmed).
+- Rename each pushed JSON from `plans/active/{slug}/tickets/{DRAFT-ID}.json` → `plans/active/{slug}/tickets/{JIRA-KEY}.json` (so the on-disk name matches the issued key).
+- Move the renamed file to `archive/tickets-pushed/{YYYY-MM}/{JIRA-KEY}.json` for history.
+- `plans/active/{slug}/tickets/` ends empty (or holds only unpushed drafts if user partially confirmed).
 
-If any push failed, leave its draft JSON in `plans/active/<slug>/tickets/` for retry; record the failure in the report.
+If any push failed, leave its draft JSON in `plans/active/{slug}/tickets/` for retry; record the failure in the report.
 
 ### 9. Report
 
@@ -163,7 +163,7 @@ Tickets:  {N} created
 
 Sprint assignments: {n}
 Plan(s) updated with ticket references.
-Drafts archived: archive/tickets-pushed/<YYYY-MM>/
+Drafts archived: archive/tickets-pushed/{YYYY-MM}/
 
 Next: /runesmith-sprint:start-sprint to hand the active sprint to CC, or
       /runesmith-sprint:sprint-status to see board state.
@@ -177,17 +177,17 @@ Next: /runesmith-sprint:start-sprint to hand the active sprint to CC, or
 - [ ] Ticket types match plan content (no bugs unless plan identifies them)
 - [ ] All tickets carry `cowork-planned` + `bootstrap` labels
 - [ ] Description ADF includes plan slug back-reference
-- [ ] Draft JSON written to `plans/active/<slug>/tickets/` BEFORE push consent
+- [ ] Draft JSON written to `plans/active/{slug}/tickets/` BEFORE push consent
 - [ ] User explicitly consented before push
 - [ ] Each ticket POST succeeds before sprint assignment
 - [ ] Plan(s) updated with new keys
-- [ ] Pushed drafts archived to `archive/tickets-pushed/<YYYY-MM>/<KEY>.json`
-- [ ] Failed pushes leave draft JSON in `plans/active/<slug>/tickets/` for retry
+- [ ] Pushed drafts archived to `archive/tickets-pushed/{YYYY-MM}/{KEY}.json`
+- [ ] Failed pushes leave draft JSON in `plans/active/{slug}/tickets/` for retry
 - [ ] No duplicate ticket creation if plan was previously processed (skill checks plan's existing `tickets:` and asks before adding more)
 
 ## Error Cases
 
-**No plans with status open or building:** "No active plans to convert. Create one with `/core:plan` first."
+**No plans with status open or building:** "No active plans to convert. Create one with `/runesmith-core:plan` first."
 **Plan body missing acceptance criteria:** Skill asks user to add them inline before decomposition, or proceeds with Task-only breakdown.
 **Sprint id lookup fails:** Default to Backlog; surface the failure but continue.
 **Ticket create 400 (custom field required):** Surface field name; ask user to fill or use a Story type that doesn't require it.

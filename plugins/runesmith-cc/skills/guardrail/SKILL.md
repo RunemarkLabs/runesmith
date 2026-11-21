@@ -1,7 +1,7 @@
 ---
 name: guardrail
-description: "Install, verify, or uninstall the CC project-boundary guardrail with a single command. Copies a self-contained PowerShell (Windows) or bash (macOS/Linux) installer to the workspace root that handles the entire user-level setup - writes ~/.claude/settings.json permission block, hook scripts, runs synthetic verification. Constrains every Claude Code session on the machine to its launch project's root. Run once per machine. Use when the user says \"install the guardrail\", \"set up CC boundaries\", \"lock CC to project root\", \"guardrail install\", \"guardrail verify\", \"uninstall the guardrail\"."
-compatibility: Requires Cowork desktop app environment.
+description: "Install, verify, or uninstall the CC project-boundary guardrail with a single command. Copies a self-contained PowerShell (Windows) or bash (macOS/Linux) installer to the workspace root that handles the entire user-level setup - writes ~/.claude/settings.json permission block, hook scripts, runs synthetic verification. Constrains every Claude Code session on the machine to its launch project's root. Run once per machine. Verify also audits AI attribution in every {PROJECT}.cc head (settings, CLAUDE.md rule, commit-msg hook, count of attributed commits on default branches; report only). Use when the user says \"install the guardrail\", \"set up CC boundaries\", \"lock CC to project root\", \"guardrail install\", \"guardrail verify\", \"uninstall the guardrail\"."
+compatibility: Runs in the planner chat with the project's workspace folder connected.
 ---
 
 # CC Project-Boundary Guardrail (one-shot installer)
@@ -85,17 +85,17 @@ Default: workspace root. Alternative: `_INBOX/` if the workspace's root keep-lis
 3. Report:
    ```
    Installer copied:
-     Windows: <workspace>/install-guardrail.ps1
-     Unix:    <workspace>/install-guardrail.sh
+     Windows: {workspace}/install-guardrail.ps1
+     Unix:    {workspace}/install-guardrail.sh
 
    Next: run the installer.
 
    PowerShell:
-     cd <workspace>
+     cd {workspace}
      .\install-guardrail.ps1
 
    Bash:
-     cd <workspace>
+     cd {workspace}
      ./install-guardrail.sh
 
    Once it completes successfully, restart any open Claude Code sessions.
@@ -105,12 +105,24 @@ No structured-prompt consent for the copy step itself - the consent for the inst
 
 ## Verify flow
 
-Same copy step. User runs the installer with `verify` / `-Mode verify`. Skill reports the verify command:
+Same copy step. User runs the installer with `verify` / `-Mode verify` from the workspace root (or passes the workspace path). Skill reports the verify command:
 
 ```
-.\install-guardrail.ps1 -Mode verify
-./install-guardrail.sh verify
+.\install-guardrail.ps1 -Mode verify [-Workspace {WORKSPACE}]
+./install-guardrail.sh verify [{WORKSPACE}]
 ```
+
+Verify runs two checks and prints one status line at the end:
+
+1. **Guardrail** - marker key, hook script, synthetic allow + deny hook tests (user-level `~/.claude/settings.json`).
+2. **AI attribution audit** - for every `{PROJECT}.cc/` head under the workspace (or the workspace itself if it is a head):
+   - `.claude/settings.json` merged with `.claude/settings.local.json` turns attribution off: `attribution.commit` and `attribution.pr` are empty strings and `attribution.sessionUrl` is `false` (or `attribution` is `false`).
+   - `CLAUDE.md` carries the attribution hard rule.
+   - Each repo in the head has a `commit-msg` hook (resolved through `core.hooksPath` when set) that strips attribution. The hook is tested by running it on a sample message through `git hook run`, so a custom hook that already strips attribution passes too.
+   - Number of commits on each repo's default branch (`origin/HEAD`, else `main` / `master`) whose message carries attribution. Report only: verify never rewrites history. Shallow clones are flagged because the count only covers fetched history.
+   - User-level attribution state is shown for information; the head settings override it.
+
+Exit code is non-zero when the guardrail or any head's attribution setup fails. Commit counts never fail the run. Fix attribution setup with `/runesmith-cc:head` (re-run on the existing head).
 
 ## Uninstall flow
 
@@ -138,4 +150,12 @@ Earlier versions tried to install the guardrail from inside Claude Code. That fa
 End every flow with a single structured summary. No prose preamble.
 
 ```
-Guardrail action:  install
+Guardrail action:  install | verify | uninstall
+Installer copied:  {WORKSPACE}/install-guardrail.ps1
+                   {WORKSPACE}/install-guardrail.sh
+Command to run:    .\install-guardrail.ps1
+                   ./install-guardrail.sh
+
+Next step: open PowerShell / Terminal, cd to the workspace, run the
+command above. Then restart any open Claude Code sessions.
+```

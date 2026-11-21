@@ -1,118 +1,95 @@
-# How-to: Set Up a New Project Workspace
+# How-to: Set Up a New Project
 
-You've just made a folder for a new project and want it ready for RuneSmith-driven Cowork sessions. Goal: canonical structure + CC head + (optionally) Atlassian + the guardrail.
+You have a folder for a new project and want it ready to work in: workspace layout, project context, and for a code project the Claude Code head, its repo and branches.
 
-For the system-wide model behind these steps, read `docs/AGENT_PRIMER.md`.
+For the model behind these steps, read `docs/AGENT_PRIMER.md`.
 
 ## Prerequisites
 
-- RuneSmith marketplace installed in Cowork (`/runesmith-core` plus whichever plugins you need). See `INSTALL.md`.
-- A workspace folder on disk: `~/Projects/<project-name>/` or wherever you keep them.
-- Optionally: `.credentials` in the workspace root with `ATLASSIAN_*` and `GITHUB_PAT` keys if you'll use them. See `.credentials.example`.
+- RuneSmith installed (see `INSTALL.md`): at least `runesmith-core` and `runesmith-workspace`; add `runesmith-cc` and `runesmith-sprint` for a code project.
+- A Claude Project for this work, with the project folder connected.
+- For a new GitHub repo: `RUNESMITH_GITHUB_PAT` in the workspace `.credentials`. Init tells you if it's missing.
 
-## Steps
-
-### 1. Open the workspace in Cowork
-
-Launch Cowork desktop, point it at the empty (or near-empty) project folder. Cowork mounts the folder.
-
-### 2. Lay down the canonical structure
+## 1. Run init
 
 ```
-/runesmith-workspace:reallocate
+/runesmith-workspace:init
 ```
 
-What happens:
-- Cowork prompts via structured input - apply / preview diff / cancel.
-- On apply: snapshots existing root files to `archive/_pre-migration/<ISO>/`, then creates the canonical dirs (`_INBOX/`, `plans/active/`, `plans/archive/`, `notes/`, `drafts/`, `research/`, `source-docs/`, `archive/`).
-- Writes `STRUCTURE.md` and the `<!-- folder-conventions -->` + `<!-- agent-ops -->` marker blocks in `CLAUDE.md`.
-- Surfaces a proposed Project Instructions text block for you to paste into Cowork's Project Instructions UI field.
+Init reads the folder, then asks only what changes the result. Every question is a structured prompt with the recommended option first.
 
-### 3. Paste the Project Instructions
+1. **What is this project?** It drafts one to three sentences from what it finds. Use it or edit it.
+2. **Will this project hold code?** Yes builds the Claude Code head. No keeps it a workspace-only project.
+3. **Track work in Jira and Confluence?** Default no. Yes asks for the site, project key, board and space.
+4. **Only when needed:** which repo is primary when there are several, the head name when it can't be derived, where old root `tickets/` belong.
+5. **Consent:** a table of every move. Apply, Preview only, or Cancel. Nothing moves before Apply, and everything that moves is snapshotted first to `archive/_pre-init-{UTC}/`.
 
-Copy the proposed text from the reallocate output. In Cowork: project settings → Instructions field → paste → save. This sets the behavioral context (role, mission, rules) that Cowork loads as system prompt for every chat.
+For a code project it continues:
 
-If you re-run reallocate later, it'll re-emit updated text. Paste again to refresh.
+6. **Repos:** none yet, clone an existing repo, or create a new one (name, description, visibility, owner). Repeat as needed.
+7. **Changelog readers:** default "For users" and "For admins".
+8. **Dev data:** may Claude Code wipe dev's data when it resets dev? Default no.
+9. **Claude Code's Jira token** (Jira projects only): its own read-only token (default) or reuse yours.
 
-### 4. Bootstrap the CC head
+## 2. What init builds
 
-```
-/runesmith-cc:bootstrap-cc
-```
+- The workspace folders (`_INBOX/`, `plans/`, `notes/`, `drafts/`, `research/`, `source-docs/`, `archive/`), `STRUCTURE.md`, and the `folder-conventions` and `agent-ops` sections of `CLAUDE.md`.
+- `.gitignore` patterns for `.credentials`, snapshots, `_INBOX/` and open comms.
+- For a code project, through `/runesmith-cc:head`:
+  - `{PROJECT}.cc/CLAUDE.md` with the builder's standing rules;
+  - `.claude/settings.json` (attribution off, stop hook cap of 3, code-simplifier on, an empty cross-project list) and `.claude/README.md` explaining it;
+  - the `runesmith-clean-code`, `runesmith-code-tech-debt` and `runesmith-release` skills;
+  - `comms/open/` and `comms/archive/`;
+  - the repo, with `dev`, `qa` and `beta` branches created from `main`, the no-attribution commit hook, and a repo `CLAUDE.md` stub kept out of git.
+- With Jira on, the `runesmith-sprint:enable` steps (see `docs/howto/enable-atlassian.md`).
+- When a stack tool such as runestack is installed, init runs its init last.
 
-What happens:
-- Detects existing git repos at workspace root, asks via structured prompt whether to migrate them into the CC head.
-- Creates `{PROJECT}.cc/` with `CLAUDE.md`, `.claude/` scaffolding (skills, commands, agents, hooks), `comms/open/` and `comms/archive/`, marker file, and the deployed `code-tech-debt` CC-side skill.
-- Writes project-level `<project>.cc/.claude/settings.json` (empty `additionalDirectories: []` escape hatch for the guardrail) and `<project>.cc/.claude/README.md`.
-- Optionally: prompts to clone an existing GitHub repo or create a new one via PAT auth (uses `GITHUB_PAT` from `.credentials`).
-- Surfaces a nudge to run `/runesmith-cc:guardrail install` if it's not installed at user-level yet.
+## 3. Credentials
 
-The CC head folder is gitignored from the workspace dev repo - it's its own git repo (or repos plural, if you migrated multiple).
+Init checks each key the answers need and reports it as set or missing. It never asks for a value in chat. For a missing key it names the file (`.credentials` at the root for yours, `{PROJECT}.cc/.credentials` for Claude Code's) and the key; paste the value and tell it you're done.
 
-### 5. Install the user-level guardrail (one-time per machine)
+## 4. Paste the Project Instructions
 
-If you haven't already:
+Init ends with a complete Project Instructions block in a code block. Paste it into the Claude Project's instructions, replacing what's there. Re-running init produces a fresh block.
 
-```
-/runesmith-cc:guardrail install
-```
+## 5. Install the guardrail (once per machine)
 
-Constrains every CC session on this machine to its launch project's root. Cross-project filesystem reads are blocked at the harness level. See `docs/howto/install-guardrail.md` for details and residual risks.
+Init gives the command for your system. See `docs/howto/install-guardrail.md`.
 
-### 6. Optionally enable Atlassian
-
-If this project uses Jira + Confluence:
-
-```
-/runesmith-sprint:enable
-```
-
-Walks you through capturing the Jira project key, board id, Confluence space id. Appends the `<!-- runesmith:atlassian-start/end -->` block to both `CLAUDE.md` files. Surfaces a supplemental Project Instructions block to paste. Drops `.atlassian-enabled` at workspace root as the canonical marker.
-
-Skip this for personal / non-tracked projects. You can enable later with the same command.
-
-### 7. First plan
+## 6. Start working
 
 ```
 /runesmith-core:plan
 ```
 
-Writes `plans/active/<slug>/plan.md`. Iterate. When ready to execute, set `status: building` and (if atlassian-enabled) run `/runesmith-sprint:plan-to-tickets` to convert it into Jira ticket drafts.
+Then `/runesmith-sprint:task` to hand the first piece of work to Claude Code. See `docs/howto/daily-workflow.md`.
 
 ## Verify
 
 ```
-/runesmith-devtools:help
-```
-
-Should list every installed plugin and its skills, with natural-language triggers.
-
-Workspace folder should look like:
-
-```
-<project>/
-├── _INBOX/
-├── plans/active/
-├── plans/archive/
-├── notes/
-├── drafts/
-├── research/
-├── source-docs/
-├── archive/
-├── {PROJECT}.cc/
-├── CLAUDE.md          (folder-conventions + agent-ops markers populated)
+{project}/
+├── _INBOX/  plans/  notes/  drafts/  research/  source-docs/  archive/
+├── {PROJECT}.cc/          code projects only
+│   ├── CLAUDE.md
+│   ├── .claude/settings.json
+│   ├── .claude/skills/runesmith-*/
+│   ├── comms/
+│   └── {repo}/            on dev, with qa and beta beside main
+├── CLAUDE.md
 ├── STRUCTURE.md
-└── .credentials       (gitignored)
+└── .credentials
 ```
+
+`/runesmith-devtools:help` lists every installed skill.
 
 ## What can go wrong
 
-**Plugins not loading after install.** Restart Cowork (full quit, not reload). If still not loading, check `~/.claude/local-agent-mode-sessions/.../rpm/plugin_*` directory listings and re-install the affected plugin from a fresh `.plugin` file.
+**Plugins not loading.** Quit the app fully and reopen it.
 
-**Reallocate refuses to write.** If the workspace folder has non-canonical content at root, the skill snapshots first and prompts before moving. Approve via structured prompt; never freeform chat consent.
+**Init asks for access to a folder.** The session isn't connected to the project folder. Approve the request, or connect the folder and run init again.
 
-**Bootstrap-cc can't detect repos.** Git repos must have a `.git/` directory at the workspace root level (not nested). Move them up if needed, or supply paths interactively.
+**A marker without its end.** Init stops and names the file. Fix the marker by hand (or restore from the snapshot), then re-run.
 
-**Atlassian enable fails.** Verify `.credentials` has `ATLASSIAN_API_URL`, `ATLASSIAN_API_EMAIL`, and `ATLASSIAN_API_TOKEN` set. Run `/runesmith-core:setup` to populate.
+**New repo fails with 422.** The name is taken on GitHub. Pick another name, or clone the existing repo.
 
-**Project Instructions block not appearing.** Re-run reallocate - the proposed text is emitted in the final report on every run. Look for the copy-friendly code block at the end of the output.
+**Claude Code says code-simplifier is enabled but not installed.** Run once in the head: `claude plugin install code-simplifier@claude-plugins-official --scope project`.

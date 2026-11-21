@@ -1,7 +1,7 @@
 ---
 name: sync
 description: "Sync installed plugins with latest versions and update AIOPS documentation. Use when \"sync plugins\", \"update plugins\", \"pull latest bootstrap\", \"refresh plugins\", or to get the newest skill definitions."
-compatibility: Requires Cowork desktop app environment.
+compatibility: Runs in the planner chat with the project's workspace folder connected.
 ---
 
 # Sync Plugins
@@ -22,7 +22,7 @@ This skill follows the marketplace-wide user-prompt standard in `lib/user-prompt
 ## Pre-Flight Checks
 
 1. Credentials resolved.
-2. `GITHUB_PAT` present in `.credentials`.
+2. `RUNESMITH_GITHUB_PAT` set in the planner's `.credentials` (workspace root; see `lib/credentials.md`).
 3. Detect runtime per `install-paths.md` (Cowork vs. Claude Code).
 4. For AIOPS refresh: confirm `{SPACE_ID}` is set and accessible.
 
@@ -33,15 +33,15 @@ Use for:
 - Refreshing AIOPS pages after template changes
 
 Do not use for:
-- First install (use `/core:install`)
-- Authoring plugins (use `/devtools:plugin-builder`)
+- First install (use `/runesmith-core:install`)
+- Authoring plugins (use `/runesmith-devtools:plugin-builder`)
 
 ## Workflow
 
 ### 1. Fetch marketplace
 
 For each marketplace URL (default = this repo, plus any `PLUGIN_SOURCES`):
-- Use `GITHUB_PAT` if private repo.
+- Use `RUNESMITH_GITHUB_PAT` if the repo is private.
 - Read `.claude-plugin/marketplace.json`.
 - For each plugin: read `.claude-plugin/plugin.json` for current version.
 
@@ -56,7 +56,7 @@ For each installed plugin (path resolved per `install-paths.md`):
 
 For each "update available":
 - Show diff summary (skills added/removed, version bump).
-- Ask user: "Update <plugin> from vX → vY?"
+- Ask user: "Update {plugin} from vX → vY?"
 - On consent, replace plugin files (preserve user-local overrides if any).
 
 ### 4. Refresh AIOPS templates (optional)
@@ -87,7 +87,7 @@ AIOPS pages refreshed: 6 of 6
 
 ## Guard Rails
 
-- [ ] Credentials + `GITHUB_PAT` resolved
+- [ ] Credentials and `RUNESMITH_GITHUB_PAT` resolved
 - [ ] Versions compared before any write
 - [ ] User consents per plugin update
 - [ ] AIOPS update path: GET → version+1 → PUT
@@ -97,7 +97,7 @@ AIOPS pages refreshed: 6 of 6
 
 ## Error Cases
 
-**GitHub 401:** PAT invalid or expired. "Run `/core:setup` to refresh."
+**GitHub 401:** PAT invalid or expired. "Run `/runesmith-core:setup` to refresh."
 **GitHub 403:** PAT missing `repo` scope.
 **Marketplace 404:** URL wrong; check `PLUGIN_SOURCES`.
 **Plugin file write fails:** Permission issue; show install path and ask user to fix.

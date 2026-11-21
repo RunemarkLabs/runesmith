@@ -39,7 +39,7 @@ Never publish a page with placeholder syntax still in it.
 ### 3. Check for existing page
 
 ```
-GET {ATLASSIAN_API_URL}/wiki/api/v2/pages?space-id={space_id}&title=<URL-encoded title>&status=current
+GET {ATLASSIAN_API_URL}/wiki/api/v2/pages?space-id={space_id}&title={URL-encoded title}&status=current
 ```
 
 If exists:
@@ -55,26 +55,26 @@ If not exists:
 ```
 POST {ATLASSIAN_API_URL}/wiki/api/v2/pages
 {
-  "spaceId": "<space_id>",
+  "spaceId": "{space_id}",
   "status": "current",
-  "title": "<target_title>",
-  "parentId": "<parent_page_id>",   // omit for the first page (Quick Start)
+  "title": "{target_title}",
+  "parentId": "{parent_page_id}",   // omit for the first page (Quick Start)
   "body": {
     "representation": "storage",
-    "value": "<substituted XHTML>"
+    "value": "{substituted XHTML}"
   }
 }
 ```
 
 **PUT (replace existing):**
 ```
-PUT {ATLASSIAN_API_URL}/wiki/api/v2/pages/<page_id>
+PUT {ATLASSIAN_API_URL}/wiki/api/v2/pages/{page_id}
 {
-  "id": "<page_id>",
+  "id": "{page_id}",
   "status": "current",
-  "title": "<target_title>",
+  "title": "{target_title}",
   "version": { "number": <current_version + 1> },
-  "body": { "representation": "storage", "value": "<substituted XHTML>" }
+  "body": { "representation": "storage", "value": "{substituted XHTML}" }
 }
 ```
 
@@ -86,7 +86,7 @@ On success:
   "success": true,
   "template": "01-quick-start.xhtml",
   "page_id": "...",
-  "url": "<browse url>",
+  "url": "{browse url}",
   "title": "...",
   "is_replacement": false
 }

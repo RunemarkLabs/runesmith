@@ -1,7 +1,7 @@
 ---
 name: feature-doc
 description: "Create a feature specification page for Confluence. Template includes overview, goals, scope (in/out), behavior, technical notes, acceptance criteria, and related links. Trigger on \"feature doc\", \"write a feature document\", \"spec this feature\", \"create a feature spec\", or \"document this feature\"."
-compatibility: Requires Cowork desktop app environment.
+compatibility: Runs in the planner chat with the project's workspace folder connected.
 ---
 
 # Feature Specification
@@ -35,7 +35,7 @@ See `lib/comms-check.md`. Pause for `to: user` items.
 1. Credentials resolved.
 2. `{SPACE_ID}` resolved.
 3. Optional `parentId`: ask user, or default to space root.
-4. Optional plan prefill: list `plans/active/<slug>/plan.md` files; offer user to pick one or more as content source. Confluence may need richer prose than the plan; user adjusts in step 2 if so.
+4. Optional plan prefill: list `plans/active/{slug}/plan.md` files; offer user to pick one or more as content source. Confluence may need richer prose than the plan; user adjusts in step 2 if so.
 
 ## When to Use
 
@@ -75,7 +75,7 @@ Audience reminder: Confluence pages may require more detail than the source plan
 
 ### 2. Draft markdown
 
-Save to `/drafts/features/<slug>.md`:
+Save to `/drafts/features/{slug}.md`:
 
 ```markdown
 # {Feature Name}
@@ -121,7 +121,7 @@ Convert markdown → storage XHTML per `confluence-format.md`.
 POST {ATLASSIAN_API_URL}/wiki/api/v2/pages
 ```
 
-Body: `spaceId`, `title`, optional `parentId`, `body.representation=storage`, `body.value=<XHTML>`.
+Body: `spaceId`, `title`, optional `parentId`, `body.representation=storage`, `body.value={XHTML}`.
 
 ### 5. Report
 

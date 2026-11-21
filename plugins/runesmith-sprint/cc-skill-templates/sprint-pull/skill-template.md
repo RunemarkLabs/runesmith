@@ -1,12 +1,12 @@
 ---
 name: sprint-pull
-description: "Pull the active sprint from Jira and list ticket details. Use when the session starts on an atlassian-enabled CC workspace, when the user (via comms) asks \"what's the sprint\", or when picking the next ticket to work. Runs in Claude Code, not Cowork."
-compatibility: Requires Cowork desktop app environment.
+description: "Read the Jira tickets named in the current task comm, plus the active sprint for context. Use when a task comm carries a ticket: field, or to see where the sprint stands. Never picks work: the planner assigns work through task comms. Runs in Claude Code."
+compatibility: Runs in Claude Code, inside the project's head.
 ---
 
 # Sprint Pull (CC-side)
 
-Read the active sprint and its tickets via Jira REST. CC's read-only token is in `.credentials`. This skill reads only - never writes Jira.
+Read the tickets a task comm names (its `ticket:` field and `Issues:` line), and the active sprint for context, through Jira REST with Claude Code's read-only token. This skill reads only and never picks work: the planner turns sprint tickets into task comms, and the owner starts them with a `/goal` line.
 
 This skill is deployed to `{PROJECT}.cc/.claude/skills/atlassian/` by `/runesmith-sprint:enable` running in Cowork. Do not edit it directly here unless you intend the change to flow to all future enables.
 
@@ -24,11 +24,7 @@ Read `.claude-code-workspace`. Verify `atlassianEnabled: true`. If false: report
 
 ### 2. Credentials
 
-`.credentials` has `ATLASSIAN_API_URL`, `ATLASSIAN_API_EMAIL`, `ATLASSIAN_API_TOKEN`, `ATLASSIAN_BOARD_ID`. If missing: write a `to: user, type: user-action` comm asking Cowork to re-run `/runesmith-sprint:enable`. Exit.
-
-### 3. Session-init comm awaiting handshake
-
-List `comms/open/`. If a `type: session-init` comm is unresolved AND no `type: handshake` reply exists yet, write the handshake reply per `@comms/README.md`. Then continue with sprint pull.
+The head's `.credentials` has `CC_ATLASSIAN_API_EMAIL`, `CC_ATLASSIAN_API_TOKEN` and `ATLASSIAN_BOARD_ID`; the site address comes from the marker's `atlassian.siteUrl`. Read each key only inside the command that uses it; never print it. If missing: write a `user-action` comm in the current task's folder asking the owner to re-run `/runesmith-sprint:enable`, and mark the task blocked.
 
 ## Workflow
 
@@ -64,17 +60,17 @@ Categorize tickets:
 - **Blocked** - labels include `cc-blocked` (these need human attention via comms; CC should not pick these)
 - **Done** - `status: "Done"`
 
-### 4. Pick next
+### 4. Read the task's tickets
 
-Default: highest-priority Available ticket. Surface candidates:
+For each key the current task names, read the full description, acceptance criteria and linked issues. The sprint list below is context only:
 
 ```
 Sprint {SPRINT_ID} - {SPRINT_NAME}
 
 In progress (n)
-  {KEY-1}  {priority}  {summary}    ← resume?
+  {KEY-1}  {priority}  {summary}
 Available (n)
-  {KEY-2}  {priority}  {summary}    ← next
+  {KEY-2}  {priority}  {summary}
   {KEY-3}  {priority}  {summary}
 Blocked (n)
   {KEY-X}  cc-blocked   {summary}   (skip - needs Cowork or user)
@@ -82,22 +78,22 @@ Done (n)
   {KEY-Y}  cc-done      {summary}   (awaits transition)
 ```
 
-Continue with the picked ticket: read full description, acceptance criteria, linked issues. Use `ticket-document` skill to record your plan as a `cc-plan` comment before starting work.
+Work only what the task comm asks. Use the `ticket-document` skill to record your plan as a `cc-plan` comment before starting. A ticket outside the current task is never started on your own.
 
 ## Guard Rails
 
 - [ ] Read-only - never POST/PUT/DELETE to Jira from this skill
 - [ ] Marker `activeSprintId` cached and updated when sprint changes
-- [ ] Skip `cc-blocked` tickets (don't compete with comms resolution)
+- [ ] Never picks or starts a ticket the current task doesn't name
 - [ ] Surface up to first 100 tickets; paginate if more
 - [ ] No company-specific assumptions about field ids - discover via `GET /rest/api/3/field`
 
 ## Error Cases
 
-**No active sprint:** Write `to: cowork, type: ambiguity` comm: "no active sprint on board {BOARD_ID}. Need a sprint started." Exit; wait for reply.
-**401:** Token expired or wrong. Write `to: user, type: user-action`: "CC's read-only Jira token failed. Re-run `/runesmith-sprint:enable` in Cowork to refresh." Exit.
-**Sprint has 0 available, 0 in-progress, only blocked:** Write `to: user, type: blocker`: "All available sprint tickets are cc-blocked. Need triage." Exit.
-**Network failure:** Retry once with backoff. If still failing, write `to: cowork, type: blocker` and exit.
+**No active sprint:** Report it in the reply; the task's own tickets are still read by key.
+**401:** Token expired or wrong. Write a `user-action` comm in the task's folder: "Claude Code's read-only Jira token failed. Re-run `/runesmith-sprint:enable` to refresh it." Mark the task blocked.
+**Ticket named in the task doesn't exist:** Write an `ambiguity` comm in the task's folder naming the key, and mark the task blocked.
+**Network failure:** Retry once. If still failing, write a `blocker` comm in the task's folder and mark the task blocked.
 
 ---
 

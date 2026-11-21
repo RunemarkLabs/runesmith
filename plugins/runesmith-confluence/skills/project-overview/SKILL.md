@@ -1,7 +1,7 @@
 ---
 name: project-overview
 description: "Create a project overview page for Confluence - the landing page for a project space. Template includes project name, description, team, tech stack, architecture summary, current phase, and links. Trigger on \"project overview\", \"create the overview page\", \"set up the project page\", \"overview page\", \"landing page for the project\"."
-compatibility: Requires Cowork desktop app environment.
+compatibility: Runs in the planner chat with the project's workspace folder connected.
 ---
 
 # Project Overview

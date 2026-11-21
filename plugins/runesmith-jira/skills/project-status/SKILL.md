@@ -2,7 +2,7 @@
 name: project-status
 description: "Get a quick project status from Jira. Use when the user says \"what's the status\", \"where are we\", \"what's in progress\", \"what's in the backlog\", \"project update\", \"show me the board\", or asks about current work state. Also triggers on \"any blockers\", \"what's next\", or \"sprint status\"."
 model: haiku
-compatibility: Requires Cowork desktop app environment.
+compatibility: Runs in the planner chat with the project's workspace folder connected.
 ---
 
 # Project Status
@@ -17,7 +17,7 @@ Read-only. No consent gate required.
 - `lib/credentials.md`
 - `lib/tokens.md`
 - `lib/comms-check.md` - runs first
-- See also `atlassian:sprint-status` for atlassian-enabled sprint-aware view
+- See also `runesmith-sprint:sprint-status` for atlassian-enabled sprint-aware view
 
 ## Pre-Flight Checks
 
@@ -94,7 +94,7 @@ Board: {ATLASSIAN_API_URL}/jira/software/projects/{PROJECT_KEY}/boards
 
 ## Error Cases
 
-**401:** Re-read `.credentials`, retry once, then "Run `/core:setup`."
+**401:** Re-read `.credentials`, retry once, then "Run `/runesmith-core:setup`."
 **404:** "Project {PROJECT_KEY} not found."
 **410 / endpoint gone:** Re-check `atlassian-rest.md` for current path.
-**Empty:** "No tickets in {PROJECT_KEY}. Try /atlassian:ticket."
+**Empty:** "No tickets in {PROJECT_KEY}. Try /runesmith-jira:ticket."

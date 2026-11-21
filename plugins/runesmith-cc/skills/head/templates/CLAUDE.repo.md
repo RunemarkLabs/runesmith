@@ -5,17 +5,20 @@ Code workspace.
 
 ## Stack
 
-<one-line description - fill in>
+{One-line description of the repo's stack. Fill in.}
 
 ## Conventions
 
 - Branch naming: ...
 - Commit style: ...
 - Test expectations: ...
+- AI attribution: none in commits or pull requests (see the head CLAUDE.md).
+
+This file is listed in `.git/info/exclude` and never committed.
 
 ## Gotchas
 
-<things Claude can't infer; fill in>
+{Things that can't be inferred from the code. Fill in.}
 
 ## Subfolder rules
 

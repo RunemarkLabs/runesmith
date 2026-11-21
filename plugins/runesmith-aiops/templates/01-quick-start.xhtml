@@ -2,28 +2,31 @@
 
 <ac:structured-macro ac:name="info">
   <ac:rich-text-body>
-    <p>This space is the AI Operations playbook for <strong>{COMPANY}</strong>. Start here, then drill into Full Integration, Architecture, or Best Practices.</p>
+    <p>This space is the AI Operations playbook for <strong>{COMPANY}</strong>: how we plan with Claude, hand work to Claude Code, and ship it through review gates. Start here, then read Full Integration, Architecture or Best Practices.</p>
   </ac:rich-text-body>
 </ac:structured-macro>
 
 <h2>What lives here</h2>
 <ul>
-  <li><strong>Quick Start</strong> - five-minute orientation (this page)</li>
-  <li><strong>Full Integration Guide</strong> - end-to-end setup steps</li>
-  <li><strong>Architecture Overview</strong> - system diagram and components</li>
-  <li><strong>Best Practices</strong> - patterns we recommend</li>
-  <li><strong>FAQ</strong> - common questions and pitfalls</li>
-  <li><strong>Reference</strong> - endpoints, fields, tokens</li>
+  <li><strong>Quick Start</strong>: five-minute orientation (this page)</li>
+  <li><strong>Full Integration Guide</strong>: setting up a project end to end</li>
+  <li><strong>Architecture Overview</strong>: roles, folders and how work flows</li>
+  <li><strong>Best Practices</strong>: the rules we work by</li>
+  <li><strong>FAQ</strong>: common questions and fixes</li>
+  <li><strong>Reference</strong>: values for this site, endpoints and skills</li>
 </ul>
+
+<h2>The model in one paragraph</h2>
+<p>The <strong>owner</strong> decides. The <strong>planner</strong> (Claude in a Claude Project) plans the work, writes tasks for the builder, checks the builder's work against the repository, and talks to Jira and Confluence. The <strong>builder</strong> (Claude Code) writes the code, one goal at a time, and reports back through files in the project's <code>comms/</code> folder. Builds move from <code>dev</code> to <code>qa</code> to <code>beta</code> to <code>main</code> only on the owner's word.</p>
 
 <h2>Five-minute orientation</h2>
 <ol>
-  <li>Confirm your Atlassian site is <code>{SITE}</code>.</li>
-  <li>Confirm your Confluence space key is <code>{SPACE_KEY}</code>.</li>
-  <li>If you use Jira integration, confirm your project key is <code>{PROJECT_KEY}</code>.</li>
-  <li>Read <strong>Full Integration Guide</strong> to wire up REST credentials.</li>
-  <li>Run <code>/core:setup</code> in your client to store credentials locally.</li>
+  <li>Install the RuneSmith plugins in your Claude client.</li>
+  <li>Confirm the Atlassian site is <code>{SITE}</code> and this space is <code>{SPACE_KEY}</code>.</li>
+  <li>If your project uses Jira, confirm its key is <code>{PROJECT_KEY}</code>.</li>
+  <li>In your project's Claude Project, run <code>/runesmith-workspace:init</code>. It asks what it needs and sets up the workspace.</li>
+  <li>Read <strong>Full Integration Guide</strong> for the rest.</li>
 </ol>
 
 <h2>Need help?</h2>
-<p>Ask in the team channel or run <code>/devtools:help</code> in your Claude client.</p>
+<p>Run <code>/runesmith-devtools:help</code> in your Claude client, or ask in the team channel.</p>

@@ -1,27 +1,25 @@
 # runesmith-aiops
 
-Populate an AI Operations Confluence space from six template pages.
+Populates an AI Operations Confluence space from template pages.
 
 Part of the [RuneSmith marketplace](https://github.com/runemarklabs/runesmith).
 
 ## Skills
 
-- **`/runesmith-aiops:bootstrap-aiops`** - Substitute tokens and publish Quick Start / Full Integration / Architecture / Best Practices / FAQ / Reference.
+- **`/runesmith-aiops:bootstrap-aiops`**: Substitute `{COMPANY}`, `{SITE}`, `{SPACE_KEY}`, `{SPACE_ID}` and `{PROJECT_KEY}` into the templates and publish them. The space must already exist.
 
 ## Install
-
-Via marketplace (Claude Code / Teams):
 
 ```
 /plugin marketplace add runemarklabs/runesmith
 /plugin install runesmith-aiops@runesmith
 ```
 
-Via manual `.plugin` file (Cowork): drag the file from `dist-v2/` into the Cowork plugin sidebar.
+Or build the `.plugin` files with `python scripts/build.py` and drag them from `dist/` into the Claude desktop plugin sidebar.
 
 ## Configure
 
-Run `/runesmith-core:setup` first to populate `.credentials` at the workspace root.
+Needs the planner's Atlassian keys.
 
 ## License
 

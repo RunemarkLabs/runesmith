@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [],
+    "deny": [],
+    "additionalDirectories": []
+  },
+  "hooks": {},
+  "attribution": {
+    "commit": "",
+    "pr": "",
+    "sessionUrl": false
+  },
+  "includeCoAuthoredBy": false,
+  "env": {
+    "CLAUDE_CODE_STOP_HOOK_BLOCK_CAP": "3"
+  },
+  "enabledPlugins": {
+    "code-simplifier@claude-plugins-official": true
+  }
+}

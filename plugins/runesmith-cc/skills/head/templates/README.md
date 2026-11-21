@@ -11,7 +11,7 @@ executes.
 - `CLAUDE.md` - monorepo-level rules (always loaded by Claude Code)
 - `.claude/` - skills, commands, agents, hooks scoped to this workspace
 - `comms/` - file-based exchange with Cowork (open/ is ephemeral, archive/ is committed)
-- `<repo>/` - actual code repositories
+- `{repo}/` - actual code repositories
 
 ## How Cowork ↔ Claude Code communicate
 
@@ -25,7 +25,7 @@ including atlassian config when applicable.
 
 ## Bootstrap
 
-This workspace was created by Cowork's `/devtools:bootstrap-cc` skill.
+This workspace was created by Cowork's `/runesmith-cc:head` skill.
 Re-run it to add more repos or refresh missing files.
 
 <!--

@@ -1,73 +1,50 @@
 # Plugin Install Paths
 
-Different runtimes load plugins from different locations. Skills that scan or write plugin files must check both.
+Where RuneSmith's plugins live once installed, for skills that need to read installed plugin files (the installed copy is authoritative; see `lib/agent-operating-principles.md`, "The installed plugin is authoritative").
 
-## Cowork (desktop app)
+## The Claude desktop app and claude.ai (the planner chat)
 
-Windows host path:
-```
-~/AppData/Roaming/Claude/local-agent-mode-sessions/<session>/<workspace>/rpm/plugin_*/
-```
+Plugins are installed from a marketplace or by uploading a `.plugin` file in the app's plugin settings. Their files are managed by the app and are not in the project's connected folders. A skill reads its own installed files through its loaded skill context, never through the user's disk or a sibling project that holds the plugin's source.
 
-Inside a Cowork shell session this is mounted at:
-```
-/sessions/<session>/mnt/.remote-plugins/plugin_*/
-```
-
-Read-only from inside the session. Per-session, per-workspace. Manual install via drag-drop of `.plugin` zip into the Cowork sidebar - Cowork writes to the host `rpm/` directory, then the session sees it on next restart.
-
-## Claude Code (CLI)
+## Claude Code
 
 ```
-~/.claude/plugins/<plugin-name>/
+~/.claude/plugins/
 ```
 
-Or, for marketplace-managed:
-```
-~/.claude/plugins/marketplaces/<owner>/<repo>/plugins/<plugin-name>/
-```
+Marketplace-managed plugins sit under `~/.claude/plugins/marketplaces/{owner}/{repo}/plugins/{plugin-name}/`. Project-scoped plugins are declared in the project's `.claude/settings.json` under `enabledPlugins` (`runesmith-cc:head` turns on `code-simplifier@claude-plugins-official` this way).
 
-Marketplace install:
-```
-/plugin marketplace add <owner>/<repo>
-/plugin install <plugin-name>@<marketplace-name>
-```
-
-## Claude Teams (managed)
-
-Admin distributes via marketplace URL. Users see plugins in `/plugin` UI without manual file handling. Same on-disk path as Claude Code: `~/.claude/plugins/marketplaces/...`.
+RuneSmith's builder skills are not installed as plugins in Claude Code: `runesmith-cc:head` copies them into the head's `.claude/skills/runesmith-{name}/`, and re-running init refreshes them.
 
 ## Detection order for skills
 
-1. `CLAUDE_PLUGINS_DIR` env var (override)
-2. `~/.claude/plugins/` if exists (Claude Code / Teams)
-3. Walk up from cwd for `rpm/plugin_*` (Cowork session)
-4. Fall back: empty list, suggest `/core:install`
+1. `CLAUDE_PLUGINS_DIR` environment variable, when set.
+2. `~/.claude/plugins/` (Claude Code).
+3. The skill's own loaded context (the desktop app and claude.ai).
+4. Nothing found: suggest `/runesmith-core:install`.
+
+## Marketplace install (recommended)
+
+```
+/plugin marketplace add runemarklabs/runesmith
+/plugin install runesmith-core@runesmith
+/plugin install runesmith-workspace@runesmith
+/plugin install runesmith-cc@runesmith
+/plugin install runesmith-sprint@runesmith
+```
+
+Add `runesmith-jira`, `runesmith-confluence`, `runesmith-aiops` and `runesmith-devtools` as needed.
 
 ## Manual install (`.plugin` files)
 
-`.plugin` is a zip of the plugin folder (the directory containing `.claude-plugin/plugin.json`). Inside the zip, the plugin folder is the top-level entry.
+A `.plugin` file is a zip of one plugin folder (the folder holding `.claude-plugin/plugin.json`) as its top-level entry:
 
 ```
-core.plugin
-└── core/
+runesmith-core.plugin
+└── runesmith-core/
     ├── .claude-plugin/plugin.json
     ├── skills/...
     └── lib/...
 ```
 
-Build with:
-```bash
-cd plugins/core && zip -r ../../dist/core.plugin .claude-plugin skills lib
-```
-
-## Marketplace install (recommended)
-
-Add `.claude-plugin/marketplace.json` at repo root. Users run:
-```
-/plugin marketplace add <git-url-or-owner/repo>
-/plugin install core@bootstrap
-/plugin install atlassian@bootstrap
-/plugin install aiops@bootstrap
-/plugin install devtools@bootstrap
-```
+Build all of them with `python scripts/build.py` from the marketplace repo; they land in `dist/`.

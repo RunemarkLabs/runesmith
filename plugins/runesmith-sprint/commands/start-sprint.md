@@ -1,5 +1,5 @@
 ---
-description: Hand the active (or specified) sprint to Claude Code via a session-init comm.
+description: Turn a Jira sprint's tickets into task comms and give the /goal line that starts them.
 ---
 
 Invoke the `start-sprint` skill in this plugin.

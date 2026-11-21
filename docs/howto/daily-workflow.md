@@ -1,186 +1,111 @@
 # How-to: Daily Workflow
 
-What working day-to-day in a RuneSmith-bootstrapped workspace looks like. Assumes you have the workspace set up (see `docs/howto/new-workspace.md`) and optionally have Atlassian wired in (`docs/howto/enable-atlassian.md`).
+What a working day looks like once a project is set up (`docs/howto/new-workspace.md`). Jira is optional; where it changes something, it's noted.
 
-## The shape of a session
+## Who does what
 
-Every Cowork session starts with the same setup whether you do it explicitly or not:
+- **You (the owner)** decide, paste `/goal` lines into Claude Code, approve promotions and mark the QA checklist.
+- **The planner** (Claude in the Claude Project) plans, writes tasks, verifies Claude Code's work and talks to Jira, Confluence and GitHub. In a code project it writes no application code.
+- **The builder** (Claude Code in `{PROJECT}.cc/`) builds, tests and merges, and reports through `comms/`.
 
-1. **Cowork loads context.** Project Instructions UI text (behavioral), `CLAUDE.md` (structural), connected MCP servers (Atlassian, GitHub, Slack, etc.).
-2. **Cowork checks `comms/open/` on entry.** Any `to: user` items from CC's previous session surface first. Triage before starting new work.
-3. **You drive a task.** Plan, draft, ticket, mutation, review, anything.
-4. **Optional hand-off to CC.** If repo-internal work is needed, Cowork writes a brief to `{PROJECT}.cc/comms/open/`. CC picks it up next time it runs.
+## The loop
 
-## The three modes of work
-
-### Mode 1: Plan new work
+### 1. Plan
 
 ```
 /runesmith-core:plan
 ```
 
-Chat-first. Cowork asks about the problem, walks Decision / Why now / Scope. Writes `plans/active/<slug>/plan.md` when it has enough to capture. Status starts `open`.
+Discuss the change in chat. The skill checks open issues, then writes `plans/active/{slug}/plan.md` and `decisions.md`. With Jira, `/runesmith-sprint:plan-to-tickets` drafts tickets under the plan and pushes them when you say so.
 
-Iterate. Re-running the skill on an existing plan refreshes it (the skill detects the slug if you reference it). When you're ready to execute:
-
-- Set `status: building` in the plan frontmatter (manually, or ask Cowork).
-- If atlassian-enabled: `/runesmith-sprint:plan-to-tickets`. Drafts Jira ticket JSONs to `plans/active/<slug>/tickets/`. Review on disk. Say "push the tickets" when ready - drafts POST to Jira, archive locally.
-- Cowork writes a hand-off brief to `{PROJECT}.cc/comms/open/<iso>-<slug>-task.md` if CC will execute.
-
-### Mode 2: Document something
-
-Pick the right Confluence skill based on shape:
+### 2. Hand work to Claude Code
 
 ```
-/runesmith-confluence:feature-doc          → feature specs
-/runesmith-confluence:architecture-doc     → ADRs (Architecture Decision Records)
-/runesmith-confluence:project-overview     → project landing pages
-/runesmith-confluence:decisions-log        → append-only decision log
-/runesmith-confluence:known-issues         → known issues tracker
-/runesmith-confluence:roadmap              → product roadmap
-/runesmith-confluence:session-log          → session summary
+/runesmith-sprint:task
 ```
 
-Every doc skill follows the same gate:
-1. Drafts the page in markdown locally first - to `drafts/project-docs/<slug>/` (general drafts) or `plans/active/<slug>/refs/` (plan-bound).
-2. Surfaces the draft for review.
-3. When you say "publish the page" / "create the document," converts markdown to Confluence storage XHTML and POSTs.
-4. Reports the published URL.
+The planner pressure-tests the request, reads open issues (Jira or GitHub, read only), asks only what is yours to decide, then writes the task comm with Acceptance in `{PROJECT}.cc/comms/open/{UTC}-{slug}/` and logs it in `decisions.md`. It copies screenshots and files Claude Code needs into the task's `references/` or `assets/`.
 
-No write happens without the consent trigger. Reads (looking up existing pages) are free.
-
-### Mode 3: Capture a ticket from feedback
-
-For bugs filed during the day:
+It ends with a `/goal` line, for example:
 
 ```
-/runesmith-jira:bug-report
+/goal Don't change the checkout layout. Do comms/open/20261121T173516Z-cancel-order/20261121T173516Z-cancel-order.md. No promotion. Done when each task's Acceptance is met, or each item that needs the owner is named in the reply as an owner action.
 ```
 
-Cowork asks via structured prompt: what's broken, repro steps, severity, area. Drafts the Jira issue JSON locally. Optionally drafts a Confluence page documenting the bug context (uses `runesmith-confluence:known-issues` indirectly). On "make the ticket," POSTs to Jira and reports the key.
+Paste it into Claude Code, opened in `{PROJECT}.cc/`. If a goal is already running, paste it after that goal's banner.
 
-For non-bug issues (story, task, epic):
+### 3. Claude Code works the goal
 
-```
-/runesmith-jira:ticket
-```
+You don't need to watch. It writes a goal status comm first, works each task on its own branch, merges into `dev` when tests pass, numbers the build, writes a reply per task, and prints one banner at the end. The banner's "Needs you" lists anything only you can do.
 
-Generic ticket creation, walks issue-type-specific fields. Same draft → confirm → push flow.
-
-## Comms triage
-
-After CC ran (or while CC is asleep):
+### 4. Check comms
 
 ```
 /runesmith-sprint:check-comms
 ```
 
-Scans `{PROJECT}.cc/comms/open/`. Categorizes:
+Or just say "check comms". The planner reads the goal status, verifies each reply against the repository (read only), looks at the screenshots, archives finished tasks, logs the outcome, and tells you what needs you. If there's more to do, it gives the next `/goal` line.
 
-- `to: user` - questions for you. Cowork drafts a reply for your review, archives the pair to `comms/archive/<YYYY-MM>/` on send.
-- `to: cowork` - CC sent a result or blocker, doesn't need user input. Cowork acknowledges, archives.
-- Ambiguity items - surfaced as structured prompts. You answer; Cowork replies to CC.
+When Claude Code stopped on a question, the planner shows it to you as a structured prompt, writes the answer comm, and gives the goal line that resumes the work.
 
-This is also the check-on-entry pattern: every planning skill invokes `check-comms` first so user-facing items don't get buried.
+### 5. Promote
 
-## Periodic maintenance
-
-### Inbox sweep
-
-Files dropped into `_INBOX/` get classified and routed:
+Say "promote to qa".
 
 ```
-/runesmith-workspace:inbox
+/runesmith-sprint:promote
 ```
 
-Categorizes each file (plan-bound ref, draft material, research notes, ticket draft, source doc, image, superseded). Routes per the destination map in `plugins/runesmith-workspace/lib/folder-conventions.md`. Asks via structured prompt for ambiguous cases.
+The chain is `dev` to `qa` to `beta` to `main`, one step at a time and only on your word. Each step is a task with its own goal line.
 
-Run whenever `_INBOX/` has stuff. Idempotent.
+- **To qa:** Claude Code runs the full suite against `dev` first, then promotes. The planner publishes the QA checklist page and gives you its link.
+- **To beta** ("QA passed"): allowed when every checklist item passed and beta isn't held. You can override in your own words; the override is recorded verbatim.
+- **To main** ("ship it"): `beta` into `main`.
+- **Hold:** "hold beta" stops beta promotions until you lift it.
 
-### Tech-debt scan
+### 6. Run the QA checklist
 
-Workspace clutter accumulates. Sweep:
+Open the page the planner linked. Each item shows its steps and what to expect. Mark it pass or fail; on a fail, describe what you saw. A failure becomes a fix task, and Claude Code opens the GitHub issue (`bug-report`, `env:qa` and a component label when it applies). The page is the same every time; it updates for each build.
+
+## Documentation and tickets
 
 ```
-/runesmith-devtools:tech-debt
+/runesmith-confluence:feature-doc         feature specs
+/runesmith-confluence:architecture-doc    architecture decision records
+/runesmith-confluence:project-overview    project landing pages
+/runesmith-confluence:decisions-log       running decisions log
+/runesmith-confluence:known-issues        known issues tracker
+/runesmith-confluence:roadmap             roadmap
+/runesmith-confluence:session-log         session summary
+/runesmith-jira:bug-report                a bug, with an optional Confluence page
+/runesmith-jira:ticket                    any other Jira issue
 ```
 
-Cross-references plans → refs/tickets/decisions → research/source-docs/drafts. Identifies content that's actually tech debt (unreferenced from any live plan or recent note), not just old. Outputs a structured report with delete/archive/keep recommendations. Confirms each before mutating.
+Each drafts locally, shows you the draft, and writes to Confluence or Jira only after you approve through a structured prompt.
 
-Companion `code-tech-debt` skill deployed inside CC heads handles repo-internal code debt (dead exports, unused deps, etc.).
+## Housekeeping
 
-### Plan archival
+- **Inbox:** drop files in `_INBOX/`, then `/runesmith-workspace:inbox` routes them.
+- **Workspace debt:** `/runesmith-devtools:tech-debt` finds files no live plan references and asks before changing anything. Inside the repo, Claude Code has `runesmith-code-tech-debt`.
+- **Finished plans:** set `status: done`; the next `/runesmith-workspace:init` archives them.
+- **Commits in the workspace:** only when you say "commit and push", "push it" or "ship it".
 
-When a plan's work is done:
+## Rules that don't bend
 
-- Set `status: done` in the plan frontmatter.
-- Run `/runesmith-workspace:reallocate`. The skill moves `done` plans to `plans/archive/<YYYY-MM>/<slug>/`. `refs/` and unpushed `tickets/` travel with it.
-
-## What happens at session start
-
-Whatever skill you call first, the marketplace's behavior is consistent:
-
-1. **Comms check on entry.** Any `to: user` items in `comms/open/` surface before the requested work. You triage; the skill then continues.
-2. **Resolve `.credentials`** and project values. Skill confirms via structured prompt if a required value is missing.
-3. **Gather details.** Skill asks structured-prompt questions to nail down the request.
-4. **Draft locally** to `drafts/`, `plans/active/`, or chat. No external writes yet.
-5. **Wait for explicit consent trigger.** "Make the ticket", "publish the page", "do it", "push the tickets", "ship it". Per `plugins/*/lib/consent.md`.
-6. **Convert + POST/PUT** against canonical Cloud endpoints. Confluence storage XHTML for pages; Jira ADF for issue descriptions.
-7. **Report URLs / file paths.** No commentary. Single structured summary.
-
-If something doesn't fit this flow, the skill is wrong (or the request is). Push back; don't bend the gate.
-
-## The trigger phrases (a partial catalog)
-
-| Action | Trigger phrases (any of) |
-|---|---|
-| Make a Jira ticket | "make the ticket", "create the ticket", "push the ticket to Jira" |
-| Make multiple tickets | "push the tickets", "make the tickets in Jira", "send to Jira" |
-| Publish a Confluence page | "publish the page", "create the document", "ship the doc" |
-| Push commits | "push it", "commit and push", "ship it" |
-| Delete files | "delete it", "remove them", explicit per-skill structured prompt |
-| Apply reallocate / migration | "apply", "do it" (after the structured prompt offers `apply/preview/cancel`) |
-
-`plugins/*/lib/consent.md` has the per-plugin canonical list. Skills that don't see the trigger don't mutate.
-
-## What CC does in parallel
-
-Cowork drives planning + mutations. CC drives code. Coexistence pattern:
-
-- Cowork writes `comms/open/<iso>-<task>.md` for CC to pick up.
-- You launch CC against `{PROJECT}.cc/<repo>/`. CC reads its CLAUDE.md (agent-ops + guardrail rules apply), reads the task brief, executes.
-- CC writes `comms/open/<iso>-<task>-result.md` when done (or `-blocker.md` if stuck, `-ambiguity.md` if it needs user input).
-- CC never contacts the user directly. User reaches CC only through Cowork.
-
-CC's read-write split on Atlassian (if enabled):
-- CC reads sprints, tickets, comments via the read-only token.
-- CC writes structured comms back to Cowork for any Jira/Confluence mutation. Cowork executes the mutation via MCP.
-
-## Daily rhythm (example)
-
-Morning:
-- Open Cowork. Comms check runs implicitly on the first skill call.
-- Triage anything from CC's overnight run.
-- Plan the day: `/runesmith-core:plan` for any new work or `cat plans/active/<slug>/plan.md` for ongoing.
-
-Mid-day:
-- Drive a feature: plan → tickets → handoff brief.
-- Write docs: `runesmith-confluence:feature-doc` for the feature, publish on consent.
-- Field bugs: `runesmith-jira:bug-report`.
-
-End of day:
-- Wrap session: `runesmith-confluence:session-log` if you want a Confluence trail of what got decided.
-- Push commits if you have them: `git status`, then "push it" / "ship it".
-- Inbox sweep if `_INBOX/` filled up: `/runesmith-workspace:inbox`.
+- Every decision is a structured prompt with the recommended option first.
+- Nothing is written to Jira, Confluence or GitHub without your approval.
+- Claude Code never talks to you directly, except its one banner per goal.
+- The planner never runs git write commands in Claude Code's repos and never edits a reply.
+- No AI attribution in commits, pull requests or files.
 
 ## Troubleshooting
 
-**Skills don't trigger on natural language.** Check the skill's name in `/runesmith-devtools:help`. Slash commands work too (`/runesmith-jira:ticket`). Natural-language triggers are listed in each skill's `SKILL.md` description.
+**Skills don't trigger on plain language.** Use the slash command, or check the triggers with `/runesmith-devtools:help`.
 
-**Cowork seems to forget the project.** Both surfaces of project context must be present: Project Instructions UI text (behavioral) and `CLAUDE.md` (structural). Re-run `/runesmith-workspace:reallocate` to refresh the marker sections and re-emit Project Instructions text. Paste that text back into the UI.
+**The planner seems to forget the project.** Both contexts must be present: the Project Instructions and `CLAUDE.md`. Re-run `/runesmith-workspace:init` and paste the fresh instructions block.
 
-**Plans pile up.** Set `status: done` and run reallocate. Or `status: superseded` if a newer plan replaces it.
+**Claude Code keeps going after its banner.** The head's settings cap the stop hook at three; if it loops anyway, re-run `/runesmith-cc:head` to restore the settings.
 
-**Comms folder fills up.** `/runesmith-sprint:check-comms` triages and archives resolved pairs to `comms/archive/<YYYY-MM>/`.
+**A reply says complete but the planner disagrees.** The planner reports what doesn't match and writes a fix task. Replies are never edited.
 
-**External writes feel slow.** Every mutation has the explicit-consent gate by design. If you find yourself fighting the gate, that's a sign the request might not be as well-formed as it feels - refine in chat first, then trigger.
+**`comms/open/` keeps growing.** Run check comms. Owner-only items stay open until you've done them.

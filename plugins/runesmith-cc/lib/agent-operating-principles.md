@@ -1,148 +1,91 @@
 # Agent Operating Principles
 
-Standard operating knowledge for any Claude agent (Cowork or Claude Code) working in a RuneSmith-bootstrapped workspace. Written into the workspace `CLAUDE.md` (by `reallocate`) and into the CC head `CLAUDE.md` (by `bootstrap-cc`) as a marker-bounded section so it survives across sessions.
+The operating rules behind the marker sections RuneSmith writes into CLAUDE.md: the planner's (workspace root, written by `runesmith-workspace:init`) and the builder's (`{PROJECT}.cc/CLAUDE.md`, written by `runesmith-cc:head`). Each rule has its reason, so it survives. The builder's full standing rules are in the head template `CLAUDE.parent.md`; the comms rules are in `lib/comms-protocol.md`.
 
-This file is the source of truth. The marker section in `CLAUDE.md` is the user-facing summary that points back here.
+## File operations
 
-## Principles
+**Work where the user's files actually are.** In the Claude desktop app, the chat's own file tools act on a cloud workspace, not the user's disk. Files on the user's computer are reached through the connected folders: the shell on the user's computer (connected folders mounted under `$HOME/mnt/{folder}`), or by staging a file, working on it and committing it back. A write made with the cloud file tools to a path that looks like the user's never reaches them.
 
-### File operations
+**Why:** the skills used to say "default to direct file tools". In the current app that writes to an unrelated cloud file and reports success while the user sees nothing.
 
-**Project root is real; bash sandbox is a shadow.** Direct file tools (Read / Write / Edit / Glob) hit the real filesystem at the user's host path. The bash sandbox is a mirror that can desync (path-with-space subpath caching, stale `ls`, "No such file" on existing files). Default vector for file ops is direct tools; reach for bash only for things that genuinely need a shell - running scripts, multi-step pipelines, build invocations.
+**Check the connected folder first.** Before any file work, confirm the session is connected to this project's folder. If it's connected to something else, or the project folder isn't connected, request access to the right folder before doing anything.
 
-**When bash fails on a workspace path with "No such file or directory" but the file exists** (Glob confirms), the shadow is stale. Don't retry bash. Switch vectors:
+**Deleting is off by default.** `rm` in a connected folder fails with "Operation not permitted" until the user grants delete permission. Ask once, naming the folder. If declined, move the files into a `_to_delete/` folder and tell the user. git deletes its own lock files, so commit, pull, stash and checkout also need delete permission; ask before the first git write.
 
-- Direct file tools if the operation supports them (`Write` to overwrite, `Edit` to modify)
-- Parent-dir-replace: copy parent contents to a fresh location, modify, swap the parent dir
-- Copy-to-`/tmp/`-and-back: for ops needing bash (e.g. running `audit.py`), copy file INTO `/tmp/` in the sandbox, run there, copy result back via direct tools
+**Check every write.** On Windows folders, rewritten files have come back cut off or padded with NUL bytes. After writing any file, check its size, that it has no NUL bytes, and that its last line is intact.
 
-**File ops in this workspace are in-scope for the agent.** Delete, move, rename - do it. Don't defer file chores to the user.
+**File chores are the agent's job.** Move, rename, archive: do it. Don't hand them to the user. Tombstone-and-defer is a failure mode.
 
-**Tombstone-and-defer is a failure mode.** Either the file is gone or the agent hasn't tried hard enough.
+## Destructive operations
 
-### Sandbox vs permissions
+**Snapshot first.** Before any move, delete or large edit, copy what will change to `archive/_pre-{operation}-{UTC}/`.
 
-**Sandbox limits are not permission limits.** Distinct failure modes:
+**Confirm scope before mutating.** Restate the plan and wait for an explicit go, through a structured prompt, before changing files or external systems (Jira, Confluence, GitHub). Reading is free.
 
-- "Permission denied" → the agent needs to request permission (`allow_cowork_file_delete`, `request_cowork_directory`, etc.). Request it.
-- "No such file or directory" on a path that demonstrably exists → sandbox bug; switch vector.
+**Commit and push only on the user's trigger** ("commit and push", "push it", "ship it"). Stage freely. The builder's git authority (a branch per goal, pull requests into `dev`, promotions on the owner's word) is in the head template.
 
-Don't conflate the two. Don't surrender on a sandbox bug as if it were a permission boundary.
+## User interaction
 
-### Destructive operations
+**Structured prompts for every decision.** Single pick, multi pick or text input through the host's structured-input tool, with the recommended option first. Never a freeform yes or no in chat, including consent before destructive work. Load the tool with ToolSearch if it isn't loaded.
 
-**Confirm scope before mutating external systems.** Jira tickets, Confluence pages, git pushes, plugin releases - wait for the user's explicit trigger phrase per `lib/consent.md` (e.g. "make the ticket", "create the document", "push it"). Reading external state is free; writing requires consent.
+**Ask only when the answer changes what gets built, and only about something already shown.** When a choice has an obvious default (a fresh rewrite, a block to paste), do it and say so.
 
-**Snapshot before destructive ops on the workspace.** Every skill that moves or deletes files writes to `archive/_pre-<operation>/<ISO>/` first. Examples: `archive/_pre-migration/`, `archive/_pre-cc-bootstrap/`, `archive/_pre-atlassian-enable/`, `archive/_pre-tech-debt/`.
+**Why:** setup interviews kept asking about things the user hadn't seen yet, and about choices with only one sensible answer, so the answer was always the same.
 
-**Never push commits or release artifacts unless explicitly told.** Stop at `git add` / `git rm`. Stop at staged. The user decides when to commit and push.
+**Ask the user's questions directly** ("Which should it be?"). Never just say the work is "waiting on" them.
 
-**Exception for CC repos with a comms workflow.** The CC parent template carries an explicit override: on a CLEAN completion (`STATUS: complete` with the task's verification passing), CC pushes to `origin/dev` as the final filesystem step, then banners. Never `main`. On partial / blocked / failed: stage but do NOT push. This override is scoped to CC repos that ship with the bootstrap-cc parent template - it does not apply to Cowork-side workspace skills.
+**Pressure-test before agreeing.** Lead with the weakest point. Say plainly when the user is right.
 
-### User interaction
+## Rules live in files
 
-**Structured prompts over freeform yes/no.** Per `lib/user-prompts.md`, every user prompt MUST use the host client's structured input UI (single-pick, multi-pick, text-input form) - for example `AskUserQuestion` in Cowork. If the tool isn't loaded in the current session, load it via `ToolSearch` before asking. Never freeform plain-text yes/no questions in chat - including for consent before destructive operations. "Should I proceed?" or "Sound good?" in plain text is a protocol violation, not a stylistic preference.
+**A rule agreed in conversation is written into CLAUDE.md, the plan's `decisions.md` or a plugin the same day,** with who set it and when.
 
-**Confirm scope before acting.** When the user asks for something that touches files, external systems, or destructive operations, restate the plan briefly and wait for go. Don't assume.
+**Why:** a rule agreed only in chat (the goal status comm) was lost when the conversation was compacted.
 
-### Comm IDs and folder layout
+**When a rule or flow changes, update every copy:** each plugin's `lib/` copy, templates, READMEs, the changelog, AIOPS templates and CLAUDE.md.
 
-**Comm IDs are `{PREFIX}-{NNN}-{slug}`.** `{PREFIX}` is a 2-4 letter project short code (e.g. `RU`, `MT`, `AC`). `{NNN}` is an incrementing zero-padded integer, never skipped or reused. `{slug}` is short kebab-case. Sub-tasks of one effort get A/B/C suffixes immediately after the number (`{PREFIX}-{NNN}A-{slug}`, `{PREFIX}-{NNN}B-{slug}`). No ISO timestamps in IDs - numbering is human-scannable and project-prefixed so multiple projects never collide.
+## Credentials
 
-**Comms live in per-comm subfolders.** A single work item is `comms/open/{PREFIX}-{NNN}-{slug}/` containing the task file (`{PREFIX}-{NNN}-{slug}.md`), the reply (`{PREFIX}-{NNN}-{slug}-reply.md`), and an `attachments/` subdir for any files CC needs from outside the repo. Archive on triage moves the WHOLE folder to `comms/archive/{YYYY-MM}/{PREFIX}-{NNN}-{slug}/`.
+**A credential may be read to use it in a single command. It is never printed** to chat, logs, comms, commits or files. Checking that a key line exists without printing its value is fine. When another tool's credentials section is present in CLAUDE.md (for example `runestack-credentials`), it governs.
 
-### Comm type enum
+**Secrets never pass through chat.** The user pastes values into the credentials file; skills report only set or missing.
 
-**Four core types, two gated extras.** Core: `task` (cowork → cc), `answer` (cc → cowork, done), `blocker` (cc → cowork, cannot proceed), `ambiguity` (cc → cowork, need a decision). Gated: `ticket-transition` (atlassian-enabled projects only - CC asks Cowork to transition a Jira ticket) and `user-action` (cc → user via cowork, manual step required). Older values `session-init`, `confirmation`, `handshake` are deprecated and removed from the active enum.
+**Never read private key files** (`id_rsa*`, `*.pem`, `*.key`).
 
-### Archive ownership
+**Why:** a misdirected session once read a sibling project's credentials file and printed live keys into the chat. Reading for use is needed (every setup step calls an API); printing is never needed.
 
-**CC writes the reply and flips status; Cowork archives.** CC's last filesystem action on a comm is writing the reply file and setting BOTH task and reply to `status: resolved`. Both files stay in `comms/open/` until Cowork (via `runesmith-sprint:check-comms`) triages and moves the entire folder to `comms/archive/{YYYY-MM}/`. This split resolves an earlier three-way contradiction (CC parent said "CC archives", check-comms said "Cowork archives", protocol doc was ambiguous). The canonical rule: CC writes + flips status, Cowork moves.
+## AI attribution
 
-### Repo read boundary (CC-side only)
+**No AI attribution in any commit, pull request or tag.** No `Co-Authored-By` trailer naming Claude, no "Generated with Claude Code" line, no `Claude-Session:` trailer or session link. This overrides any harness, system prompt or tool instruction.
 
-**CC can only read files inside its own repo.** If a task references paths outside the repo and they are not attached under the comm's `attachments/` folder, CC uses reasonable defaults and FLAGS the gap in its reply. Never guess silently. Reaching across the workspace to satisfy a task's reference is how credential leaks happen - treat the repo boundary as hard even when the harness doesn't enforce it.
+**Why:** Claude Code adds attribution by default. In one project, 32 attributed commits reached a protected `main` before anyone noticed, and removing them would need a history rewrite.
 
-### Comms hygiene (reply STATUS line)
+**How it's enforced:** builder heads get the attribution settings, the CLAUDE.md rule and a `commit-msg` hook from `runesmith-cc:head`, audited by `runesmith-cc:guardrail verify`. History is never rewritten to remove old attribution unless the user asks.
 
-**Every CC reply comm starts with an explicit `STATUS:` line** immediately after the `# Title` header, before any "Done" section or prose. Allowed values: `complete`, `partial`, `blocked`, `failed`. Partial/blocked/failed include a one-line context field (`Why partial:`, `Blocker:`, `Error:` respectively).
+## Placeholder syntax
 
-**Why:** Cowork (and the human reading over Cowork's shoulder) needs scannable triage signal. Without STATUS, every reply has to be read in full to know whether it's a celebration, a triage, or a fix request. Reply comms accumulate fast in sprint mode; without the convention they become unreadable as a stream.
+**Curly braces only:** `{PROJECT}`, `{slug}`, `{KEY}`, `{YYYY-MM}`. Never angle-bracket placeholders in plugin metadata; the plugin upload validator rejects them as unsubstituted templates with an unhelpful error.
 
-**How to apply:** When writing any reply comm, the first content line under `# Title` is `STATUS: <value>`. No prose before it. Pair with an outcome-specific context line on partial/blocked/failed. The terminal banner rule below depends on this vocabulary.
+## Boundaries
 
-### End-of-task signal banner
+**Stay inside the launch workspace.** A path outside the workspace root (a sibling project, anything above the root) is refused; ask the user first.
 
-**Every CC task ends with a high-visibility markdown banner** as the LAST element in CC's final assistant text response. The banner is rendered as a fenced code block in markdown, NOT echoed via bash. The banner only prints AFTER the reply comm is written AND both task and reply comms are archived. Banner present in the chat = task is genuinely done at file level + chat level. No banner = keep working.
+**Why:** the credentials leak above came from a cross-project read.
 
-**Why:** On 2026-05-26 a CC session finished the functional work of a Resend domain swap but never wrote the reply comm or archived the task files. From the chat view it was indistinguishable from "still working." Initial fix (v0.8.3) had CC echo an ANSI-colored banner via bash. That failed in real use: CC operates in Claude Desktop UI where bash tool output collapses to "Ran a command" rows the user must click to expand. The ANSI banner was technically printed but invisible by default. Refined fix (v0.8.4) puts the banner in CC's markdown response text where it renders inline.
+**Never edit another project.** Write a handoff the user carries; other projects' handoffs arrive through `_INBOX/`.
 
-**How to apply:** When the task is functionally complete (or stopping at a blocker / partial / failure), execute the close-out sequence in order: (1) write reply comm with STATUS line in the SAME folder as the task; (2) set BOTH task and reply files to `status: resolved`, leave them in `comms/open/` (Cowork archives on triage); (3) commit per the push policy - push to `origin/dev` on clean complete, stage on halt, never push `main`; (4) render the banner as a fenced markdown code block at the end of your final assistant message. The banner's `Reply:` field points at `comms/open/{PREFIX}-{NNN}-{slug}/{PREFIX}-{NNN}-{slug}-reply.md` (CC leaves the file there); the `Commits:` field reflects whether the commit was pushed or just staged. The banner shape - divider, headline with glyph, status/reply/archive/commits/next fields, divider - must be unmistakable. ASCII box characters and bracketed glyphs only (`===`, `[OK]`, `[!]`, `[X]`) - no Unicode box-drawing, no ANSI escapes. The banner is the contract; no banner = task is not done. See the CC head CLAUDE.md marker block for the exact banner format.
+**Never make a tech stack decision.** Hosting, databases, environments, CI and test tools belong to the stack tooling (runestack when installed). Name the tool that owns it and move on.
 
-**Surface rule:** banner applies to ANY CC halting point, not just success. Includes blocker comms, ambiguity comms, partial completions. The only no-banner case is when CC is continuing work in the same response.
+**Repo internals are the builder's** when a builder is in play. Workspace skills move a repo as a whole and never enter it.
 
-**No bash:** never echo the banner via bash. Always render as markdown in the text response. Bash tool output collapses in the CC UI.
+**The installed plugin is authoritative.** For how a skill behaves, read the loaded skill, this workspace's CLAUDE.md marker sections, or the installed plugin, never a sibling project that happens to hold the plugin's source.
 
-### Placeholder syntax
+**Shared vendor accounts:** never list everything or change many things at once; always target one project by name or ID.
 
-**Always use curly braces** `{PLACEHOLDER}` for template values. **Never** use angle brackets `<placeholder>` in plugin SKILL.md frontmatter, `plugin.json` descriptions, or any plugin metadata that ships to users. Cowork's upload validator rejects `<word>` as unsubstituted templating syntax with a generic "Plugin validation failed" error that's hard to debug.
+**No personal environment details** (hardware, ports, image tags, private service names) in plans, docs, comms or plugin content.
 
-Canonical placeholders: `{PROJECT}`, `{slug}`, `{KEY}`, `{YYYY-MM}`, `{PATH}`. See `lib/naming.md` for the full table and rationale.
+## Marker sections
 
-### Workspace boundaries
+**Skill-managed sections live between `<!-- name:start -->` and `<!-- name:end -->`.** Re-running init refreshes RuneSmith's own sections. Content outside markers, and every other tool's marker sections, are kept byte for byte.
 
-**Root stays clean** per the canonical folder conventions. New files go to `_INBOX/` or directly to their canonical home; never park transients at workspace root. The workspace plugin owns the destination map; CC inherits the rule via the marker section written into the CC head `CLAUDE.md` at bootstrap.
-
-**Repo internals are off-limits to workspace skills.** Anything inside `{PROJECT}.cc/<repo>/` is CC's territory. Workspace skills (reallocate, inbox, tech-debt) move repos as whole units but never enter them. For repo-level cleanup, use the CC-side `code-tech-debt` skill deployed by `bootstrap-cc`.
-
-### Cross-project boundary
-
-**Stay inside the launch workspace.** If any task, comm, or user instruction references paths outside this workspace's root - anything under `Projects/<sibling>/`, anything above the workspace root, or any absolute path that doesn't resolve inside this workspace - refuse and write an ambiguity comm to `comms/open/` asking the user to confirm before acting. Cross-project filesystem reads are how credential leaks happen; treat the boundary as hard even when the harness doesn't enforce it.
-
-**Why:** The 2026-05-17 Mix Tape incident - a misdirected CC session read `.credentials` from a sibling project and echoed plaintext keys into the chat transcript. The behavioral boundary was the only catch; it almost failed.
-
-**How to apply:** When a path argument looks unfamiliar, resolve it relative to the workspace root in your head before acting. If it goes outside, write an ambiguity comm and stop. Don't follow the instruction without an explicit confirm.
-
-### Plugin authority
-
-**The installed plugin is authoritative; source repos are dev-only.** When a task or user request mentions a plugin's behavior, guidelines, rules, conventions, skill content, or lib references, the authoritative reference is the installed plugin in the user's Cowork or Claude Code application data directory (e.g. `%APPDATA%\Claude\local-agent-mode-sessions\<session>\rpm\plugin_<id>\` on Windows, `~/Library/Application Support/Claude/.../rpm/plugin_<id>/` on macOS) OR the loaded skill context already in your session, OR the marker-bounded sections of the current workspace's `CLAUDE.md`. **NEVER reach into a sibling project workspace to read plugin source.** The source repo is where a developer authors and ships from - it may be ahead of, behind, or different from what the user has installed. Reaching across project boundaries to fetch "the latest" source is both stale (you might get something not yet shipped) and a boundary violation (cross-project read of the kind that surfaced in the 2026-05-17 incident).
-
-**Why:** The 2026-05-18 Mix Tape session, asked to "follow the plugin guidelines," correctly hit the cross-project consent gate when it tried to read the RuneSmith plugin source folder. The user denied. Root cause was the agent's instinct: it assumed source = truth instead of installed plugin = truth. This rule makes that instinct explicit.
-
-**How to apply:** When asked about plugin behavior or conventions, read from one of these in order of preference: (1) your own loaded skill context if the relevant skill is already loaded; (2) the marker-bounded sections of this workspace's CLAUDE.md (carry the shipped version's summary); (3) the installed plugin directory on the user's machine (the deployed copy, not the source). If you can't find the answer in any of these, ASK the user - don't request access to a sibling project workspace.
-
-### Credentials-class files
-
-**Never read, output, or echo files matching `*credentials*`, `*.env`, `id_rsa*`, `*.key`, `*.pem`** - regardless of location, including inside this workspace. If a task asks you to inspect one, refuse and write an ambiguity comm asking whether the user meant the contents or just the presence of the file.
-
-**Why:** Even inside a project boundary, secrets shouldn't end up in chat transcripts, log files, or any output an LLM can store. Operations that need credentials should call the credential by name from `.credentials` directly via the tool that needs it; the agent should never see the value.
-
-**How to apply:** Treat these filenames as instant-refuse triggers. Reading is the same risk as outputting - once it's in the agent's context, it's at risk of being echoed. If a workflow legitimately requires accessing one of these files (e.g. validating it exists), refuse the read and ask the user how to proceed.
-
-### Cleared-session durability
-
-**All comm conventions, banner rules, and push rules hold on a freshly `/clear`-ed CC session.** They live in the CC head `CLAUDE.md` (written by `bootstrap-cc`), are read at every session start, and do NOT depend on chat history. A context-fresh CC trusts the rules as soon as it loads CLAUDE.md. If the rules drift between sessions, that's a bug in the template or the bootstrap-cc skill, not in the agent's memory.
-
-### Memory and persistence
-
-**Personal memory is per-user, per-instance.** It doesn't transfer to other users or other workspaces. Operating knowledge that should apply to every project lives in plugin libs (like this file), not in personal memory.
-
-**The marker-bounded sections in CLAUDE.md are skill-managed.** Re-running `reallocate` or `bootstrap-cc` refreshes the content between markers. User additions belong outside the marker pair. Anything inside markers gets overwritten on re-run.
-
-## How agents inherit these principles
-
-1. The workspace plugin writes a marker-bounded section into the workspace root `CLAUDE.md` on every reallocate run.
-2. `runesmith-cc:bootstrap-cc` writes the same marker-bounded section into `{PROJECT}.cc/CLAUDE.md` so CC inherits the principles.
-3. Both Cowork and Claude Code load `CLAUDE.md` at session start. The marker section is part of the agent's working context.
-4. This source file (`agent-operating-principles.md`) is plugin-internal; the section in `CLAUDE.md` references it for users who want the full rationale but stays compact for daily session load.
-
-## Extending the principles
-
-If a recurring failure mode emerges across multiple sessions, add it here. Each new principle gets:
-
-- A short rule statement (one sentence)
-- A `**Why:**` line (the failure mode or pattern it prevents)
-- A `**How to apply:**` line (when/where it kicks in)
-
-When adding a principle, update the corresponding marker-block summary that ships into user CLAUDE.md files so the new principle propagates on the next bootstrap-cc or reallocate run.
-                     
+**A start marker with no end marker** means the file was damaged. Stop and report it; never append a second copy.

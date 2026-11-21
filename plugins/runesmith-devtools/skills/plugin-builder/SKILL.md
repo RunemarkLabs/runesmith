@@ -1,7 +1,7 @@
 ---
 name: plugin-builder
-description: "Create Cowork plugins from scratch with full skill scaffolding, production-ready frontmatter, and audit-passing structure. Use when the user says \"create a plugin\", \"new plugin\", \"add a skill\", \"make a plugin\", \"build a plugin\", \"I need a new skill\", \"scaffold a plugin\", \"start a plugin from scratch\". Also triggers on \"package this plugin\" or \"install this plugin\". Not for editing existing skills (edit directly) or installing from catalog (use /core:install)."
-compatibility: Requires Cowork desktop app environment.
+description: "Create Cowork plugins from scratch with full skill scaffolding, production-ready frontmatter, and audit-passing structure. Use when the user says \"create a plugin\", \"new plugin\", \"add a skill\", \"make a plugin\", \"build a plugin\", \"I need a new skill\", \"scaffold a plugin\", \"start a plugin from scratch\". Also triggers on \"package this plugin\" or \"install this plugin\". Not for editing existing skills (edit directly) or installing from catalog (use /runesmith-core:install)."
+compatibility: Runs in the planner chat with the project's workspace folder connected.
 ---
 
 # Plugin Builder
@@ -50,4 +50,12 @@ See `lib/plugin-builder-workflow.md` for detail on every step below.
 4. **Generate plugin scaffold** - create `plugins/{plugin-name}/` with `.claude-plugin/plugin.json`, per-skill `SKILL.md`, empty `lib/`, and `README.md`. Plugin.json uses minimum schema only (name, version, description, author).
 5. **Generate each SKILL.md** - YAML frontmatter (single-line quoted description, compatibility field, name matches folder), body with References / User input rules / Pre-flight / When-to-use / Workflow / Idempotent re-run / Guard Rails / Error cases. Mutation skills include consent gate; file-writing skills use marker-bounded sections.
 6. **Review and iterate** - surface generated files, prompt looks-good / edit / cancel.
-7. **Run audit** - `scripts/audit.py` if present. Do not proceed on
+7. **Run audit** - `scripts/audit.py` if present. Do not proceed on failure without explicit user accept-risk.
+8. **Package** - zip to `dist/{plugin-name}.plugin` with forward slashes.
+9. **Install instructions** - report the plugin name, skills, audit status, package path, install steps, publish steps.
+
+Idempotent re-run, full guard rail checklist, error cases, and release maintenance rules all live in `lib/plugin-builder-workflow.md`. Read it before mutating anything.
+
+## Reminder
+
+`lib/plugin-builder-workflow.md` is load-bearing for steps 3-9 and the invariants. The five hard-rule lib files listed in References are load-bearing for every generated file. Read them; don't paraphrase.

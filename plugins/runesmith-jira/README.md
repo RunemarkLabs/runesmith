@@ -1,30 +1,28 @@
 # runesmith-jira
 
-Jira tickets and project basics with current Cloud REST endpoints.
+Jira tickets and projects over the Cloud REST API.
 
 Part of the [RuneSmith marketplace](https://github.com/runemarklabs/runesmith).
 
 ## Skills
 
-- **`/runesmith-jira:ticket`** - Create Task/Story/Bug/Epic tickets with proper ADF body.
-- **`/runesmith-jira:bug-report`** - Document a bug in Confluence and create a linked Jira Bug ticket.
-- **`/runesmith-jira:project-status`** - Read-only sprint board view (sprint-aware when atlassian-enabled).
-- **`/runesmith-jira:new-project`** - Scaffold a Jira project with required fields (admin perms required).
+- **`/runesmith-jira:ticket`**: Draft and push a Task, Story, Bug or Epic.
+- **`/runesmith-jira:bug-report`**: Document a bug, optionally with a Confluence page, and create the ticket.
+- **`/runesmith-jira:project-status`**: Read the board and recent issues.
+- **`/runesmith-jira:new-project`**: Scaffold a project in Jira and Confluence.
 
 ## Install
-
-Via marketplace (Claude Code / Teams):
 
 ```
 /plugin marketplace add runemarklabs/runesmith
 /plugin install runesmith-jira@runesmith
 ```
 
-Via manual `.plugin` file (Cowork): drag the file from `dist-v2/` into the Cowork plugin sidebar.
+Or build the `.plugin` files with `python scripts/build.py` and drag them from `dist/` into the Claude desktop plugin sidebar.
 
 ## Configure
 
-Run `/runesmith-core:setup` first to populate `.credentials` at the workspace root.
+Needs the planner's Atlassian keys in the workspace `.credentials`.
 
 ## License
 

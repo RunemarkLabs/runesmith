@@ -4,21 +4,21 @@ Canonical rules for deriving folder names, repo names, and slugs. Used by `reall
 
 ## Placeholder syntax (HARD RULE)
 
-**Always use curly braces** `{PLACEHOLDER}` for template values. **Never** use angle brackets `<placeholder>`.
+**Always use curly braces** `{PLACEHOLDER}` for template values. **Never** use angle brackets (a word wrapped in `<` and `>`).
 
 | Use | Don't use |
 |---|---|
-| `{PROJECT}` | `<name>`, `<project>` |
-| `{slug}` | `<slug>` |
-| `{KEY}` | `<KEY>` |
-| `{YYYY-MM}` | `<YYYY-MM>` |
-| `{PATH}` | `<path>` |
+| `{PROJECT}` | `{name}`, `{project}` |
+| `{slug}` | `{slug}` |
+| `{KEY}` | `{KEY}` |
+| `{YYYY-MM}` | `{YYYY-MM}` |
+| `{PATH}` | `{path}` |
 
-**Why:** Cowork's plugin upload validator rejects `<word>` patterns in SKILL.md frontmatter and `plugin.json` descriptions as unsubstituted templating syntax. The rejection comes back as a generic "Plugin validation failed" with no detail - debugging eats hours. The rule applies everywhere for consistency, even in body content where Cowork won't catch it.
+**Why:** Cowork's plugin upload validator rejects angle-bracket patterns (a word wrapped in `<` and `>`) in SKILL.md frontmatter and `plugin.json` descriptions as unsubstituted templating syntax. The rejection comes back as a generic "Plugin validation failed" with no detail - debugging eats hours. The rule applies everywhere for consistency, even in body content where Cowork won't catch it.
 
 **Audit enforces this** in `scripts/audit.py` via `check_frontmatter_placeholders`. Body content is exempt from automated check (HTML/XML examples in code blocks legitimately use angle brackets) but should still prefer `{WORD}` for placeholders.
 
-If the user types `<value>` to you as a placeholder, transcribe to `{VALUE}` before persisting to any plugin file.
+If the user types `{value}` to you as a placeholder, transcribe to `{VALUE}` before persisting to any plugin file.
 
 ## Why
 
@@ -89,7 +89,7 @@ Never silently use a name that differs from what the user typed. Always show the
 
 ## Skills that apply this rule
 
-- `runesmith-workspace:reallocate` - when picking `{PROJECT}.cc/` during workspace migration
-- `runesmith-cc:bootstrap-cc` - when creating the head folder and when accepting a new repo name
+- `runesmith-workspace:init` - when picking `{PROJECT}.cc/` during workspace migration
+- `runesmith-cc:head` - when creating the head folder and when accepting a new repo name
 - `runesmith-sprint:enable` - when accepting Jira project keys or board names that need filesystem-safe equivalents
 - `runesmith-cc/agents/repo-bootstrapper` - when accepting new repo names for GitHub creation

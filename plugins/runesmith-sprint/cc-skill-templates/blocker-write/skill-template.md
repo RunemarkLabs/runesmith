@@ -1,7 +1,7 @@
 ---
 name: blocker-write
 description: "Declare a blocker on a Jira ticket - write a comm requesting unblock, tag the ticket cc-blocked. Use when CC is stuck and needs Cowork or the user to act before continuing. Runs in Claude Code."
-compatibility: Requires Cowork desktop app environment.
+compatibility: Runs in Claude Code, inside the project's head.
 ---
 
 # Blocker Write (CC-side)
@@ -33,27 +33,28 @@ Pair: a comms file + a ticket label. The comm carries the explanation; the label
 ### 2. Write the comm
 
 ```
-comms/open/<ISO>-blocker-{ticket-or-slug}.md
+comms/open/{UTC}-{slug}/{UTC}-{slug}-{type}-{n}.md     (in the current task's folder; n counts from 1)
 ```
 
 ```yaml
 ---
-id: <id>
+id: {UTC}-{slug}-{type}-{n}
 from: cc
 to: cowork | user
 type: ambiguity | blocker | user-action
 ticket: {KEY}
+parent: {UTC}-{slug}
 status: open
-created: <ISO>
+created: {ISO time, UTC}
 ---
 
 # Blocked on {KEY}
 
 ## Body
-<what's blocking - concrete, technical>
+{what's blocking - concrete, technical}
 
 ## Acceptance
-<what response would unblock>
+{what response would unblock}
 ```
 
 ### 3. Tag the ticket `cc-blocked`
@@ -72,17 +73,17 @@ If capability is read-only, append to the same comm a request for Cowork to add 
 also-add-labels: [cc-blocked]   # or [cc-blocked, needs-user]
 ```
 
-`check-comms` reads this hint and adds labels via MCP.
+`check-comms` reads this hint and adds the labels through the Jira REST API.
 
 ### 4. Stop work on this ticket
 
-CC must NOT continue work on a `cc-blocked` ticket. Pick a different available ticket from the sprint (via `sprint-pull`) or pause the session if none available.
+Stop work on this task. Reply in its folder with `STATUS: blocked`, mark it blocked in the goal status comm, and carry on with the goal's other tasks. The banner names it under "Needs you". The planner's `answer` comes back with a new `/goal` line.
 
 ### 5. Report (in CC chat)
 
 ```
 Blocked on {KEY}: {one-line summary}
-Wrote: <comm filename>
+Wrote: {comm filename}
 Label cc-blocked added: <direct | via comms>
 Picking next available ticket from sprint…
 ```

@@ -1,7 +1,7 @@
 ---
 name: bootstrap-aiops
 description: "Create the full AIOPS documentation space in a new company's Confluence when they fork the bootstrap repo. Use when \"bootstrap AIOPS\", \"create AIOPS space\", \"set up docs for [company]\", or when onboarding a fork org that needs their own AI Operations Confluence space populated."
-compatibility: Requires Cowork desktop app environment.
+compatibility: Runs in the planner chat with the project's workspace folder connected.
 ---
 
 # Bootstrap AIOPS
@@ -17,7 +17,7 @@ Populate an AIOPS Confluence space with the marketplace's six template pages, wi
 - `lib/credentials.md`
 - `lib/consent.md`
 - `lib/tokens.md`
-- Templates at `aiops/templates/*.xhtml` (already in storage XHTML)
+- Templates at `templates/*.xhtml` in this plugin (already in storage format)
 - `lib/user-prompts.md` - structured-input requirement for any user prompt
 
 
@@ -77,9 +77,7 @@ After substitution, scan body for any remaining `{...}` matches. If any unresolv
 
 ### 4. Get consent
 
-Show user the six titles + the resolved token table. Ask: "Publish these six pages to {SPACE_KEY}?"
-
-Wait for trigger phrase per `consent.md`.
+Show the six titles and the resolved token table. Structured prompt per `lib/consent.md`: **Publish these six pages to {SPACE_KEY}** (recommended) / **Cancel**.
 
 ### 5. Publish pages
 
@@ -90,10 +88,10 @@ POST {ATLASSIAN_API_URL}/wiki/api/v2/pages
 {
   "spaceId": "{SPACE_ID}",
   "status": "current",
-  "title": "<resolved title>",
+  "title": "{resolved title}",
   "body": {
     "representation": "storage",
-    "value": "<resolved XHTML>"
+    "value": "{resolved XHTML}"
   }
 }
 ```
@@ -109,12 +107,12 @@ If any page already exists in space (lookup by title with `space-id`), ask user:
 Space: {SPACE_KEY}  ({SPACE_ID})
 Company: {COMPANY}
 Pages:
-  1. Quick Start              → <url>
-  2. Full Integration Guide   → <url>
-  3. Architecture Overview    → <url>
-  4. Best Practices           → <url>
-  5. FAQ                      → <url>
-  6. Reference                → <url>
+  1. Quick Start              → {url}
+  2. Full Integration Guide   → {url}
+  3. Architecture Overview    → {url}
+  4. Best Practices           → {url}
+  5. FAQ                      → {url}
+  6. Reference                → {url}
 ```
 
 ## Guard Rails

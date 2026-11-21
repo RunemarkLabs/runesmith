@@ -1,7 +1,7 @@
 {
   "name": "runesmith-devtools",
-  "version": "0.8.3",
-  "description": "[RuneSmith v0.8.3] Developer helpers for the marketplace itself. /help lists installed skills and their natural-language triggers, /plugin-builder scaffolds new plugins, /tech-debt scans the workspace for stale or orphaned artifacts, and /skill-updater propagates convention changes across all skills consistently.",
+  "version": "1.0.0",
+  "description": "[RuneSmith v1.0.0] Tools for plugin authors. /help lists installed skills and their triggers, /plugin-builder scaffolds a new plugin, /tech-debt scans the workspace for stale or orphaned files, and /skill-updater carries a convention change across every skill and shared library copy.",
   "author": {
     "name": "Runemark Labs"
   }

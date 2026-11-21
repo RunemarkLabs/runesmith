@@ -1,27 +1,27 @@
 # runesmith-cc
 
-Build the {PROJECT}.cc/ Claude Code monorepo head; create or clone repos.
+The Claude Code head (`{PROJECT}.cc/`) and the project-boundary guardrail.
 
 Part of the [RuneSmith marketplace](https://github.com/runemarklabs/runesmith).
 
 ## Skills
 
-- **`/runesmith-cc:bootstrap-cc`** - Build the Claude Code monorepo head with CLAUDE.md, .claude/, comms/, and optional repo clone via PAT.
+- **`/runesmith-cc:head`**: Build or refresh the head: builder rules, settings (no attribution, stop hook cap of 3, code-simplifier), comms folders, the `runesmith-clean-code`, `runesmith-code-tech-debt` and `runesmith-release` skills, repos, and the `dev`, `qa` and `beta` branches.
+- **`/runesmith-cc:guardrail`**: Copy the one-shot installer that keeps every Claude Code session inside its project; install, verify or uninstall.
+- **`/runesmith-cc:bootstrap-cc`**: Pointer to `head` for this release.
 
 ## Install
-
-Via marketplace (Claude Code / Teams):
 
 ```
 /plugin marketplace add runemarklabs/runesmith
 /plugin install runesmith-cc@runesmith
 ```
 
-Via manual `.plugin` file (Cowork): drag the file from `dist-v2/` into the Cowork plugin sidebar.
+Or build the `.plugin` files with `python scripts/build.py` and drag them from `dist/` into the Claude desktop plugin sidebar.
 
 ## Configure
 
-Run `/runesmith-core:setup` first to populate `.credentials` at the workspace root.
+Usually run through `/runesmith-workspace:init`. Creating repos needs `RUNESMITH_GITHUB_PAT` in the workspace `.credentials`.
 
 ## License
 

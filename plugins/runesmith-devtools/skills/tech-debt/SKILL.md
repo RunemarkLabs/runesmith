@@ -2,7 +2,7 @@
 name: tech-debt
 description: "Scan the workspace for stale, orphaned, or unreferenced artifacts using a cross-reference graph (plans → refs/tickets/decisions → research/source-docs/drafts). Identifies what is ACTUALLY tech debt - content that no longer traces back to a live plan, ticket, or decision. Workspace-side only; never enters source repos. Use after a round of changes, when things feel messy, proactively between work sessions, or to verify cleanliness before a release. Triggers on: \"tech debt\", \"clean up\", \"stale files\", \"what's out of date\", \"is anything orphaned\"."
 model: haiku
-compatibility: Requires Cowork desktop app environment.
+compatibility: Runs in the planner chat with the project's workspace folder connected.
 ---
 
 # Workspace Tech Debt Scanner
@@ -11,7 +11,7 @@ Identify workspace content that is no longer alive - orphaned, unreferenced, or 
 
 Tech debt here means **unreferenced** content, not just old content. Age is a weak signal; cross-references are the real test. A 6-month-old reference doc still cited by an active plan is alive. A 1-week-old draft that nobody points to and references a superseded plan is debt.
 
-**Scope is the workspace only.** This skill does not touch source repos. For code-level tech debt (unused functions, dead classes, leftover scaffolding from refactors), see `runesmith-cc:code-tech-debt` - a CC-side skill template deployed by `runesmith-cc:bootstrap-cc`.
+**Scope is the workspace only.** This skill does not touch source repos. For code-level tech debt (unused functions, dead classes, leftover scaffolding from refactors), see `runesmith-cc:code-tech-debt` - a CC-side skill template deployed by `runesmith-cc:head`.
 
 ## References
 
@@ -34,16 +34,16 @@ Use for:
 - After completing a major project phase
 - When the workspace feels cluttered or you suspect orphans
 - Before tagging a release - verify no stale plan/draft/research is shipping
-- After running `/runesmith-workspace:reallocate` to verify nothing fell through
+- After running `/runesmith-workspace:init` to verify nothing fell through
 
 Do **not** use for:
-- Scanning source-repo tech debt (use `/runesmith-cc:code-tech-debt` deployed inside `{PROJECT}.cc/<repo>/`)
-- Workspace structure migration (that's `/runesmith-workspace:reallocate`)
+- Scanning source-repo tech debt (use `/runesmith-cc:code-tech-debt` deployed inside `{PROJECT}.cc/{repo}/`)
+- Workspace structure migration (that's `/runesmith-workspace:init`)
 - Bulk auto-deletion (always ask before any move)
 
 ## Boundary
 
-Tech-debt **never enters `{PROJECT}.cc/<repo>/`**. The CC head's repos are CC's territory. The workspace's job ends at the boundary.
+Tech-debt **never enters `{PROJECT}.cc/{repo}/`**. The CC head's repos are CC's territory. The workspace's job ends at the boundary.
 
 Tech-debt **does** scan `{PROJECT}.cc/comms/archive/` if asked (rare - archive is the audit trail, usually preserved).
 
@@ -54,23 +54,23 @@ Tech-debt **does** scan `{PROJECT}.cc/comms/archive/` if asked (rare - archive i
 Walk the canonical workspace dirs and build an in-memory graph:
 
 **Nodes** (the things that can be alive or dead):
-- Each `plans/active/<slug>/` plan + its `decisions.md` + `refs/<file>` + `tickets/<id>.json`
-- Each `plans/archive/<YYYY-MM>/<slug>/` plan
-- Each `notes/<file>.md`
-- Each `drafts/{features,project-docs,bugs}/<slug>/` draft
-- Each `research/<topic>/<file>`
-- Each `source-docs/<topic>/<file>`
-- Each `archive/superseded/<YYYY-MM>/<entry>`
-- Each `archive/tickets-pushed/<YYYY-MM>/<KEY>.json`
-- Each operation snapshot under `archive/_pre-*/<ISO>/`
-- Each `plugins/<plugin>/` (for marketplace dev workspaces)
+- Each `plans/active/{slug}/` plan + its `decisions.md` + `refs/{file}` + `tickets/{id}.json`
+- Each `plans/archive/{YYYY-MM}/{slug}/` plan
+- Each `notes/{file}.md`
+- Each `drafts/{features,project-docs,bugs}/{slug}/` draft
+- Each `research/{topic}/{file}`
+- Each `source-docs/{topic}/{file}`
+- Each `archive/superseded/{YYYY-MM}/{entry}`
+- Each `archive/tickets-pushed/{YYYY-MM}/{KEY}.json`
+- Each operation snapshot under `archive/_pre-*/{ISO}/`
+- Each `plugins/{plugin}/` (for marketplace dev workspaces)
 
 **Edges** (the references that keep nodes alive):
-- Active plan `plan.md` cites `refs/<file>.md` in its References section → that ref is referenced
-- Active plan frontmatter `tickets:` array → those Jira keys are referenced (the archived JSON in `archive/tickets-pushed/<YYYY-MM>/<KEY>.json` is alive as history)
+- Active plan `plan.md` cites `refs/{file}.md` in its References section → that ref is referenced
+- Active plan frontmatter `tickets:` array → those Jira keys are referenced (the archived JSON in `archive/tickets-pushed/{YYYY-MM}/{KEY}.json` is alive as history)
 - Active plan `decisions.md` mentions another plan slug → that plan is referenced
 - Plan `supersedes:` field → the superseded plan is referenced (as a history pointer)
-- `notes/<file>.md` content mentions a plan slug or draft slug → that slug is referenced
+- `notes/{file}.md` content mentions a plan slug or draft slug → that slug is referenced
 - A draft folder's slug appears in any active plan → the draft is referenced
 - `{PROJECT}.cc/comms/open/` content mentions a plan slug → that plan is referenced
 
@@ -83,7 +83,7 @@ Walk the canonical workspace dirs and build an in-memory graph:
 
 **Toggle for cached graph**:
 - Default: rebuild graph on every run (on-the-fly).
-- `--cached` flag (structured prompt option "Use cached graph if available"): read graph from `archive/_workspace-index/<ISO>.json` if present and less than 24 hours old; else rebuild and cache.
+- `--cached` flag (structured prompt option "Use cached graph if available"): read graph from `archive/_workspace-index/{ISO}.json` if present and less than 24 hours old; else rebuild and cache.
 - Build the cache as a side effect of any full scan. The graph is small (file paths + edges, no content), so caching costs little.
 - If the graph is heavy on a particular workspace (lots of plans, big notes), surface that in the report and recommend the cached flag for subsequent runs.
 
@@ -92,7 +92,7 @@ Walk the canonical workspace dirs and build an in-memory graph:
 For each node, assign a status:
 
 - **alive** - referenced by an active plan, recent note, or open comm
-- **structural-debt** - wrong location for its status (e.g. `status: done` plan still in `plans/active/`, pushed ticket draft still in `plans/active/<slug>/tickets/`)
+- **structural-debt** - wrong location for its status (e.g. `status: done` plan still in `plans/active/`, pushed ticket draft still in `plans/active/{slug}/tickets/`)
 - **orphan** - no live references; candidate for archive
 - **superseded-history** - referenced only via `supersedes:` from a newer plan; preserve as history
 - **operation-snapshot-stale** - `archive/_pre-*/` snapshot older than 90 days
@@ -133,7 +133,7 @@ Surface a structured multi-pick:
 ```
 What do you want to act on?
   [ ] Structural debt (move to canonical location)
-  [ ] Orphans (archive to archive/superseded/<YYYY-MM>/)
+  [ ] Orphans (archive to archive/superseded/{YYYY-MM}/)
   [ ] Operation snapshots > 90 days (delete)
   [ ] Broken items (review individually)
   [ ] Nothing - preview only
@@ -146,7 +146,7 @@ Trigger phrase ("clean up", "archive them", "apply") gates the destructive moves
 ### 5. Execute cleanup
 
 Per approved row:
-- Snapshot to `archive/_pre-tech-debt/<ISO>/` before any move or delete
+- Snapshot to `archive/_pre-tech-debt/{ISO}/` before any move or delete
 - Move per the proposed target (or delete for operation snapshots)
 - Update graph cache if `--cached` was used
 
@@ -154,7 +154,7 @@ Per approved row:
 
 ```
 ✓ Workspace tech debt addressed
-Snapshot: archive/_pre-tech-debt/<ISO>/
+Snapshot: archive/_pre-tech-debt/{ISO}/
 
 Resolved: {N} items
   - structural debt: {n}
@@ -171,8 +171,8 @@ Live graph: {N} active plans, {M} references, {O} orphans remaining
 - [ ] Scan is read-only until user explicitly consents to act
 - [ ] Reference graph built per `lib/folder-conventions.md` taxonomy
 - [ ] On-the-fly by default; cached mode opt-in via structured option
-- [ ] Boundary respected: never enters `{PROJECT}.cc/<repo>/`
-- [ ] Snapshot to `archive/_pre-tech-debt/<ISO>/` before any move or delete
+- [ ] Boundary respected: never enters `{PROJECT}.cc/{repo}/`
+- [ ] Snapshot to `archive/_pre-tech-debt/{ISO}/` before any move or delete
 - [ ] Per-category consent via structured multi-pick
 - [ ] Broken items surfaced, never auto-fixed without per-item user input
 - [ ] Reallocate-style structural moves (e.g. `status: done` plan to archive) handled here, not duplicating reallocate's job
@@ -181,7 +181,7 @@ Live graph: {N} active plans, {M} references, {O} orphans remaining
 ## Error Cases
 
 **No tech debt found:** "Workspace is clean. {N} active plans, {M} alive references, 0 orphans."
-**Reference graph fails to build:** Surface the path that broke, abort the scan, suggest running `/runesmith-workspace:reallocate` first if structure is non-canonical.
+**Reference graph fails to build:** Surface the path that broke, abort the scan, suggest running `/runesmith-workspace:init` first if structure is non-canonical.
 **Orphan's content suggests it might still be relevant:** Surface the head + filename; ask user to confirm orphan status before archive (don't auto-archive content with recent edits or referenced filenames in headers).
 **Plan slug referenced by note but plan doesn't exist:** Flag the note as having a stale reference; surface for user to update.
 **Cache exists but is older than 24 hours:** Rebuild silently; offer to use cache anyway via structured prompt if user wants fast preview.

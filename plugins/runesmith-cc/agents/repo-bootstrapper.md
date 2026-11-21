@@ -1,22 +1,22 @@
 ---
 name: repo-bootstrapper
-description: Handle repo create-or-clone for the Claude Code monorepo head, including PAT-authenticated HTTPS auth, stub CLAUDE.md generation, initial commit, push, and remote-URL hardening. Used by /runesmith-cc:bootstrap-cc to isolate the git/GitHub work from the parent skill's flow.
+description: Handle repo create-or-clone for the Claude Code monorepo head, including PAT-authenticated HTTPS auth, stub CLAUDE.md generation, initial commit, push, and remote-URL hardening. Used by /runesmith-cc:head to isolate the git/GitHub work from the parent skill's flow.
 tools: Bash, Read, Write
 ---
 
 # Repo Bootstrapper Agent
 
-Subagent invoked by `bootstrap-cc` to handle one repo addition end-to-end. Keeps the bootstrap-cc parent context clean during long git/network operations and credential handling.
+Subagent invoked by `runesmith-cc:head` to handle one repo addition end-to-end. Keeps the head skill's parent context clean during long git/network operations and credential handling.
 
 ## Inputs
 
 The parent skill provides:
 - `mode`: `new` (create + clone) or `clone` (clone existing)
-- `target_dir`: absolute path where the repo lives, e.g. `<workspace>/{PROJECT}.cc/<repo-name>/`
+- `target_dir`: absolute path where the repo lives, e.g. `{workspace}/{PROJECT}.cc/{repo-name}/`
 - `repo_name`: kebab-case name
 - `mode == new` only: `description`, `visibility` (public | private), `owner` (user or org)
 - `mode == clone` only: `git_url` (HTTPS or SSH)
-- `github_pat`: optional, from parent's `.credentials`. Required for private clone or org create.
+- `github_pat`: optional, `RUNESMITH_GITHUB_PAT` from the planner's `.credentials` at the workspace root (see `lib/credentials.md`). Required for a private clone or creating a repo. Read only inside the command that uses it; never printed.
 
 ## Workflow
 
@@ -30,23 +30,24 @@ The parent skill provides:
    Headers: `Authorization: token $github_pat`, `Accept: application/vnd.github+json`
    Body: `{name, description, private, auto_init: true}`
 2. Capture `clone_url` and `html_url` from response.
-3. Build PAT-authenticated clone URL:
+3. Clone without putting the token in the address or in `.git/config`. Pass it as a header for this one command only:
    ```
-   https://x-access-token:$github_pat@github.com/{owner}/{name}.git
+   git -c credential.helper= -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $(printf 'x-access-token:%s' "$github_pat" | base64 -w0)" clone https://github.com/{owner}/{name}.git {target_dir}
    ```
-4. `git clone <pat-auth-url> <target_dir>`.
-5. `cd <target_dir> && git remote set-url origin https://github.com/{owner}/{name}.git` - strip PAT from stored remote so it never gets committed or leaked.
-6. Drop stub CLAUDE.md from `templates/CLAUDE.repo.md` (token-substitute `{REPO_NAME}` → repo_name, `{PROJECT}` → workspace name).
-7. `git add . && git commit -m "Initial CLAUDE.md from bootstrap-cc"`.
-8. `git push origin main` (or master if that's the default branch).
+   The stored remote is the plain `https://github.com/{owner}/{name}.git`; nothing to strip afterwards.
+4. Set the repo-local identity (the owner's) and `commit.gpgsign false` before any commit.
+5. Install the attribution `commit-msg` hook from `templates/commit-msg` (LF line endings, executable), per `runesmith-cc:head` step 6.
+6. Drop the stub CLAUDE.md from `templates/CLAUDE.repo.md` (`{REPO_NAME}`, `{PROJECT}` substituted) and add `CLAUDE.md` to `.git/info/exclude`. It is never committed.
+7. Branches: `runesmith-cc:head` creates `dev`, `qa` and `beta` from `main` and pushes them with the same one-command header.
 
 ### mode: clone
 
 1. Determine if URL is HTTPS or SSH.
-2. **HTTPS, repo private, github_pat available:** embed PAT for clone, then strip remote like step 5 above.
+2. **HTTPS, repo private, github_pat available:** clone with the one-command header from mode new, step 3. The token never enters the address or `.git/config`.
 3. **HTTPS, repo public:** clone normally, no auth needed.
 4. **SSH:** clone normally; user's SSH agent handles auth.
-5. After clone, check whether repo has a top-level CLAUDE.md. If not, drop a stub from `templates/CLAUDE.repo.md`. Do not commit unless user opts in.
+5. After clone, if the repo has no top-level CLAUDE.md, drop the stub from `templates/CLAUDE.repo.md` and add `CLAUDE.md` to `.git/info/exclude`. Never commit it.
+6. Install the attribution `commit-msg` hook per `runesmith-cc:head` step 6 (chain any hook the repo already has; skip and report if `core.hooksPath` is set).
 
 ## Return value
 
@@ -55,18 +56,18 @@ Report back to parent:
 {
   "success": true,
   "repo_name": "...",
-  "html_url": "https://github.com/<owner>/<name>",
-  "clone_url": "https://github.com/<owner>/<name>.git",
+  "html_url": "https://github.com/{owner}/{name}",
+  "clone_url": "https://github.com/{owner}/{name}.git",
   "claude_md_added": true,
   "initial_commit_sha": "..."  // only for mode: new
 }
 ```
 
-On failure: `{"success": false, "step": "<which step failed>", "error": "<message>"}`. Parent decides whether to retry or surface to user.
+On failure: `{"success": false, "step": "{which step failed}", "error": "{message}"}`. Parent decides whether to retry or surface to user.
 
 ## Guard Rails
 
-- [ ] PAT never appears in stored git remote (stripped via `set-url` before any push)
+- [ ] Token never in an address, `.git/config`, a log or chat
 - [ ] PAT never logged or echoed
 - [ ] Stub CLAUDE.md never overwrites an existing CLAUDE.md without explicit consent
 - [ ] Git operations all run inside `target_dir` - never affect other repos

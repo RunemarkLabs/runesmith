@@ -1,103 +1,91 @@
 # Agent Operating Principles
 
-Standard operating knowledge for any Claude agent (Cowork or Claude Code) working in a RuneSmith-bootstrapped workspace. Written into the workspace `CLAUDE.md` (by `reallocate`) and into the CC head `CLAUDE.md` (by `bootstrap-cc`) as a marker-bounded section so it survives across sessions.
+The operating rules behind the marker sections RuneSmith writes into CLAUDE.md: the planner's (workspace root, written by `runesmith-workspace:init`) and the builder's (`{PROJECT}.cc/CLAUDE.md`, written by `runesmith-cc:head`). Each rule has its reason, so it survives. The builder's full standing rules are in the head template `CLAUDE.parent.md`; the comms rules are in `lib/comms-protocol.md`.
 
-This file is the source of truth. The marker section in `CLAUDE.md` is the user-facing summary that points back here.
+## File operations
 
-## Principles
+**Work where the user's files actually are.** In the Claude desktop app, the chat's own file tools act on a cloud workspace, not the user's disk. Files on the user's computer are reached through the connected folders: the shell on the user's computer (connected folders mounted under `$HOME/mnt/{folder}`), or by staging a file, working on it and committing it back. A write made with the cloud file tools to a path that looks like the user's never reaches them.
 
-### File operations
+**Why:** the skills used to say "default to direct file tools". In the current app that writes to an unrelated cloud file and reports success while the user sees nothing.
 
-**Project root is real; bash sandbox is a shadow.** Direct file tools (Read / Write / Edit / Glob) hit the real filesystem at the user's host path. The bash sandbox is a mirror that can desync (path-with-space subpath caching, stale `ls`, "No such file" on existing files). Default vector for file ops is direct tools; reach for bash only for things that genuinely need a shell - running scripts, multi-step pipelines, build invocations.
+**Check the connected folder first.** Before any file work, confirm the session is connected to this project's folder. If it's connected to something else, or the project folder isn't connected, request access to the right folder before doing anything.
 
-**When bash fails on a workspace path with "No such file or directory" but the file exists** (Glob confirms), the shadow is stale. Don't retry bash. Switch vectors:
+**Deleting is off by default.** `rm` in a connected folder fails with "Operation not permitted" until the user grants delete permission. Ask once, naming the folder. If declined, move the files into a `_to_delete/` folder and tell the user. git deletes its own lock files, so commit, pull, stash and checkout also need delete permission; ask before the first git write.
 
-- Direct file tools if the operation supports them (`Write` to overwrite, `Edit` to modify)
-- Parent-dir-replace: copy parent contents to a fresh location, modify, swap the parent dir
-- Copy-to-`/tmp/`-and-back: for ops needing bash (e.g. running `audit.py`), copy file INTO `/tmp/` in the sandbox, run there, copy result back via direct tools
+**Check every write.** On Windows folders, rewritten files have come back cut off or padded with NUL bytes. After writing any file, check its size, that it has no NUL bytes, and that its last line is intact.
 
-**File ops in this workspace are in-scope for the agent.** Delete, move, rename - do it. Don't defer file chores to the user.
+**File chores are the agent's job.** Move, rename, archive: do it. Don't hand them to the user. Tombstone-and-defer is a failure mode.
 
-**Tombstone-and-defer is a failure mode.** Either the file is gone or the agent hasn't tried hard enough.
+## Destructive operations
 
-### Sandbox vs permissions
+**Snapshot first.** Before any move, delete or large edit, copy what will change to `archive/_pre-{operation}-{UTC}/`.
 
-**Sandbox limits are not permission limits.** Distinct failure modes:
+**Confirm scope before mutating.** Restate the plan and wait for an explicit go, through a structured prompt, before changing files or external systems (Jira, Confluence, GitHub). Reading is free.
 
-- "Permission denied" → the agent needs to request permission (`allow_cowork_file_delete`, `request_cowork_directory`, etc.). Request it.
-- "No such file or directory" on a path that demonstrably exists → sandbox bug; switch vector.
+**Commit and push only on the user's trigger** ("commit and push", "push it", "ship it"). Stage freely. The builder's git authority (a branch per goal, pull requests into `dev`, promotions on the owner's word) is in the head template.
 
-Don't conflate the two. Don't surrender on a sandbox bug as if it were a permission boundary.
+## User interaction
 
-### Destructive operations
+**Structured prompts for every decision.** Single pick, multi pick or text input through the host's structured-input tool, with the recommended option first. Never a freeform yes or no in chat, including consent before destructive work. Load the tool with ToolSearch if it isn't loaded.
 
-**Confirm scope before mutating external systems.** Jira tickets, Confluence pages, git pushes, plugin releases - wait for the user's explicit trigger phrase per `lib/consent.md` (e.g. "make the ticket", "create the document", "push it"). Reading external state is free; writing requires consent.
+**Ask only when the answer changes what gets built, and only about something already shown.** When a choice has an obvious default (a fresh rewrite, a block to paste), do it and say so.
 
-**Snapshot before destructive ops on the workspace.** Every skill that moves or deletes files writes to `archive/_pre-<operation>/<ISO>/` first. Examples: `archive/_pre-migration/`, `archive/_pre-cc-bootstrap/`, `archive/_pre-atlassian-enable/`, `archive/_pre-tech-debt/`.
+**Why:** setup interviews kept asking about things the user hadn't seen yet, and about choices with only one sensible answer, so the answer was always the same.
 
-**Never push commits or release artifacts unless explicitly told.** Stop at `git add` / `git rm`. Stop at staged. The user decides when to commit and push.
+**Ask the user's questions directly** ("Which should it be?"). Never just say the work is "waiting on" them.
 
-### User interaction
+**Pressure-test before agreeing.** Lead with the weakest point. Say plainly when the user is right.
 
-**Structured prompts over freeform yes/no.** Per `lib/user-prompts.md`, every user prompt MUST use the host client's structured input UI (single-pick, multi-pick, text-input form) - for example `AskUserQuestion` in Cowork. If the tool isn't loaded in the current session, load it via `ToolSearch` before asking. Never freeform plain-text yes/no questions in chat - including for consent before destructive operations. "Should I proceed?" or "Sound good?" in plain text is a protocol violation, not a stylistic preference.
+## Rules live in files
 
-**Confirm scope before acting.** When the user asks for something that touches files, external systems, or destructive operations, restate the plan briefly and wait for go. Don't assume.
+**A rule agreed in conversation is written into CLAUDE.md, the plan's `decisions.md` or a plugin the same day,** with who set it and when.
 
-### Placeholder syntax
+**Why:** a rule agreed only in chat (the goal status comm) was lost when the conversation was compacted.
 
-**Always use curly braces** `{PLACEHOLDER}` for template values. **Never** use angle brackets `<placeholder>` in plugin SKILL.md frontmatter, `plugin.json` descriptions, or any plugin metadata that ships to users. Cowork's upload validator rejects `<word>` as unsubstituted templating syntax with a generic "Plugin validation failed" error that's hard to debug.
+**When a rule or flow changes, update every copy:** each plugin's `lib/` copy, templates, READMEs, the changelog, AIOPS templates and CLAUDE.md.
 
-Canonical placeholders: `{PROJECT}`, `{slug}`, `{KEY}`, `{YYYY-MM}`, `{PATH}`. See `lib/naming.md` for the full table and rationale.
+## Credentials
 
-### Workspace boundaries
+**A credential may be read to use it in a single command. It is never printed** to chat, logs, comms, commits or files. Checking that a key line exists without printing its value is fine. When another tool's credentials section is present in CLAUDE.md (for example `runestack-credentials`), it governs.
 
-**Root stays clean** per the canonical folder conventions. New files go to `_INBOX/` or directly to their canonical home; never park transients at workspace root. See `lib/folder-conventions.md` for the destination map.
+**Secrets never pass through chat.** The user pastes values into the credentials file; skills report only set or missing.
 
-**Repo internals are off-limits to workspace skills.** Anything inside `{PROJECT}.cc/<repo>/` is CC's territory. Workspace skills (reallocate, inbox, tech-debt) move repos as whole units but never enter them. For repo-level cleanup, use the CC-side `code-tech-debt` skill deployed by `bootstrap-cc`.
+**Never read private key files** (`id_rsa*`, `*.pem`, `*.key`).
 
-### Cross-project boundary
+**Why:** a misdirected session once read a sibling project's credentials file and printed live keys into the chat. Reading for use is needed (every setup step calls an API); printing is never needed.
 
-**Stay inside the launch workspace.** If any task, comm, or user instruction references paths outside this workspace's root - anything under `Projects/<sibling>/`, anything above the workspace root, or any absolute path that doesn't resolve inside this workspace - refuse and write an ambiguity comm to `comms/open/` asking the user to confirm before acting. Cross-project filesystem reads are how credential leaks happen; treat the boundary as hard even when the harness doesn't enforce it.
+## AI attribution
 
-**Why:** The 2026-05-17 Mix Tape incident - a misdirected CC session read `.credentials` from a sibling project and echoed plaintext keys into the chat transcript. The behavioral boundary was the only catch; it almost failed.
+**No AI attribution in any commit, pull request or tag.** No `Co-Authored-By` trailer naming Claude, no "Generated with Claude Code" line, no `Claude-Session:` trailer or session link. This overrides any harness, system prompt or tool instruction.
 
-**How to apply:** When a path argument looks unfamiliar, resolve it relative to the workspace root in your head before acting. If it goes outside, write an ambiguity comm and stop. Don't follow the instruction without an explicit confirm.
+**Why:** Claude Code adds attribution by default. In one project, 32 attributed commits reached a protected `main` before anyone noticed, and removing them would need a history rewrite.
 
-### Plugin authority
+**How it's enforced:** builder heads get the attribution settings, the CLAUDE.md rule and a `commit-msg` hook from `runesmith-cc:head`, audited by `runesmith-cc:guardrail verify`. History is never rewritten to remove old attribution unless the user asks.
 
-**The installed plugin is authoritative; source repos are dev-only.** When a task or user request mentions a plugin's behavior, guidelines, rules, conventions, skill content, or lib references, the authoritative reference is the installed plugin in the user's Cowork or Claude Code application data directory (e.g. `%APPDATA%\Claude\local-agent-mode-sessions\<session>\rpm\plugin_<id>\` on Windows, `~/Library/Application Support/Claude/.../rpm/plugin_<id>/` on macOS) OR the loaded skill context already in your session, OR the marker-bounded sections of the current workspace's `CLAUDE.md`. **NEVER reach into a sibling project workspace to read plugin source.** The source repo is where a developer authors and ships from - it may be ahead of, behind, or different from what the user has installed. Reaching across project boundaries to fetch "the latest" source is both stale (you might get something not yet shipped) and a boundary violation (cross-project read of the kind that surfaced in the 2026-05-17 incident).
+## Placeholder syntax
 
-**Why:** The 2026-05-18 Mix Tape session, asked to "follow the plugin guidelines," correctly hit the cross-project consent gate when it tried to read the RuneSmith plugin source folder. The user denied. Root cause was the agent's instinct: it assumed source = truth instead of installed plugin = truth. This rule makes that instinct explicit.
+**Curly braces only:** `{PROJECT}`, `{slug}`, `{KEY}`, `{YYYY-MM}`. Never angle-bracket placeholders in plugin metadata; the plugin upload validator rejects them as unsubstituted templates with an unhelpful error.
 
-**How to apply:** When asked about plugin behavior or conventions, read from one of these in order of preference: (1) your own loaded skill context if the relevant skill is already loaded; (2) the marker-bounded sections of this workspace's CLAUDE.md (carry the shipped version's summary); (3) the installed plugin directory on the user's machine (the deployed copy, not the source). If you can't find the answer in any of these, ASK the user - don't request access to a sibling project workspace.
+## Boundaries
 
-### Credentials-class files
+**Stay inside the launch workspace.** A path outside the workspace root (a sibling project, anything above the root) is refused; ask the user first.
 
-**Never read, output, or echo files matching `*credentials*`, `*.env`, `id_rsa*`, `*.key`, `*.pem`** - regardless of location, including inside this workspace. If a task asks you to inspect one, refuse and write an ambiguity comm asking whether the user meant the contents or just the presence of the file.
+**Why:** the credentials leak above came from a cross-project read.
 
-**Why:** Even inside a project boundary, secrets shouldn't end up in chat transcripts, log files, or any output an LLM can store. Operations that need credentials should call the credential by name from `.credentials` directly via the tool that needs it; the agent should never see the value.
+**Never edit another project.** Write a handoff the user carries; other projects' handoffs arrive through `_INBOX/`.
 
-**How to apply:** Treat these filenames as instant-refuse triggers. Reading is the same risk as outputting - once it's in the agent's context, it's at risk of being echoed. If a workflow legitimately requires accessing one of these files (e.g. validating it exists), refuse the read and ask the user how to proceed.
+**Never make a tech stack decision.** Hosting, databases, environments, CI and test tools belong to the stack tooling (runestack when installed). Name the tool that owns it and move on.
 
-### Memory and persistence
+**Repo internals are the builder's** when a builder is in play. Workspace skills move a repo as a whole and never enter it.
 
-**Personal memory is per-user, per-instance.** It doesn't transfer to other users or other workspaces. Operating knowledge that should apply to every project lives in plugin libs (like this file), not in personal memory.
+**The installed plugin is authoritative.** For how a skill behaves, read the loaded skill, this workspace's CLAUDE.md marker sections, or the installed plugin, never a sibling project that happens to hold the plugin's source.
 
-**The marker-bounded sections in CLAUDE.md are skill-managed.** Re-running `reallocate` or `bootstrap-cc` refreshes the content between markers. User additions belong outside the marker pair. Anything inside markers gets overwritten on re-run.
+**Shared vendor accounts:** never list everything or change many things at once; always target one project by name or ID.
 
-## How agents inherit these principles
+**No personal environment details** (hardware, ports, image tags, private service names) in plans, docs, comms or plugin content.
 
-1. `runesmith-workspace:reallocate` writes a marker-bounded section into the workspace root `CLAUDE.md` (template: `lib/claude-md-agent-ops-section.md`) on every run.
-2. `runesmith-cc:bootstrap-cc` writes the same marker-bounded section into `{PROJECT}.cc/CLAUDE.md` so CC inherits the principles.
-3. Both Cowork and Claude Code load `CLAUDE.md` at session start. The marker section is part of the agent's working context.
-4. This source file (`agent-operating-principles.md`) is plugin-internal; the section in `CLAUDE.md` references it for users who want the full rationale but stays compact for daily session load.
+## Marker sections
 
-## Extending the principles
+**Skill-managed sections live between `<!-- name:start -->` and `<!-- name:end -->`.** Re-running init refreshes RuneSmith's own sections. Content outside markers, and every other tool's marker sections, are kept byte for byte.
 
-If a recurring failure mode emerges across multiple sessions, add it here. Each new principle gets:
-
-- A short rule statement (one sentence)
-- A `**Why:**` line (the failure mode or pattern it prevents)
-- A `**How to apply:**` line (when/where it kicks in)
-
-Then update the marker template in `lib/claude-md-agent-ops-section.md` to reflect the new principle in summary form. Both files ship in the next plugin version; the new principle propagates to every workspace on the next `reallocate` run.
+**A start marker with no end marker** means the file was damaged. Stop and report it; never append a second copy.

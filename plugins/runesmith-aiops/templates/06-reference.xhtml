@@ -4,54 +4,81 @@
 <table>
   <tbody>
     <tr><th>Token</th><th>Value</th></tr>
-    <tr><td><code>{COMPANY}</code></td><td>{COMPANY}</td></tr>
-    <tr><td><code>{SITE}</code></td><td>{SITE}</td></tr>
-    <tr><td><code>{ATLASSIAN_API_URL}</code></td><td>{ATLASSIAN_API_URL}</td></tr>
-    <tr><td><code>{SPACE_KEY}</code></td><td>{SPACE_KEY}</td></tr>
-    <tr><td><code>{SPACE_ID}</code></td><td>{SPACE_ID}</td></tr>
-    <tr><td><code>{PROJECT_KEY}</code></td><td>{PROJECT_KEY}</td></tr>
+    <tr><td>Company</td><td>{COMPANY}</td></tr>
+    <tr><td>Site</td><td>{SITE}</td></tr>
+    <tr><td>API address</td><td>{ATLASSIAN_API_URL}</td></tr>
+    <tr><td>Space key</td><td>{SPACE_KEY}</td></tr>
+    <tr><td>Space id</td><td>{SPACE_ID}</td></tr>
+    <tr><td>Jira project key</td><td>{PROJECT_KEY}</td></tr>
   </tbody>
 </table>
 
-<h2>Endpoints used by skills</h2>
+<h2>Comms types</h2>
 <table>
   <tbody>
-    <tr><th>Skill</th><th>Method</th><th>Path</th></tr>
+    <tr><th>Type</th><th>From</th><th>Use</th></tr>
+    <tr><td>task</td><td>planner</td><td>One piece of work with Acceptance</td></tr>
+    <tr><td>reply</td><td>builder</td><td>The result of a task, starting with a STATUS line</td></tr>
+    <tr><td>status</td><td>builder</td><td>The goal status comm, written first in every goal</td></tr>
+    <tr><td>ambiguity</td><td>builder</td><td>Needs a decision before the task can go on</td></tr>
+    <tr><td>blocker</td><td>builder</td><td>Needs something only the owner or planner can provide</td></tr>
+    <tr><td>user-action</td><td>either</td><td>Something only the owner can do</td></tr>
+    <tr><td>answer</td><td>planner</td><td>Answers an ambiguity or blocker</td></tr>
+    <tr><td>ticket-transition</td><td>builder</td><td>Asks the planner to move a Jira ticket (Jira on)</td></tr>
+  </tbody>
+</table>
+
+<h2>Endpoints used by the skills</h2>
+<table>
+  <tbody>
+    <tr><th>Use</th><th>Method</th><th>Path</th></tr>
     <tr><td>ticket</td><td>POST</td><td><code>/rest/api/3/issue</code></td></tr>
     <tr><td>project-status</td><td>POST</td><td><code>/rest/api/3/search/jql</code></td></tr>
     <tr><td>new-project (Jira)</td><td>POST</td><td><code>/rest/api/3/project</code></td></tr>
-    <tr><td>user lookup</td><td>GET</td><td><code>/rest/api/3/user/search?query=&lt;email&gt;</code></td></tr>
+    <tr><td>user lookup</td><td>GET</td><td><code>/rest/api/3/user/search</code></td></tr>
     <tr><td>field discovery</td><td>GET</td><td><code>/rest/api/3/field</code></td></tr>
     <tr><td>page create</td><td>POST</td><td><code>/wiki/api/v2/pages</code></td></tr>
-    <tr><td>page update</td><td>PUT</td><td><code>/wiki/api/v2/pages/{page_id}</code></td></tr>
-    <tr><td>page lookup</td><td>GET</td><td><code>/wiki/api/v2/pages?space-id={SPACE_ID}&amp;title=…</code></td></tr>
-    <tr><td>space pages</td><td>GET</td><td><code>/wiki/api/v2/spaces/{space_id}/pages</code></td></tr>
+    <tr><td>page update</td><td>PUT</td><td><code>/wiki/api/v2/pages/PAGE_ID</code></td></tr>
+    <tr><td>page lookup</td><td>GET</td><td><code>/wiki/api/v2/pages?space-id={SPACE_ID}&amp;title=TITLE</code></td></tr>
+    <tr><td>space lookup</td><td>GET</td><td><code>/wiki/api/v2/spaces?keys={SPACE_KEY}</code></td></tr>
   </tbody>
 </table>
 
 <h2>Skills</h2>
 <table>
   <tbody>
-    <tr><th>Plugin</th><th>Skill</th><th>Description</th></tr>
-    <tr><td>core</td><td>setup</td><td>Configure credentials</td></tr>
-    <tr><td>core</td><td>install</td><td>Browse / install plugins</td></tr>
-    <tr><td>core</td><td>sync</td><td>Pull latest plugin versions</td></tr>
-    <tr><td>core</td><td>plan</td><td>Chat-first planning before writes</td></tr>
-    <tr><td>atlassian</td><td>ticket</td><td>Create Jira issue</td></tr>
-    <tr><td>atlassian</td><td>bug-report</td><td>Confluence page + linked Jira Bug</td></tr>
-    <tr><td>atlassian</td><td>feature-doc</td><td>Feature spec page</td></tr>
-    <tr><td>atlassian</td><td>architecture-doc</td><td>ADR / architecture page</td></tr>
-    <tr><td>atlassian</td><td>project-overview</td><td>Space landing page</td></tr>
-    <tr><td>atlassian</td><td>project-status</td><td>Read Jira board state</td></tr>
-    <tr><td>atlassian</td><td>new-project</td><td>Scaffold project + space</td></tr>
-    <tr><td>atlassian</td><td>decisions-log</td><td>Append-only decisions page</td></tr>
-    <tr><td>atlassian</td><td>known-issues</td><td>Bugs + tech debt tracker</td></tr>
-    <tr><td>atlassian</td><td>roadmap</td><td>Now / Next / Later page</td></tr>
-    <tr><td>atlassian</td><td>session-log</td><td>Meeting outcome page</td></tr>
-    <tr><td>aiops</td><td>bootstrap-aiops</td><td>Populate this space from templates</td></tr>
-    <tr><td>devtools</td><td>help</td><td>List installed skills</td></tr>
-    <tr><td>devtools</td><td>plugin-builder</td><td>Author new plugins</td></tr>
-    <tr><td>devtools</td><td>tech-debt</td><td>Workspace tech debt scan</td></tr>
-    <tr><td>devtools</td><td>skill-updater</td><td>Propagate convention changes</td></tr>
+    <tr><th>Plugin</th><th>Skill</th><th>Does</th></tr>
+    <tr><td>runesmith-core</td><td>plan</td><td>Plan a change before writing</td></tr>
+    <tr><td>runesmith-core</td><td>setup</td><td>Set up credentials</td></tr>
+    <tr><td>runesmith-core</td><td>install</td><td>Install plugins</td></tr>
+    <tr><td>runesmith-core</td><td>sync</td><td>Update plugins</td></tr>
+    <tr><td>runesmith-workspace</td><td>init</td><td>Set up or refresh a project</td></tr>
+    <tr><td>runesmith-workspace</td><td>inbox</td><td>Route dropped files</td></tr>
+    <tr><td>runesmith-cc</td><td>head</td><td>Build or refresh the Claude Code head</td></tr>
+    <tr><td>runesmith-cc</td><td>guardrail</td><td>Keep Claude Code inside its project</td></tr>
+    <tr><td>runesmith-sprint</td><td>task</td><td>Write a task and its goal line</td></tr>
+    <tr><td>runesmith-sprint</td><td>check-comms</td><td>Verify and archive Claude Code's work</td></tr>
+    <tr><td>runesmith-sprint</td><td>promote</td><td>Move a build along the branch chain</td></tr>
+    <tr><td>runesmith-sprint</td><td>qa-checklist</td><td>Publish and read the QA checklist page</td></tr>
+    <tr><td>runesmith-sprint</td><td>enable / disable</td><td>Turn Jira on or off</td></tr>
+    <tr><td>runesmith-sprint</td><td>start-sprint</td><td>Turn a sprint into tasks</td></tr>
+    <tr><td>runesmith-sprint</td><td>sprint-status</td><td>Board and comms summary</td></tr>
+    <tr><td>runesmith-sprint</td><td>plan-to-tickets</td><td>Draft Jira tickets from a plan</td></tr>
+    <tr><td>runesmith-jira</td><td>ticket</td><td>Create a Jira issue</td></tr>
+    <tr><td>runesmith-jira</td><td>bug-report</td><td>Bug with a linked Confluence page</td></tr>
+    <tr><td>runesmith-jira</td><td>project-status</td><td>Read the board</td></tr>
+    <tr><td>runesmith-jira</td><td>new-project</td><td>Scaffold a project</td></tr>
+    <tr><td>runesmith-confluence</td><td>project-overview</td><td>Space landing page</td></tr>
+    <tr><td>runesmith-confluence</td><td>feature-doc</td><td>Feature specification</td></tr>
+    <tr><td>runesmith-confluence</td><td>architecture-doc</td><td>Architecture decision record</td></tr>
+    <tr><td>runesmith-confluence</td><td>decisions-log</td><td>Running decisions log</td></tr>
+    <tr><td>runesmith-confluence</td><td>known-issues</td><td>Known issues tracker</td></tr>
+    <tr><td>runesmith-confluence</td><td>roadmap</td><td>Roadmap</td></tr>
+    <tr><td>runesmith-confluence</td><td>session-log</td><td>Session summary</td></tr>
+    <tr><td>runesmith-aiops</td><td>bootstrap-aiops</td><td>Populate this space</td></tr>
+    <tr><td>runesmith-devtools</td><td>help</td><td>List installed skills</td></tr>
+    <tr><td>runesmith-devtools</td><td>plugin-builder</td><td>Scaffold a plugin</td></tr>
+    <tr><td>runesmith-devtools</td><td>tech-debt</td><td>Workspace cleanup scan</td></tr>
+    <tr><td>runesmith-devtools</td><td>skill-updater</td><td>Carry a convention change everywhere</td></tr>
   </tbody>
 </table>

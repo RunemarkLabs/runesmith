@@ -1,25 +1,37 @@
 <h1>{COMPANY} - AIOPS FAQ</h1>
 
-<h2>Why does my page publish fail with 400?</h2>
-<p>Confluence Cloud v2 does not accept markdown bodies. Skills convert to <strong>storage</strong> XHTML before publishing. If you're hand-rolling API calls, see <code>confluence-format.md</code>.</p>
+<h2>How do I start a new project?</h2>
+<p>Connect the project folder to a Claude Project and run <code>/runesmith-workspace:init</code>.</p>
 
-<h2>Why does my Jira create fail with 400 about <code>assignee.name</code>?</h2>
-<p>Jira Cloud needs <code>accountId</code>, not <code>name</code>. Use <code>GET /rest/api/3/user/search?query=&lt;email&gt;</code> to resolve.</p>
+<h2>Claude Code finished. What now?</h2>
+<p>Say "check comms" to the planner. It verifies the replies, archives finished work, tells you what needs you, and gives the next goal line.</p>
 
-<h2>Why does my page update return 409?</h2>
-<p>You posted a stale <code>version.number</code>. GET the page first, then PUT with <code>number + 1</code>.</p>
+<h2>Claude Code stopped with a question.</h2>
+<p>It's listed under "Needs you" in the banner. Check comms; the planner shows it to you as a choice, writes the answer, and gives the goal line that resumes the work.</p>
 
-<h2>Why does <code>/rest/api/3/search</code> not work anymore?</h2>
-<p>Deprecated on Cloud. Use <code>POST /rest/api/3/search/jql</code>.</p>
+<h2>How do I get a build to QA?</h2>
+<p>Say "promote to qa". Claude Code runs the full suite against <code>dev</code> first. The planner then gives you the QA checklist page.</p>
 
-<h2>How do I create a Confluence space via API?</h2>
-<p>v2 API does not expose space creation publicly. v1 <code>POST /wiki/rest/api/space</code> works but requires Confluence admin. For most users: create the space in the UI first, then run skills against it.</p>
+<h2>A checklist item failed.</h2>
+<p>Mark it failed and describe what you saw. It becomes a fix task; Claude Code opens the GitHub issue.</p>
 
-<h2>How do I find the right custom field id?</h2>
-<p><code>GET /rest/api/3/field</code> lists every field including custom ones. Match by name. Cache the id in <code>.credentials</code> (e.g. <code>ATLASSIAN_BUG_SEVERITY_FIELD</code>).</p>
+<h2>Why does a page publish fail with 400?</h2>
+<p>Confluence Cloud doesn't accept markdown bodies. The skills convert to storage format first.</p>
 
-<h2>Where do plugins install?</h2>
-<p>Cowork: <code>~/AppData/Roaming/Claude/.../rpm/plugin_*/</code>. Claude Code: <code>~/.claude/plugins/</code>. Marketplace install handles paths automatically; manual install is drag-drop into Cowork.</p>
+<h2>Why does a page update return 409?</h2>
+<p>The version number was stale. Read the page, then send the next version number. The skills do this.</p>
+
+<h2>Why does a Jira create fail about <code>assignee.name</code>?</h2>
+<p>Jira Cloud needs an account id. Look it up with <code>GET /rest/api/3/user/search</code>.</p>
+
+<h2>Why doesn't <code>/rest/api/3/search</code> work?</h2>
+<p>It was retired. Use <code>POST /rest/api/3/search/jql</code>.</p>
+
+<h2>Can the skills create a Confluence space?</h2>
+<p>No. Create the space in Confluence first, then run the skills against it.</p>
+
+<h2>How do I find a custom field id?</h2>
+<p><code>GET /rest/api/3/field</code> lists every field. Store the id in <code>.credentials</code>, for example <code>ATLASSIAN_BUG_SEVERITY_FIELD</code>.</p>
 
 <h2>Where do I get help?</h2>
-<p>Run <code>/devtools:help</code> in your Claude client. Or read the marketplace README.</p>
+<p>Run <code>/runesmith-devtools:help</code>, or read the marketplace README.</p>

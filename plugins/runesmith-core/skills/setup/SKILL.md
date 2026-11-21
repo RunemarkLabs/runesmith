@@ -1,106 +1,98 @@
 ---
 name: setup
-description: "Configure credentials, API endpoints, and plugin sources. Use when \"set up\", \"configure\", \"add credentials\", or need to initialize the workspace."
-compatibility: Requires Cowork desktop app environment.
+description: "Check and set up RuneSmith's credentials: list which keys are set or missing in the right file, tell you where to paste missing ones, and run the health checks. Never asks for a secret in chat. Use when the user says \"set up\", \"configure\", \"add credentials\", \"check my credentials\", \"rotate a token\", or a skill reports a missing key."
+compatibility: Runs in the planner chat with the project's workspace folder connected.
 ---
 
 # Setup
 
-Configure workspace credentials and API endpoints for all skills in this marketplace.
+Checks the credentials RuneSmith needs, in the files `lib/credentials.md` names, and runs health checks. `runesmith-workspace:init` runs the same check; use this skill on its own to add, rotate or verify keys later.
 
 ## References
 
-- `lib/credentials.md` - file location, key list, auth header
-- `lib/install-paths.md` - runtime install locations
-- `lib/user-prompts.md` - structured-input requirement for any user prompt
+- `lib/credentials.md` - the rule, file locations, keys, failure handling
+- `lib/install-paths.md` - where plugins are installed
+- `lib/user-prompts.md` - structured prompts
 
+## Interview rule
 
-## User input rules
-
-This skill follows the marketplace-wide user-prompt standard in `lib/user-prompts.md`. Every user prompt MUST use the host client's structured input UI (single-pick, multi-pick, or text-input form). Never freeform plain-text yes/no questions. The only exception is the consent-trigger gate documented in `lib/consent.md`, which waits for user-initiated phrases like "make the ticket".
-
-## When to Use
-
-Use for:
-- First-time workspace setup
-- Adding or updating API credentials
-- Verifying current credential health
-
-Do not use for:
-- Project-specific config (edit CLAUDE.md directly)
-- Installing plugins (use `/core:install`)
+Show first, then ask. Ask only when the answer changes what happens. Never ask for a credential's value.
 
 ## Workflow
 
-### 1. Resolve `.credentials` path
+### 1. Find the files
 
-Per `credentials.md`:
-1. Honor `BOOTSTRAP_WORKSPACE` env var if set.
-2. Otherwise look for `.credentials` in cwd, walking up to repo root.
-3. If not found, ask user: "Workspace root path?" and create file there.
+From the session's connected folders (request access if the project folder isn't connected):
+- the planner's file: `{WORKSPACE_ROOT}/.credentials`;
+- Claude Code's file: `{PROJECT}.cc/.credentials`, when the project has a head.
 
-### 2. Read existing keys (if any)
+### 2. Report what's set
 
-Mask values after first 4 chars when reporting. Categorize:
-- Set: ATLASSIAN_API_URL, ATLASSIAN_API_EMAIL, ATLASSIAN_API_TOKEN
-- Set: GITHUB_PAT
-- Set: optional keys (PLUGIN_SOURCES, ATLASSIAN_CONFLUENCE_SPACE_ID, ATLASSIAN_JIRA_PROJECT_KEY, ATLASSIAN_DEFAULT_ASSIGNEE_ACCOUNT_ID, ATLASSIAN_BUG_SEVERITY_FIELD)
-
-### 3. Collect missing values
-
-Ask one prompt per missing required key. For each, link to the source:
-- API token: <https://id.atlassian.com/manage-profile/security/api-tokens>
-- GitHub PAT: <https://github.com/settings/tokens> (needs `repo` scope)
-
-Optional keys: ask whether to set, default skip.
-
-### 4. Confirm before write
-
-Show user the planned `.credentials` content with all values masked. Ask:
-"Save these credentials to <path>?"
-
-Wait for explicit yes.
-
-### 5. Write file
-
-Atomic write (temp file + rename). Mode `0600`. Verify `.credentials` is in `.gitignore`; if not, append.
-
-### 6. Verify
-
-Run health checks:
-- Atlassian Confluence: `GET {ATLASSIAN_API_URL}/wiki/api/v2/spaces?limit=1` - expect 200.
-- Atlassian Jira: `GET {ATLASSIAN_API_URL}/rest/api/3/myself` - expect 200, returns accountId.
-- GitHub: `GET https://api.github.com/user` with PAT - expect 200.
-- Plugin sources (optional): fetch URL, expect HTTP 200 + valid JSON.
-
-Report which pass / fail.
-
-## Output
+Read only key names and whether each has a value. Print nothing else from the files.
 
 ```
-✓ Credentials saved to <path>
+Planner credentials ({WORKSPACE_ROOT}/.credentials)
+  ATLASSIAN_API_URL        set
+  ATLASSIAN_API_EMAIL      set
+  ATLASSIAN_API_TOKEN      missing
+  RUNESMITH_GITHUB_PAT     set
+  PLUGIN_SOURCES           not used
 
-Atlassian Confluence: ok
-Atlassian Jira: ok (you = <displayName>)
-GitHub: ok (you = <login>)
+Claude Code credentials ({PROJECT}.cc/.credentials)
+  CC_ATLASSIAN_API_EMAIL   set
+  CC_ATLASSIAN_API_TOKEN   set
+  ATLASSIAN_BOARD_ID       set
+```
+
+Keys are only listed as needed when the project uses what they're for: Atlassian keys when Jira and Confluence are on, the Claude Code keys when there's a head and Jira.
+
+### 3. Missing keys
+
+If a file doesn't exist, create it with the needed key names and empty values, and make sure it's git-ignored. Then tell the owner:
+
+```
+Open {path} and paste:
+  ATLASSIAN_API_TOKEN   (create one at https://id.atlassian.com/manage-profile/security/api-tokens)
+  RUNESMITH_GITHUB_PAT  (create one at https://github.com/settings/tokens; needs repo creation and issue read)
+Tell me when it's done.
+```
+
+When he says it's done, go to step 4. Never ask him to paste a value into chat. If he pastes one anyway, don't repeat it; tell him to rotate it, since it's now in the conversation.
+
+### 4. Health checks
+
+Run each with the key read inside the command, per `lib/credentials.md`:
+- Confluence: `GET {ATLASSIAN_API_URL}/wiki/api/v2/spaces?limit=1`, expect 200.
+- Jira: `GET {ATLASSIAN_API_URL}/rest/api/3/myself`, expect 200; report the account's display name.
+- GitHub: `GET https://api.github.com/user` with `RUNESMITH_GITHUB_PAT`, expect 200; report the login.
+- Claude Code's Jira token: the same Jira call with `CC_ATLASSIAN_API_EMAIL` and `CC_ATLASSIAN_API_TOKEN`.
+- Plugin sources (optional): fetch each address; expect 200 and valid JSON.
+
+Tell a refusal by the session's network allowlist apart from a 401 or 403 (`lib/credentials.md`).
+
+### 5. Report
+
+```
+Credentials: {all set | missing: KEY in file, ...}
+Confluence: ok | 401 | not reachable from this session
+Jira: ok (you = {display name}) | ...
+GitHub: ok (you = {login}) | ...
+Claude Code's Jira token: ok | ...
 Plugin sources: ok | not configured
-
-Try /core:install or /atlassian:project-status.
 ```
 
 ## Guard Rails
 
-- [ ] `.credentials` path resolved per `credentials.md`
-- [ ] All required keys present after run
-- [ ] User explicitly approves before write
-- [ ] File mode 0600
-- [ ] `.gitignore` contains `.credentials`
-- [ ] Values masked in chat output
-- [ ] Health checks executed and reported
+- [ ] Files found from the connected folders, never the current directory
+- [ ] No value printed, masked or partial
+- [ ] No value asked for in chat
+- [ ] Missing files created with key names only, and git-ignored
+- [ ] Planner keys at the workspace root; Claude Code's keys in the head; nothing inside a repo folder
+- [ ] Allowlist refusals told apart from credential failures
 
 ## Error Cases
 
-**401 on Jira/Confluence:** "Email/token mismatch. Use the email of the account that minted the token."
-**403 GitHub:** "PAT missing `repo` scope."
-**Plugin sources unreachable:** Warn but don't block; mark as optional.
-**`.gitignore` not present:** Create one with `.credentials` entry, ask before committing.
+**401 from Atlassian:** the email and token don't match; the email must be the account that created the token.
+**403 from GitHub on repo creation:** `RUNESMITH_GITHUB_PAT` lacks repo-creation rights.
+**Legacy `RUNESMITH_GITHUB_PAT` only:** accepted in the planner's file; suggest renaming it to `RUNESMITH_GITHUB_PAT`.
+**Planner keys found in the head's file:** report it; Claude Code can read that file. Tell the owner to move them to the workspace root file.

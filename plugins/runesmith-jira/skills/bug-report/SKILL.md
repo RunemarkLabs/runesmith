@@ -1,7 +1,7 @@
 ---
 name: bug-report
 description: "Report a bug - document it, publish to Confluence, create a Jira ticket. Use when the user says \"there's a bug\", \"something broke\", \"this isn't working\", \"found an issue\", \"report a bug\", or describes unexpected behavior. Also triggers on \"file a bug\", \"bug report\", or \"this is broken\"."
-compatibility: Requires Cowork desktop app environment.
+compatibility: Runs in the planner chat with the project's workspace folder connected.
 ---
 
 # Report Bug
@@ -62,7 +62,7 @@ Do not use for:
 
 ### 2. Draft Confluence page
 
-Save markdown draft to `/drafts/bugs/<slug>.md` with sections: Environment, Steps to Reproduce, Expected, Actual, Root Cause, Status, Linked Ticket (placeholder).
+Save markdown draft to `/drafts/bugs/{slug}.md` with sections: Environment, Steps to Reproduce, Expected, Actual, Root Cause, Status, Linked Ticket (placeholder).
 
 Show draft in chat for review.
 

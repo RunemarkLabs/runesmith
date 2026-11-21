@@ -1,124 +1,78 @@
-# How-to: Add an Existing Repo to a CC Head
+# How-to: Add a Repo to a Claude Code Head
 
-You already have a CC head at `{PROJECT}.cc/` and want to add another repo to it - either by cloning an existing GitHub repo or by creating a new one.
+You have a head at `{PROJECT}.cc/` and want another repo in it, cloned from GitHub or created new.
 
 ## Prerequisites
 
-- Workspace already has a CC head: `{PROJECT}.cc/CLAUDE.md` exists. If not, run `/runesmith-cc:bootstrap-cc` first.
-- For private GitHub repos or repo creation: `GITHUB_PAT` in `.credentials` with appropriate scopes (`repo` for cloning private, `repo` + `admin:org` for org repo creation).
+- The head exists (`{PROJECT}.cc/CLAUDE.md`). If not, run `/runesmith-workspace:init` and answer yes to code.
+- For a private clone or a new repo: `RUNESMITH_GITHUB_PAT` in the workspace `.credentials`. A fine-grained token needs Contents read and write and Issues read on the repo; Administration write is needed to create repos and to set branch protection (for an organization, on that organization).
 
-## Two paths
-
-### Path A - Clone an existing repo
+## Run head
 
 ```
-/runesmith-cc:bootstrap-cc
+/runesmith-cc:head
 ```
 
-Bootstrap-cc is idempotent. Re-running on an existing CC head opens a structured prompt for additional repo operations:
+On an existing head it refreshes the head's files and skills, then shows the repos already there and asks:
 
-- Add a new repo (creates on GitHub + clones)
-- Clone an existing repo (paste URL)
-- Skip
+- **None** (done)
+- **Clone an existing repo:** the address, HTTPS or SSH form.
+- **Create a new repo:** name (the normalized folder name is shown beside it), description, visibility (private or public), and owner (you or an organization).
 
-Pick "clone an existing repo," paste the URL (HTTPS or SSH form, plugin normalizes). The skill:
+Repeat until you pick None.
 
-1. Resolves the repo name from the URL.
-2. Normalizes the destination folder name per `plugins/runesmith-cc/lib/naming.md` (kebab-case-lowercase). Shows you both the raw name and the normalized form via structured prompt - confirm or edit.
-3. Authenticates via `GITHUB_PAT` if the repo is private.
-4. Clones into `{PROJECT}.cc/<normalized-name>/`.
-5. Drops a stub `CLAUDE.md` into the repo if one doesn't exist (from `plugins/runesmith-cc/skills/bootstrap-cc/templates/CLAUDE.repo.md`). You review and edit before committing.
-6. Updates `{PROJECT}.cc/.claude-code-workspace` (the marker file) with the new repo entry.
+## What happens for each repo
 
-### Path B - Create a new GitHub repo + clone it
+The `repo-bootstrapper` agent does the git work:
 
-Same skill, pick "add a new repo" instead. Additional structured prompts:
+1. Creates the repo on GitHub when asked (`POST /user/repos` or `/orgs/{owner}/repos`).
+2. Clones into `{PROJECT}.cc/{normalized-name}/`. The token is passed for that one command and never stored in the remote address.
+3. Adds the repo to `{PROJECT}.cc/.claude-code-workspace` (`repos[]`).
+4. Installs the commit hook that strips AI attribution, and probes it.
+5. Drops a `CLAUDE.md` stub from `templates/CLAUDE.repo.md` if the repo has none, and adds it to `.git/info/exclude` so it never enters the repository.
+6. Creates `dev`, `qa` and `beta` from `main` when they're missing, pushes them, and makes `dev` the branch Claude Code works from. Existing branches are never moved.
 
-- **Name** (raw input). Normalized form shown alongside. Confirm or edit.
-- **Description** (single line).
-- **Visibility**: structured single-pick - `public` / `private`.
-- **Owner**: defaults to your GitHub login from `.credentials` (parsed from the PAT's permissions). Edit if you want it under an org instead.
-
-The skill delegates to the `repo-bootstrapper` subagent:
-
-1. `POST /user/repos` (or `/orgs/<owner>/repos`) to create the repo via the PAT.
-2. Clones it locally into `{PROJECT}.cc/<normalized-name>/`.
-3. Drops the CLAUDE.md stub.
-4. Initial commit + push to set up `main`.
-
-Repository ends up in your GitHub account/org and in your CC head, in sync.
-
-## What lives in the new repo's CLAUDE.md
-
-The stub from `CLAUDE.repo.md` template carries:
-
-- Repo identity (name, derived from folder name)
-- Pointer to parent `{PROJECT}.cc/CLAUDE.md` for shared rules
-- Pointer to workspace `CLAUDE.md` via the `@../../../CLAUDE.md` path
-- Placeholder for the project-specific rules you'll add
-
-Edit it before committing. The marketplace doesn't try to write opinionated rules for your repo - that's project-specific.
+7. Protects `dev`, `qa`, `beta` and `main`: pull request required (no approvals, since Claude Code merges its own goal branches into `dev`), no force-push, no deletion, and the build check when the repo already reports one. It only adds what's missing and never loosens existing rules. The check itself comes from the project's CI, which isn't RuneSmith's; once it exists, run head again to require it.
 
 ## The marker file
 
-`{PROJECT}.cc/.claude-code-workspace` (JSON) tracks every repo in the head:
+`{PROJECT}.cc/.claude-code-workspace` lists the head's repos:
 
 ```json
 {
-  "project": "<cc-head-name>",
-  "initialized": "<ISO>",
+  "project": "{PROJECT}",
+  "initialized": "{ISO_TIMESTAMP}",
   "schemaVersion": 1,
   "atlassianEnabled": false,
   "atlassian": null,
   "repos": [
-    {
-      "name": "<repo-1>",
-      "path": "./<repo-1>",
-      "migratedFrom": null
-    },
-    {
-      "name": "<repo-2>",
-      "path": "./<repo-2>",
-      "migratedFrom": null
-    }
+    { "name": "{repo}", "path": "./{repo}" }
   ]
 }
 ```
 
-Bootstrap-cc updates this on every run. Don't edit by hand - re-running the skill keeps it canonical.
-
-If `atlassianEnabled` is true, the `atlassian` object will carry project key, board id, space id (populated by `/runesmith-sprint:enable`).
+The head keeps it current. Don't edit it by hand.
 
 ## Verify
 
 ```
-ls {PROJECT}.cc/
+git -C {PROJECT}.cc/{repo} branch -a
+git -C {PROJECT}.cc/{repo} remote -v
+git -C {PROJECT}.cc/{repo} check-ignore CLAUDE.md
 ```
 
-Should show the new repo folder alongside any existing ones.
-
-```
-cat {PROJECT}.cc/.claude-code-workspace
-```
-
-Should list the new repo in the `repos[]` array.
-
-```
-cd {PROJECT}.cc/<new-repo>
-git status
-git remote -v
-```
-
-Confirms the clone worked and the remote is set.
+Shows the four branches, a remote with no token in it, and that `CLAUDE.md` is excluded.
 
 ## Troubleshooting
 
-**`fatal: could not read Username for 'https://github.com'`.** PAT not in `.credentials` or wrong scope. Verify `GITHUB_PAT` exists and has at least `repo` scope. For org repos, also `admin:org`.
+**`fatal: could not read Username for 'https://github.com'`.** `RUNESMITH_GITHUB_PAT` is missing or can't see the repo. Check the key and the token's repository access.
 
-**Folder name conflict.** Bootstrap-cc detects existing folders in `{PROJECT}.cc/` and normalizes new repo names to avoid collision. If you get a "destination exists" error, pick a different name in the structured prompt.
+**422 on create.** The name is taken. Pick another, or clone the existing repo.
 
-**Repo created on GitHub but clone failed.** The repo exists upstream; only the local clone bombed. Re-run bootstrap-cc, pick "clone existing," paste the URL. Don't try to recreate - `POST /user/repos` will 422 on the duplicate name.
+**Created on GitHub but the clone failed.** The repo exists; run head again and clone it. Creating it again returns 422.
 
-**Stub CLAUDE.md not appearing.** Bootstrap-cc only drops the stub if the cloned repo lacks a top-level CLAUDE.md. If you cloned a repo that already has one, the existing file is preserved. Edit it manually if you want the parent + workspace pointers.
+**Clone refused.** The head says whether the session's network allowlist refused it, or GitHub did (401 or 403 names the missing permission).
 
-**Cross-repo paths in the new repo's tools fail.** The CC head boundary stops at `{PROJECT}.cc/<repo>/` - each repo is its own scope to CC. If you need shared code, use git submodule, monorepo tooling (Nx/Lerna/Turbo), or add the sibling to `{PROJECT}.cc/.claude/settings.json` under `additionalDirectories` as a documented escape hatch. See `docs/howto/install-guardrail.md` for the escape hatch rules.
+**The repo already had a `CLAUDE.md`.** It's kept. Add it to `.git/info/exclude` yourself if it shouldn't be committed.
+
+**A tool needs files from a sibling repo.** Each Claude Code session stays inside its launch project. For legitimate shared access, add the path to `permissions.additionalDirectories` in `{PROJECT}.cc/.claude/settings.json` and record why in the table in `{PROJECT}.cc/.claude/README.md`. See `docs/howto/install-guardrail.md`.

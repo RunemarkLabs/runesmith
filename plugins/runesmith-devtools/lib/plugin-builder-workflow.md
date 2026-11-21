@@ -51,7 +51,7 @@ Do NOT include `dependencies`, `license`, `repository`, `homepage`, or `keywords
 Per `lib/skill-md-frontmatter.md`, every SKILL.md must:
 
 1. Use YAML frontmatter with single-line quoted `description:`, never folded scalar (`description: >`).
-2. Include `compatibility: Requires Cowork desktop app environment.`
+2. Include `compatibility: Runs in the planner chat with the project's workspace folder connected.`
 3. Have `name:` matching the folder name.
 4. Pack the description with the trigger phrases collected in step 3, in the pattern: "what the skill does. Use when the user says X, Y, Z."
 

@@ -1,7 +1,7 @@
 ---
 name: inbox
 description: "Process files in _INBOX/ - classify each per lib/folder-conventions.md, propose a destination, route on consent. Use when the user says \"process inbox\", \"check inbox\", \"sort inbox\", \"what's in the inbox\", \"deal with inbox\", \"route these files\", or after dropping new files into _INBOX/."
-compatibility: Requires Cowork desktop app environment.
+compatibility: Runs in the planner chat with the project's workspace folder connected.
 ---
 
 # Inbox Processor
@@ -13,7 +13,7 @@ After every run, `_INBOX/` ends empty except for items the user explicitly opted
 ## References
 
 - `lib/folder-conventions.md` - **single source of truth** for the destination map. Inbox is the executor.
-- `lib/plan-format.md` - for routing plan-bound content into `plans/active/<slug>/`
+- `lib/plan-format.md` - for routing plan-bound content into `plans/active/{slug}/`
 - `lib/comms-check.md` - runs first
 - `lib/user-prompts.md` - structured-input requirement for any user prompt
 - `lib/consent.md` - consent-trigger phrases for sensitive routes
@@ -30,7 +30,7 @@ See `lib/comms-check.md`. Pause for `to: user` items.
 
 ### 1. Locate `_INBOX/`
 
-Workspace root must have `_INBOX/`. If missing, suggest `/runesmith-workspace:reallocate`.
+Workspace root must have `_INBOX/`. If missing, suggest `/runesmith-workspace:init`.
 
 If empty: report "Inbox empty. Nothing to process." and exit clean.
 
@@ -57,7 +57,7 @@ For each file, determine category by filename + content sniff + frontmatter. Ord
 
 | Signal | Category |
 |---|---|
-| Filename starts with `<YYYY-MM-DD>-handoff-` OR content describes a session-bridge state (status / what's done / what's next) | `handoff` |
+| Filename starts with `{YYYY-MM-DD}-handoff-` OR content describes a session-bridge state (status / what's done / what's next) | `handoff` |
 | Frontmatter has `slug:` + `status:` + Problem/Decision sections (matches `lib/plan-format.md`) | `plan-proposal` |
 | Filename matches `decisions*.md` or content has `## YYYY-MM-DD -` decision-log headers | `decision-record` |
 | Frontmatter has `from:` + `to:` + `type:` matching comms types | `misplaced-comm` |
@@ -73,23 +73,23 @@ For each file, determine category by filename + content sniff + frontmatter. Ord
 
 Per `lib/folder-conventions.md` destination map:
 
-- **`handoff`** → `notes/<YYYY-MM-DD>-handoff-<slug>.md`. Add date prefix if missing; derive slug from filename or content title.
-- **`plan-proposal`** → `plans/active/<slug>/plan.md` (slug from frontmatter). If slug exists, structured prompt: replace / version / rename.
-- **`decision-record`** → structured prompt: which active plan? Append to `plans/active/<slug>/decisions.md`, or fall back to `notes/<YYYY-MM-DD>-decisions.md` if not plan-bound.
-- **`misplaced-comm`** → `{PROJECT}.cc/comms/open/<filename>`. Warn user: comms shouldn't normally arrive via inbox.
-- **`ticket-draft`** → structured prompt: which plan slug does this ticket belong to? Route to `plans/active/<slug>/tickets/<KEY>.json`. If user can't say, offer `archive/superseded/<YYYY-MM>/tickets-orphan/`.
-- **`draft-feature`** → `drafts/features/<slug>/<slug>.md`.
-- **`draft-bug`** → `drafts/bugs/<slug>/<slug>.md`.
-- **`draft-project-doc`** → `drafts/project-docs/<slug>/<slug>.md`.
+- **`handoff`** → `notes/{YYYY-MM-DD}-handoff-{slug}.md`. Add date prefix if missing; derive slug from filename or content title.
+- **`plan-proposal`** → `plans/active/{slug}/plan.md` (slug from frontmatter). If slug exists, structured prompt: replace / version / rename.
+- **`decision-record`** → structured prompt: which active plan? Append to `plans/active/{slug}/decisions.md`, or fall back to `notes/{YYYY-MM-DD}-decisions.md` if not plan-bound.
+- **`misplaced-comm`** → `{PROJECT}.cc/comms/open/{filename}`. Warn user: comms shouldn't normally arrive via inbox.
+- **`ticket-draft`** → structured prompt: which plan slug does this ticket belong to? Route to `plans/active/{slug}/tickets/{KEY}.json`. If user can't say, offer `archive/superseded/{YYYY-MM}/tickets-orphan/`.
+- **`draft-feature`** → `drafts/features/{slug}/{slug}.md`.
+- **`draft-bug`** → `drafts/bugs/{slug}/{slug}.md`.
+- **`draft-project-doc`** → `drafts/project-docs/{slug}/{slug}.md`.
 - **`research`** → structured prompt: is this tied to an active plan?
-  - If yes: `plans/active/<slug>/refs/<filename>`
-  - If no: `research/<topic>/<filename>` (prompt for topic)
-- **`source-doc`** → structured prompt for topic: `source-docs/<topic>/<filename>`.
+  - If yes: `plans/active/{slug}/refs/{filename}`
+  - If no: `research/{topic}/{filename}` (prompt for topic)
+- **`source-doc`** → structured prompt for topic: `source-docs/{topic}/{filename}`.
 - **`image`** → structured prompt: is this still needed?
-  - "Reference material for a draft" → `drafts/<bucket>/<slug>/assets/<filename>` (prompt for bucket+slug)
-  - "Already consumed for content" → `archive/superseded/<YYYY-MM>/images/<filename>`
-  - "Source material" → `source-docs/<topic>/<filename>`
-- **`note`** → `notes/<YYYY-MM-DD>-<slug>.md`. Add date prefix if missing.
+  - "Reference material for a draft" → `drafts/{bucket}/{slug}/assets/{filename}` (prompt for bucket+slug)
+  - "Already consumed for content" → `archive/superseded/{YYYY-MM}/images/{filename}`
+  - "Source material" → `source-docs/{topic}/{filename}`
+- **`note`** → `notes/{YYYY-MM-DD}-{slug}.md`. Add date prefix if missing.
 - **`unclassifiable`** → leave in `_INBOX/`. Surface to user with file head + filename for manual review.
 
 ### 4. Show batch + consent
@@ -122,10 +122,10 @@ Per row:
 
 ### 6. Log
 
-Append to `notes/<YYYY-MM-DD>-inbox.md` (one log file per day, append across runs):
+Append to `notes/{YYYY-MM-DD}-inbox.md` (one log file per day, append across runs):
 
 ```markdown
-## <ISO timestamp> - inbox run
+## {ISO timestamp} - inbox run
 
 - moved {N} files
 - left {M} unclassifiable
@@ -144,9 +144,9 @@ Append to `notes/<YYYY-MM-DD>-inbox.md` (one log file per day, append across run
 ✓ Inbox processed
 Routed: {N} files
 Left in inbox: {M} unclassifiable
-Audit log: notes/<YYYY-MM-DD>-inbox.md
+Audit log: notes/{YYYY-MM-DD}-inbox.md
 
-Next: /runesmith-core:plan, /runesmith-workspace:reallocate, or run inbox again to handle remainder.
+Next: /runesmith-core:plan, /runesmith-workspace:init, or run inbox again to handle remainder.
 ```
 
 ## Guard Rails
@@ -155,7 +155,7 @@ Next: /runesmith-core:plan, /runesmith-workspace:reallocate, or run inbox again 
 - [ ] _INBOX/ located; skip clean if empty
 - [ ] Every file classified
 - [ ] Routes follow `lib/folder-conventions.md` destination map
-- [ ] Ticket drafts route under their plan (`plans/active/<slug>/tickets/`), never to a root `tickets/`
+- [ ] Ticket drafts route under their plan (`plans/active/{slug}/tickets/`), never to a root `tickets/`
 - [ ] Plan-bound routes confirmed against existing slugs
 - [ ] User consented per batch (10-file batches) via structured prompt
 - [ ] No file overwritten without explicit consent
@@ -166,7 +166,7 @@ Next: /runesmith-core:plan, /runesmith-workspace:reallocate, or run inbox again 
 ## Error Cases
 
 **Inbox empty:** "Nothing to process." Exit clean.
-**Plan slug doesn't exist for a routing target:** Structured prompt - pick existing plan / create new plan via `/runesmith-core:plan` / route to `research/<topic>/` if research / route to `archive/superseded/<YYYY-MM>/` if stale.
+**Plan slug doesn't exist for a routing target:** Structured prompt - pick existing plan / create new plan via `/runesmith-core:plan` / route to `research/{topic}/` if research / route to `archive/superseded/{YYYY-MM}/` if stale.
 **Filename collision at destination:** Show diff if both are text; structured prompt: keep existing / replace / rename.
 **File appears to be a comm:** "This file looks like a comms message. It belongs in `{PROJECT}.cc/comms/open/`. Move there or treat as note?" Structured single-pick.
 **Permission error on move:** Skip that file, log, continue with the rest, report skipped at end.

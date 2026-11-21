@@ -17,7 +17,7 @@ These rules come from production incidents in Cowork plugin authoring. Each has 
 
 ## 2. Curly-brace placeholders only - never angle brackets
 
-**Why:** Cowork's upload validator rejects `<word>` patterns in SKILL.md frontmatter and `plugin.json` description fields as unsubstituted templating syntax. The plugin fails to install with no clear error.
+**Why:** Cowork's upload validator rejects angle-bracket patterns (a word wrapped in `<` and `>`) in SKILL.md frontmatter and `plugin.json` description fields as unsubstituted templating syntax. The plugin fails to install with no clear error.
 
 **Fix:** Canonical placeholder syntax is `{WORD}` with curly braces. Examples: `{PROJECT}`, `{slug}`, `{KEY}`, `{YYYY-MM}`, `{PLACEHOLDER}`. Body content inside fenced code blocks is exempt - documentation examples can show HTML/XML.
 
@@ -111,8 +111,8 @@ If behavior bleeds into CLAUDE.md, the role drifts whenever folder structure cha
 |---|---|---|---|
 | 1 | Extra `plugin.json` fields | "Unknown command" silent skip | Strip to `name`/`version`/`description`/`author` |
 | 2 | YAML folded scalar description | Skill-tool dispatch fails | Single-line quoted string |
-| 3 | Missing `compatibility` field | Skill-tool dispatch fails | Add `compatibility: Requires Cowork desktop app environment.` |
-| 4 | Angle-bracket placeholders `<word>` | Upload validator rejects | Use `{WORD}` curly braces |
+| 3 | Missing `compatibility` field | Skill-tool dispatch fails | Add `compatibility: Runs in the planner chat with the project's workspace folder connected.` |
+| 4 | Angle-bracket placeholders (a word wrapped in `<` and `>`) | Upload validator rejects | Use `{WORD}` curly braces |
 | 5 | Em-dashes / en-dashes | PowerShell parsing fails on Windows | ASCII hyphens or restructure |
 | 6 | JSON unicode escapes for em-dashes | Byte audit misses, users see em-dash | Use literal hyphen in JSON, scan parsed strings |
 | 7 | Command description too short / truncated | Command silently unregistered | 30+ chars, no trailing `{PLACEHOLDER}.` |

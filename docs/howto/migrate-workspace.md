@@ -1,190 +1,88 @@
-# How-to: Migrate an Existing Workspace
+# How-to: Bring an Existing Workspace Up to Date
 
-You have a project folder that predates RuneSmith - maybe stuff at root, git repos in arbitrary places, notes scattered around. Goal: bring it into the canonical RuneSmith layout without losing any content.
+Two cases, one command:
 
-For the target layout, see `docs/AGENT_PRIMER.md` ("Workspace structure").
+- A folder that predates RuneSmith: loose files at the root, git repos in odd places, notes scattered around.
+- A RuneSmith workspace from an earlier release: `claude-code/` or an old `.cc` head, numbered comm folders, skills deployed under old names.
+
+`/runesmith-workspace:init` handles both. It's safe to re-run: it normalizes what's there, refreshes the skill-managed parts, and never touches what the project added itself.
 
 ## Prerequisites
 
-- RuneSmith marketplace installed (specifically `runesmith-workspace` and `runesmith-cc`).
-- Project folder mounted in Cowork.
-- Optional: a backup of the current state somewhere outside the project folder. The skill snapshots, but defense-in-depth.
+- `runesmith-workspace` installed, plus `runesmith-cc` and `runesmith-sprint` if the project holds code.
+- The project folder connected to the session.
+- Optional: your own backup outside the project folder. Init snapshots anyway.
 
-## What migration does
-
-`/runesmith-workspace:reallocate` is idempotent. On a non-conforming workspace it:
-
-1. **Snapshots first** - copies the entire current root state (minus already-canonical content) to `archive/_pre-migration/<ISO>/` so nothing is destroyed.
-2. **Classifies root content** using the destination map in `plugins/runesmith-workspace/lib/folder-conventions.md`:
-   - Loose `.md` files → routed to `notes/`, `drafts/`, or `_INBOX/` based on content shape
-   - Loose `.json`/`.txt` files → `_INBOX/` for triage by the inbox skill
-   - Image files → `_INBOX/` (or relevant `plans/active/<slug>/refs/` if you can identify the plan)
-   - Existing git repos at root → migrated into `{PROJECT}.cc/<normalized-repo-name>/` (CC head territory)
-   - Legacy `claude-code/` or `<old-name>.cc/` folders → renamed to current `{PROJECT}.cc/` convention
-   - Already-canonical content (existing `plans/`, `notes/`, `drafts/`, etc.) → preserved in place
-3. **Writes `STRUCTURE.md`** at workspace root documenting the canonical layout.
-4. **Refreshes `CLAUDE.md`** marker blocks (folder-conventions + agent-ops) in place. Content outside the markers preserved.
-5. **Surfaces a Project Instructions text block** for you to paste into Cowork's UI field.
-
-## Steps
-
-### 1. Snapshot manually (defense-in-depth)
-
-Optional but recommended for non-trivial workspaces. Copy the entire project folder to a sibling backup location outside Cowork's mount:
+## 1. Run init
 
 ```
-cp -r ~/Projects/my-project ~/backups/my-project-pre-migration-$(date +%Y%m%d)
+/runesmith-workspace:init
 ```
 
-(Or use Windows File Explorer to duplicate.) Reallocate snapshots inside `archive/_pre-migration/` regardless; this is belt + suspenders.
+On a re-run, init checks comms first, then reads every root entry and classifies it against `lib/folder-conventions.md`. It skips questions it already has answers for (code or not, Jira or not).
 
-### 2. Run reallocate
+## 2. Review the move plan
 
-```
-/runesmith-workspace:reallocate
-```
+Init shows a table, one row per move, with the head line on top. Choose:
 
-Structured prompt - choose:
-- **Preview diff first** (recommended for first run on a messy workspace). Shows the migration plan without writing.
-- **Apply.** Performs the migration.
-- **Cancel.** Bail out.
+- **Preview only** for a first run on a messy folder.
+- **Apply** when the table looks right.
+- **Cancel** to stop.
 
-### 3. Review the preview (if you chose preview)
+Unknown root items go to `_INBOX/` without a question each.
 
-The skill outputs:
-- Source root listing (what's there now)
-- Destination map (what goes where)
-- Conflicts or ambiguous items (with structured-prompt clarification needed)
-- Snapshot target path
+## 3. What init changes
 
-Look for anything weird:
-- Unrecognized files routed to `_INBOX/` - fine, you'll classify with `/runesmith-workspace:inbox` later.
-- Files routed to a wrong canonical home - comment on them in chat; the skill adapts.
-- Git repos detected at root that you DON'T want migrated to CC head - say so; the skill leaves them alone.
+- Snapshots everything that will move or change to `archive/_pre-init-{UTC}/`.
+- Moves git repos at the root into `{PROJECT}.cc/{repo}/` as whole units, history intact.
+- Renames `claude-code/` or an old head to `{PROJECT}.cc/`.
+- Renames numbered comm folders in `comms/open/` to `{UTC}-{slug}/`, and `attachments/` to `references/`. `comms/archive/` is left alone.
+- Deploys the builder skills as `.claude/skills/runesmith-{name}/` and moves the old unprefixed copies to the snapshot. A deployed skill the project changed is kept and reported.
+- Merges the head's settings (attribution off, stop hook cap, code-simplifier) without touching other keys.
+- Creates any missing `dev`, `qa` and `beta` branches. Existing branches are never moved.
+- Rewrites only its own marker sections in each `CLAUDE.md`. Content outside them, and sections owned by other tools, stay as they are.
+- Writes `STRUCTURE.md` and gives you a fresh Project Instructions block.
 
-If the plan looks right, re-run with **Apply**.
+Nothing is deleted. Init only moves, and every move is snapshotted first.
 
-### 4. Apply the migration
+## 4. After init
 
-Re-run with apply. The skill:
-- Creates `archive/_pre-migration/<ISO>/` snapshot.
-- Moves each classified item.
-- Renames the CC head per the canonical naming rule (`<project-name>.cc/` - kebab-case-lowercase).
-- Writes `STRUCTURE.md`.
-- Refreshes `CLAUDE.md` markers.
-- Emits a final report with the proposed Project Instructions text.
+- Paste the Project Instructions block into the Claude Project.
+- Run `/runesmith-workspace:inbox` to route whatever landed in `_INBOX/`.
+- Move any Claude Code keys out of a repo folder into `{PROJECT}.cc/.credentials`. Init reports any it finds.
+- Open goals from before the upgrade: finish them, then start new work with `/runesmith-sprint:task`. The new task layout applies from the next task.
 
-### 5. Paste Project Instructions
+## Old skill names
 
-Copy the proposed text block from the final report. In Cowork: project settings → Instructions field → paste → save.
+`/runesmith-workspace:reallocate` and `/runesmith-cc:bootstrap-cc` point at `init` and `head` for this release and are then removed.
 
-### 6. Bootstrap the CC head if needed
-
-If you didn't have a CC head before migration, reallocate left a placeholder. Bootstrap it properly:
-
-```
-/runesmith-cc:bootstrap-cc
-```
-
-Detects the migrated repos in the placeholder, writes `CLAUDE.md`, `.claude/` scaffolding, `comms/`, marker file. See `docs/howto/new-workspace.md` step 4.
-
-### 7. Inbox triage
-
-`_INBOX/` likely has anything reallocate couldn't classify:
-
-```
-/runesmith-workspace:inbox
-```
-
-Walks each file, asks via structured prompt for ambiguous ones, routes per the destination map.
-
-### 8. Optional: enable Atlassian
-
-If this project should be wired to Jira + Confluence:
-
-```
-/runesmith-sprint:enable
-```
-
-See `docs/howto/enable-atlassian.md`.
-
-### 9. Install the guardrail (one-time per machine, not per project)
-
-If you haven't installed the user-level CC project-boundary guardrail yet:
-
-```
-/runesmith-cc:guardrail install
-```
-
-See `docs/howto/install-guardrail.md`. Protects this project + every other CC session on the machine.
-
-## What stays where
-
-The canonical layout in `docs/AGENT_PRIMER.md` shows the target. Migration preserves:
-
-- Existing `.git/` directories - repos move into CC head as whole units, history intact.
-- Existing `CLAUDE.md` - content outside the marker blocks is preserved. Skill content between markers is overwritten.
-- Existing canonical folders (`plans/`, `notes/`, etc.) - preserved in place, not snapshotted, not duplicated.
-- `.credentials` - preserved (already at workspace root).
-- `.git/`, `.github/`, `node_modules/`, etc. - not touched by reallocate; those belong to nested repos or build tooling.
-
-## What gets moved or renamed
-
-- Loose root files (anything not on the canonical keep-list) → `_INBOX/` or their canonical home.
-- Legacy `claude-code/` folder → `{PROJECT}.cc/`.
-- Old `<old-name>.cc/` folder when the project name changed → `{PROJECT}.cc/`.
-- Git repos at root → `{PROJECT}.cc/<normalized-name>/`.
-
-## What gets deleted
-
-Nothing. Reallocate is move-only. Every move snapshots to `archive/_pre-migration/<ISO>/` first.
-
-## Verify after migration
+## Verify
 
 ```
 ls
 ```
 
-Root should show only:
-- `_INBOX/`, `plans/`, `notes/`, `drafts/`, `research/`, `source-docs/`, `archive/`, `{PROJECT}.cc/`
-- `CLAUDE.md`, `STRUCTURE.md`
-- `.credentials` (gitignored)
-- Standard repo files if this workspace itself is a git repo (`.gitignore`, etc.)
-
-Anything else means reallocate had ambiguous cases it couldn't classify. Run `/runesmith-workspace:inbox` to clean up.
+The root should hold only the canonical folders, `{PROJECT}.cc/` for a code project, `CLAUDE.md`, `STRUCTURE.md`, `.credentials` and standard repo files. Anything else means init left it for you; run the inbox skill.
 
 ```
-cat STRUCTURE.md
+git -C {PROJECT}.cc/{repo} branch -a
+git -C {PROJECT}.cc/{repo} remote -v
 ```
 
-Should reflect the canonical layout with your project's specifics filled in.
-
-```
-cat CLAUDE.md
-```
-
-Should show the `<!-- folder-conventions:start/end -->` and `<!-- agent-ops:start/end -->` marker blocks populated. Any user content outside the markers is preserved.
+Shows `dev`, `qa`, `beta` and `main`, and the remote without a token in its address.
 
 ## Rollback
 
-If something went sideways, the snapshot is at `archive/_pre-migration/<ISO>/`. Manually move content back:
-
-```
-mv archive/_pre-migration/<ISO>/* ./
-```
-
-(Be careful - this is destructive in the other direction. Manual snapshot in step 1 is your real safety net.)
-
-Once you've verified rollback worked, delete the snapshot to save space.
+Everything init moved or changed is in `archive/_pre-init-{UTC}/`. Copy back what you need. Moving content back is itself a destructive step, so check what's at the destination first.
 
 ## Troubleshooting
 
-**Reallocate refuses to move a file.** The destination is occupied. Resolve manually - either rename the existing file or the incoming one. Re-run reallocate.
+**Init stops on a marker.** A start marker without its end means the file is damaged. Init names the file and marker. Fix it, or restore the file from the snapshot, then re-run.
 
-**Git repo migration breaks remote tracking.** It shouldn't - git tracks remotes by `.git/config`, which travels with the repo. Verify: `cd {PROJECT}.cc/<repo>/ && git remote -v`. If empty, the move corrupted `.git/`. Restore from `archive/_pre-migration/<ISO>/<repo>/.git/` manually.
+**A destination is occupied.** Init reports it and moves nothing for that row. Rename one side and re-run.
 
-**CLAUDE.md user content got eaten.** Should never happen - markers are strict. If it did, the file at `archive/_pre-migration/<ISO>/CLAUDE.md` has the pre-migration state. Diff against current, restore the missing pieces, ensure they're outside any marker pair.
+**A repo wasn't moved.** Only folders with `.git/` directly under the root are moved. Move nested repos yourself, or clone fresh through `/runesmith-cc:head`.
 
-**`STRUCTURE.md` doesn't reflect my custom layout.** STRUCTURE.md is generated from `plugins/runesmith-workspace/lib/STRUCTURE.template.md` - it documents the canonical layout, not your specific deviations. If you have valid custom folders that aren't in the canonical set, document them outside the marker pair in `CLAUDE.md`.
+**Remote tracking looks broken after a move.** `.git/config` travels with the repo. If `git remote -v` is empty, restore the repo's `.git/` from the snapshot.
 
-**Reallocate ran but didn't migrate a repo I expected.** The skill only auto-migrates folders with a `.git/` directory directly under workspace root. Nested repos (e.g. `subdir/my-repo/.git/`) aren't auto-migrated - move them manually if needed, or use `/runesmith-cc:bootstrap-cc` to clone fresh.
+**`STRUCTURE.md` doesn't show my extra folders.** It documents the canonical layout. Describe your extra folders in `CLAUDE.md`, outside the marker sections.

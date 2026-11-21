@@ -1,12 +1,12 @@
 ---
 name: plan
 description: "Plan a change before executing - capture problem, decision, why-now, scope, trade-offs to a clean markdown file under plans/active/. Use when the user says \"plan this\", \"let's plan\", \"draft a plan for\", \"spec this out\", \"I want to plan\", or wants to think through a substantial change before any writes happen. Chat-first, file-last workflow."
-compatibility: Requires Cowork desktop app environment.
+compatibility: Runs in the planner chat with the project's workspace folder connected.
 ---
 
 # Plan a Change
 
-Capture a project plan as `plans/active/<slug>/plan.md` - clean, claude-readable markdown that serves as the source of truth for project intent. Both Cowork and Claude Code read from `plans/active/`.
+Capture a project plan as `plans/active/{slug}/plan.md`: clean markdown that is the source of truth for project intent, with an append-only `decisions.md` beside it. The planner reads and keeps plans; Claude Code never reads them directly. What it needs from a plan goes into its task comms.
 
 This skill performs no API calls. It writes one local file (plus optional decisions log + refs dir).
 
@@ -29,7 +29,7 @@ See `lib/comms-check.md`. If any `to: user` comms are open, surface and let user
 
 ### 1. Workspace shape
 
-Verify `plans/` exists at workspace root. If not, suggest running `/core:reallocate` first.
+Verify `plans/` exists at workspace root. If not, suggest running `/runesmith-workspace:init` first.
 
 ## When to Use
 
@@ -46,9 +46,13 @@ Do not use for:
 
 ## Workflow
 
-### 1. Discuss
+### 1. Issues first (projects with a repository)
 
-Surface what the user wants to plan. Ask only what's needed to fill the schema:
+If the project has a Claude Code head, read the repository's open issues before discussing (Jira when Atlassian is enabled, otherwise GitHub; read only). Fold the ones that belong with this plan into its Problem and Scope, and name them in References. The planner never writes to the issue tracker.
+
+### 2. Discuss
+
+Pressure-test first: lead with the weakest point of the idea. Then surface what the user wants to plan. Ask only what's needed to fill the schema:
 - Problem (what pain or opportunity)
 - Decision (what we're going to do)
 - Why now (the trigger)
@@ -59,21 +63,21 @@ Surface what the user wants to plan. Ask only what's needed to fill the schema:
 
 Iterate in chat until the user converges.
 
-### 2. Propose slug
+### 3. Propose slug
 
 Generate a short kebab-case slug from the title. Verify it's unique within `plans/active/`. If collision, append `-2`.
 
-### 3. Show draft
+### 4. Show draft
 
 Show the proposed `plan.md` content per `plan-format.md`. Frontmatter:
 
 ```yaml
 ---
-slug: <kebab-slug>
+slug: {kebab-slug}
 status: open
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
-owner: <user>
+owner: {user}
 supersedes: []
 related: []
 tickets: []
@@ -82,17 +86,20 @@ tickets: []
 
 Body uses the canonical sections from `plan-format.md`.
 
-### 4. Get consent
+### 5. Get consent
 
-Ask: "Save this plan to `plans/active/<slug>/plan.md`?"
+Structured single-pick prompt, with the draft shown above it:
+- **Save the plan** (default)
+- **Keep refining**
+- **Cancel**
 
-Wait for explicit approval ("yes", "save it", "create the plan", "make it"). Do not write without consent.
+Do not write without consent.
 
-### 5. Write
+### 6. Write
 
 Create:
 ```
-plans/active/<slug>/
+plans/active/{slug}/
 ├── plan.md           the plan
 ├── decisions.md      empty stub with H2 ready for entries
 └── refs/             empty dir
@@ -100,42 +107,46 @@ plans/active/<slug>/
 
 `decisions.md` stub:
 ```markdown
-# Decisions for <slug>
+# Decisions for {slug}
 
 Append-only log of decisions made under this plan.
 
-## YYYY-MM-DD - <decision title>
+## YYYY-MM-DD - {decision title}
 **What:** ...
 **Why:** ...
 **Participants:** ...
 ```
 
-### 6. Report
+### 7. Report
 
 ```
-✓ Plan created
-plans/active/<slug>/plan.md
-status: open
+Plan created: plans/active/{slug}/plan.md (status: open)
+Decisions log: plans/active/{slug}/decisions.md
 ```
 
-If the workspace is atlassian-enabled (if the workspace is atlassian-enabled, per the runesmith-sprint plugin), suggest:
-> Next: run `/atlassian:plan-to-tickets` to draft Jira tickets from this plan.
+Next step, by project:
+- Atlassian-enabled: `/runesmith-sprint:plan-to-tickets` drafts Jira tickets from the plan.
+- Has a Claude Code head: `/runesmith-sprint:task` writes the task comms and gives the `/goal` line.
+- Otherwise: carry on in this chat, or publish with a `runesmith-confluence` skill.
 
-Otherwise:
-> Next: when ready, write a task comm to CC via comms/, or invoke a publish skill to push to Confluence.
+## Changing a plan later
+
+- Every decision is appended to `decisions.md`: the date, what was decided, who decided it. Never edit or remove past entries.
+- When scope changes, snapshot `plan.md` to `archive/_pre-plan-edit-{UTC}/` and edit it.
 
 ## Guard Rails
 
 - [ ] Comms check ran first
 - [ ] Slug is kebab-case, unique within active/
 - [ ] All required schema sections present
-- [ ] User explicitly consented to write
+- [ ] Open issues read first when the project has a repository
+- [ ] User consented through a structured prompt
 - [ ] No file written without consent
 - [ ] Plan dir contains plan.md, decisions.md stub, refs/
 
 ## Error Cases
 
-**`plans/` missing:** "Workspace doesn't have plans/ yet. Run `/core:reallocate` first to set up the structure."
+**`plans/` missing:** "Workspace doesn't have plans/ yet. Run `/runesmith-workspace:init` first to set up the structure."
 **Slug collision:** Auto-append `-2`, surface to user, get re-confirmation.
-**User keeps editing without converging:** After ~3 rounds, ask "Should we save this draft now and iterate from disk, or keep refining first?"
-**Empty required section:** "Section <name> is empty. Plans must have all of Problem, Decision, Why now, Scope. Add content or skip the plan."
+**User keeps editing without converging:** After ~3 rounds, offer the consent prompt from step 5 again so the draft can be saved and refined on disk
+**Empty required section:** "Section {name} is empty. Plans must have all of Problem, Decision, Why now, Scope. Add content or skip the plan."

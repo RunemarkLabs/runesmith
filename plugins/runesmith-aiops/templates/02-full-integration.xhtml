@@ -1,43 +1,51 @@
 <h1>{COMPANY} - Full Integration Guide</h1>
 
-<p>End-to-end setup for the AIOPS skills against <strong>{COMPANY}</strong>'s Atlassian site at <code>{SITE}</code>.</p>
+<p>Setting up a project at <strong>{COMPANY}</strong> end to end, against the Atlassian site at <code>{SITE}</code>.</p>
 
-<h2>1. Generate credentials</h2>
-<ol>
-  <li>API token: <a href="https://id.atlassian.com/manage-profile/security/api-tokens">id.atlassian.com/manage-profile/security/api-tokens</a></li>
-  <li>Note the email address tied to the token (must be the user's account email).</li>
-  <li>GitHub PAT (for plugin sync): <a href="https://github.com/settings/tokens">github.com/settings/tokens</a> - needs <code>repo</code> scope.</li>
-</ol>
-
-<h2>2. Configure local <code>.credentials</code></h2>
+<h2>1. Install the plugins</h2>
 <ac:structured-macro ac:name="code">
-  <ac:parameter ac:name="language">bash</ac:parameter>
-  <ac:plain-text-body><![CDATA[ATLASSIAN_API_URL={ATLASSIAN_API_URL}
-ATLASSIAN_API_EMAIL=<your-email>
-ATLASSIAN_API_TOKEN=<api-token>
-GITHUB_PAT=<github-pat>
-
-# Optional defaults
-ATLASSIAN_CONFLUENCE_SPACE_ID={SPACE_ID}
-ATLASSIAN_JIRA_PROJECT_KEY={PROJECT_KEY}
-]]></ac:plain-text-body>
+  <ac:parameter ac:name="language">text</ac:parameter>
+  <ac:plain-text-body><![CDATA[/plugin marketplace add runemarklabs/runesmith
+/plugin install runesmith-core@runesmith
+/plugin install runesmith-workspace@runesmith
+/plugin install runesmith-cc@runesmith
+/plugin install runesmith-sprint@runesmith
+/plugin install runesmith-jira@runesmith
+/plugin install runesmith-confluence@runesmith]]></ac:plain-text-body>
 </ac:structured-macro>
 
-<h2>3. Verify connectivity</h2>
+<h2>2. Run init</h2>
+<p>In the project's Claude Project, with the project folder connected, run <code>/runesmith-workspace:init</code>. It drafts what the project is, asks whether it holds code and whether it uses Jira, shows every change, and applies it on your approval. For a code project it builds the Claude Code head: the builder's rules, settings, skills, the comms folder, and the repo with <code>dev</code>, <code>qa</code> and <code>beta</code> branches.</p>
+
+<h2>3. Credentials</h2>
+<p>Keys live where the thing that uses them runs, and never inside a repo folder. Init writes empty, labeled lines and tells you which file and key to fill. Never paste a token into chat.</p>
+<table>
+  <tbody>
+    <tr><th>File</th><th>Keys</th><th>Used by</th></tr>
+    <tr><td>Workspace root <code>.credentials</code></td><td><code>ATLASSIAN_API_URL</code> ({ATLASSIAN_API_URL}), <code>ATLASSIAN_API_EMAIL</code>, <code>ATLASSIAN_API_TOKEN</code>, <code>RUNESMITH_GITHUB_PAT</code></td><td>The planner</td></tr>
+    <tr><td>The Claude Code head's <code>.credentials</code></td><td><code>CC_ATLASSIAN_API_EMAIL</code>, <code>CC_ATLASSIAN_API_TOKEN</code> (read-only), <code>ATLASSIAN_BOARD_ID</code></td><td>Claude Code, when Jira is on</td></tr>
+  </tbody>
+</table>
+<p>Atlassian tokens: <a href="https://id.atlassian.com/manage-profile/security/api-tokens">id.atlassian.com/manage-profile/security/api-tokens</a>. GitHub tokens: <a href="https://github.com/settings/personal-access-tokens">github.com/settings/personal-access-tokens</a> (fine-grained; contents read and write, issues read, and administration write to create repos and protect branches).</p>
+
+<h2>4. Turn on Jira (optional)</h2>
+<p>Run <code>/runesmith-sprint:enable</code> (or answer yes in init). It records the project key <code>{PROJECT_KEY}</code>, the board and the space <code>{SPACE_KEY}</code>, and deploys Claude Code's read-only Jira skills. Check with <code>/runesmith-jira:project-status</code>.</p>
+
+<h2>5. Install the guardrail (once per machine)</h2>
+<p>Run <code>/runesmith-cc:guardrail</code> and then the one command it gives you. Every Claude Code session on the machine then stays inside its own project.</p>
+
+<h2>6. First piece of work</h2>
 <ol>
-  <li>Run <code>/core:setup</code> - performs health checks against Confluence, Jira, GitHub.</li>
-  <li>Run <code>/atlassian:project-status</code> - read-only Jira call to confirm project access.</li>
+  <li><code>/runesmith-core:plan</code> captures the change.</li>
+  <li><code>/runesmith-sprint:task</code> writes the task and gives you a <code>/goal</code> line.</li>
+  <li>Paste the line into Claude Code, opened in the project's head folder.</li>
+  <li>When Claude Code prints its banner, say "check comms" to the planner.</li>
+  <li>Say "promote to qa" when the build is ready, then run the QA checklist page.</li>
 </ol>
 
-<h2>4. First write</h2>
-<ol>
-  <li>Run <code>/atlassian:session-log</code> - creates a Confluence page from a draft.</li>
-  <li>Confirm the published page has full storage formatting (headings, code, tables).</li>
-</ol>
-
-<h2>5. Common gotchas</h2>
+<h2>7. Common gotchas</h2>
 <ul>
-  <li>Email mismatch with token → <strong>401</strong>. Use the email of the account that minted the token.</li>
-  <li>Wrong space id → page lands in wrong space. Always pass <code>space-id={SPACE_ID}</code> on lookups.</li>
-  <li>Missing version bump on update → <strong>409</strong>. Skills handle this automatically; manual API users must GET first.</li>
+  <li>Email and token from different accounts: <strong>401</strong>.</li>
+  <li>A page lands in the wrong space: lookups must carry <code>space-id={SPACE_ID}</code>.</li>
+  <li>Updating a page without the next version number: <strong>409</strong>. The skills handle it.</li>
 </ul>

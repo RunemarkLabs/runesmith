@@ -1,7 +1,7 @@
 ---
 name: decisions-log
 description: "Create or update a running decisions log page for Confluence. Template includes date, decision, rationale, participants, and status. Log decisions as they are made. Trigger on \"decisions log\", \"log this decision\", \"record the decision\", \"add to decisions log\", \"update the decisions log\"."
-compatibility: Requires Cowork desktop app environment.
+compatibility: Runs in the planner chat with the project's workspace folder connected.
 ---
 
 # Decisions Log
@@ -18,7 +18,7 @@ Append-only log of project decisions on a single Confluence page.
 - `lib/consent.md`
 - `lib/tokens.md`
 - `lib/comms-check.md` - runs first
-- `lib/plan-format.md` - for optional source: `plans/active/<slug>/decisions.md`
+- `lib/plan-format.md` - for optional source: `plans/active/{slug}/decisions.md`
 - `lib/user-prompts.md` - structured-input requirement for any user prompt
 
 
@@ -34,7 +34,7 @@ See `lib/comms-check.md`. Pause for `to: user` items.
 
 1. Credentials resolved.
 2. `{SPACE_ID}` resolved.
-3. Optional plan prefill: append entries from one or more `plans/active/<slug>/decisions.md` files into the workspace-level decisions log.
+3. Optional plan prefill: append entries from one or more `plans/active/{slug}/decisions.md` files into the workspace-level decisions log.
 4. Locate existing log page (space-scoped):
    ```
    GET {ATLASSIAN_API_URL}/wiki/api/v2/pages?space-id={SPACE_ID}&title=Decisions%20Log&status=current

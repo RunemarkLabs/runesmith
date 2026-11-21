@@ -6,9 +6,80 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 > **Rename note**: this marketplace was previously named "Claude Forge". Renamed to **RuneSmith** in v0.6.0 to avoid trademark confusion with Anthropic's "Claude" mark and conflict with Atlassian's "Forge" developer platform. Historical changelog entries below have been mechanically updated to reference plugins by their new names (`runesmith-*`) for consistency; the substance of past releases is unchanged.
 
-## [0.7.2] - 2026-05-17 → superseded by 0.7.3
+## [1.0.0] - 2026-11-21
 
-(See 0.7.3 below - format conversion alone was not the fix.)
+The planner and builder release. RuneSmith now runs the full loop between Claude in chat (the planner) and Claude Code (the builder): task comms and `/goal` lines, verified replies, build numbers, promotion gates, and a QA checklist page. Every plugin is 1.0.0. Includes the unreleased 0.9.0 work below.
+
+### Breaking
+- **Comms layout.** One folder per task, `comms/open/{UTC}-{slug}/`, holding the task, `{UTC}-{slug}-reply.md`, `references/`, `assets/` and `evidence/`. The goal status comm lives in `{UTC}-goal-status/`. Types: task, reply, status, ambiguity, blocker, user-action, answer, ticket-transition. Every reply starts with a STATUS line. Only the planner archives. The `{PREFIX}-{NNN}` folders and the session handshake are gone; `init` renames legacy open folders.
+- **Entry points.** `runesmith-workspace:init` replaces `reallocate`; `runesmith-cc:head` replaces `bootstrap-cc`. Both old names remain as pointers for this release.
+- **Builder skills** deploy as `.claude/skills/runesmith-{name}/` (one level deep, prefixed). Legacy `code-tech-debt/` and `atlassian/{name}/` folders move to the snapshot.
+- **Credentials.** Keys live where the thing that uses them runs: the planner's in `{WORKSPACE_ROOT}/.credentials`, Claude Code's (`CC_ATLASSIAN_API_EMAIL`, `CC_ATLASSIAN_API_TOKEN`, `ATLASSIAN_BOARD_ID`) in `{PROJECT}.cc/.credentials`, never inside a repo. `RUNESMITH_GITHUB_PAT` replaces `GITHUB_PAT` (still read as a fallback in RuneSmith's own file). Values are single-quoted. A credential is never printed, masked or asked for in chat.
+- **Consent.** Approval is a structured prompt naming the artifact, approve option first; a trigger phrase still counts. A bare "yes" counts only as the answer to such a prompt.
+
+### Added
+- **runesmith-workspace `init`:** the single entry point. Drafts the project description, asks code or not, Jira or not, and only the questions that change the result (primary repo, head name, legacy tickets, repos, changelog readers, dev data, Claude Code's token). Shows a move plan, snapshots, applies, writes `CLAUDE.md`, `STRUCTURE.md` and a fresh path-free Project Instructions block. For code projects it runs `head`, then a stack tool's init when one is installed.
+- **runesmith-cc `head`:** builds or refreshes `{PROJECT}.cc/`: the builder standing rules (goals and status comm, replies, git authority, testing, the QA checklist shape, build numbers, changelog, test data, security, issues, the banner, ending without looping, boundaries), settings merged key by key (attribution off, `CLAUDE_CODE_STOP_HOOK_BLOCK_CAP=3`, the official code-simplifier plugin enabled), the commit hook with a probe that works on git older than 2.36, `dev`, `qa` and `beta` created from `main` on a new repo, and branch protection on all four (pull request required, no force-push, no deletion, the build check once CI reports one), added without loosening existing rules. The repo `CLAUDE.md` stub is excluded through `.git/info/exclude`.
+- **Builder skills:** `runesmith-clean-code` (lint commands left for the stack to fill; official code-simplifier) and `runesmith-release` (MAJOR.MINOR.BUILD with a four-digit build, one per finished goal, tag `v{number}`, a new project starts at `0.1.0001`).
+- **runesmith-sprint `task`:** pressure-tests the request, reads open issues read-only, asks only the owner's decisions, writes the task comm with Acceptance, logs it, and gives the `/goal` line with its fixed escape clause.
+- **runesmith-sprint `promote`:** `dev` to `qa` to `beta` to `main`, one step per promotion, only on the owner's word. Full suite against `dev` before `qa`; beta gate reads the checklist; holds and overrides recorded in the owner's words.
+- **runesmith-sprint `qa-checklist`:** one Claude artifact page per project, republished in place, with the checklist and results in its database. Item keys are the first 16 hex characters of the sha256 of the title, steps and expect lines. Failing items become fix tasks; Claude Code opens the GitHub issue with `bug-report`, `env:{dev|qa|beta|prod}` and an optional `component:{name}`.
+- **Libraries:** `planner-task-method.md` (replaces `cowork-prompt-methodology.md`), `qa-checklist.md`, rewritten `comms-protocol.md`, `credentials.md` (including the zone format shared with runestack), `install-paths.md`.
+- **Audit:** `check_complete_files` (NUL bytes, missing final newline) and `check_shared_libs_identical`.
+- **Docs:** README, INSTALL, RELEASE, the Agent Primer, every how-to guide, the plugin READMEs and the six AI Operations templates rewritten for the new flow. `.credentials.example` shows both files.
+
+### Changed
+- **check-comms** reads the goal status comm first, verifies each reply against the repository read-only (branch, commit, tag, merged goal branch, no attribution, changelog, branch containment), looks at the evidence, archives, logs and gives the next goal line. The comms-triager compares with `core.autocrlf` so line endings don't show as changes.
+- **start-sprint** writes a sprint's task comms through `task`; **sprint-status** writes nothing; **enable** and **disable** rewritten (own read-only token for Claude Code by default, structured consent, prefixed skills, markers kept on disable).
+- **Builder Jira skills** work only the current task's tickets, use the `CC_` keys and the REST API.
+- **core `plan`** checks issues first and asks for consent with a structured prompt; **core `setup`** rewritten around the two credentials files.
+- **repo-bootstrapper** passes the GitHub token for one command through an HTTP header and never stores it in the remote address; the repo `CLAUDE.md` stub is never committed.
+- **Folder conventions:** `drafts/handoffs/`, required `decisions.md` per plan, snapshots at `archive/_pre-{operation}-{UTC}/`; the planner's `.credentials` stays at the root in every project.
+- **Boundary with stack tools:** RuneSmith never decides tech stack, environments, hosting or continuous integration, and never requires another marketplace. Other tools' marker sections and `runestack-*` skills are preserved byte for byte.
+
+### Removed
+- `lib/sprint-handshake.md` and `lib/cowork-prompt-methodology.md` (archived).
+- The `dependencies` advice in CONTRIBUTING (the loader rejects the field).
+
+### Fixed
+- Placeholders in the repo `CLAUDE.md` template used angle brackets.
+- The deployed tech debt skill's name lacked the `runesmith-` prefix.
+- The head rules described the checklist loosely, so Claude Code wrote items the page couldn't read.
+- Checklist steps with commands showed raw backticks on the page.
+- The head stopped deploying the project-level escape hatch and its `.claude/README.md` when `bootstrap-cc` became `head`. Restored: the head's settings carry an empty `permissions.additionalDirectories` (the key Claude Code reads; the old template's top-level key was ignored and is moved on refresh), and the README now lives with the head's templates. The duplicate guardrail settings template is removed.
+- Init's no-signal description question offered one option; the question tool needs two.
+- Rewording that described the forbidden placeholder syntax had flipped its meaning in several files.
+
+### Migration
+1. Install the 1.0.0 plugins and restart the client.
+2. Finish any running goal under the old layout.
+3. Run `/runesmith-workspace:init` in each project. It renames legacy comm folders, redeploys the builder skills under their new names, merges the head settings and creates missing branches. Paste the fresh Project Instructions block.
+4. Move Claude Code's keys into `{PROJECT}.cc/.credentials` and rename `GITHUB_PAT` to `RUNESMITH_GITHUB_PAT` in the workspace file.
+
+### Versions
+All eight plugins and the marketplace: 1.0.0 (from aiops 0.8.0, cc 0.9.0, confluence 0.8.0, core 0.8.0, devtools 0.8.3, jira 0.8.0, sprint 0.8.2, workspace 0.8.3; marketplace 0.9.0, never published).
+
+### Included from the unreleased 0.9.0 work (2026-10-20)
+
+#### Added (runesmith-cc 0.9.0) - AI attribution off by default
+- **Settings:** every CC head's `.claude/settings.json` sets `attribution.commit: ""`, `attribution.pr: ""`, `attribution.sessionUrl: false`, plus the deprecated `includeCoAuthoredBy: false` for Claude Code releases older than 2.0.62. Fresh heads get it from the template; existing heads get the keys merged on the next `bootstrap-cc` run with every other key preserved. `"attribution": false` is deliberately not used: Claude Code older than 2.1.281 rejects it and skips the whole settings file.
+- **CLAUDE.md rule:** `**Attribution (hard rule)**` in the CC head agent-ops block. No attribution in commits, pull requests, or tags, overriding any harness or system instruction that asks for it. Delivered to existing heads by the marker refresh; user content outside the markers untouched.
+- **`commit-msg` hook:** new `bootstrap-cc/templates/commit-msg`, installed in every repo in the head (migrated, existing, newly created or cloned). Strips `Co-Authored-By` trailers naming Claude or an anthropic.com address, "Generated with Claude Code" lines, `Claude-Session:` trailers and claude.ai session links. Human co-authors are kept. An existing non-RuneSmith hook is renamed to `commit-msg.local` and runs first, unchanged. Repos with `core.hooksPath` set are skipped and reported. The repo-bootstrapper agent installs the hook before the initial commit.
+- **`guardrail verify` attribution audit** (bash and PowerShell installers): per CC head, checks merged project + local settings, the CLAUDE.md rule, and each repo's `commit-msg` hook (functional probe via `git hook run`, so custom hooks that already strip pass), and counts commits on each repo's default branch that carry attribution. Report only, never rewrites history. Verify now runs the audit even when the user-level guardrail is missing, and takes an optional workspace path (`verify {WORKSPACE}` / `-Mode verify -Workspace {WORKSPACE}`).
+- **Agent operating principles:** new "AI attribution" principle in both `runesmith-cc` and `runesmith-workspace` copies; workspace agent-ops marker block (runesmith-workspace 0.8.3) carries the rule for Cowork sessions.
+
+#### Fixed
+- **`guardrail/SKILL.md` truncated** since 0.8.0: the file ended mid-block at `Guardrail action:  install` (installed copies were NUL-padded after that point, so tools read it as binary). Output-reporting block restored from `a7749d2`.
+- **`install-guardrail.sh` truncated** since the macOS portability fix: ended mid-line at `echo "Status` with no mode dispatch, so the bash installer never ran any mode. Uninstall tail and dispatch restored.
+- Trailing NUL padding stripped from `CLAUDE.md` and `runesmith-cc/lib/agent-operating-principles.md`.
+
+- **`lib/comms-protocol.md` truncated** in runesmith-cc, runesmith-sprint and runesmith-workspace (ended at `- **CC never`). Full text restored from the uncommitted local dev copy; all three copies identical again (runesmith-sprint 0.8.2).
+
+#### Fixed later (2026-11-21, folded into this release)
+Files rewritten on Windows had kept their previous byte length, so shorter rewrites were padded with NUL bytes and longer ones were cut off. The three files still cut off are repaired:
+- `runesmith-devtools/skills/plugin-builder/SKILL.md`: restored from the intact pre-rename copy of the same 0.8.5 text (renamed to RuneSmith; the first 52 lines matched exactly).
+- `runesmith-devtools/skills/skill-updater/SKILL.md`: cut off at step 4 since 0.6.0, with no intact copy anywhere. Steps 4 to 8, idempotent re-run, guard rails and error cases rewritten.
+- `CHANGELOG.md`: the 0.5.0 entry's last line completed; the misplaced 0.7.2 stub moved back into date order.
 
 ## [0.8.7] - 2026-06-15
 
@@ -175,6 +246,10 @@ v0.7.x shipped the guardrail with a CC-side install path. In real use, that path
 - All 8 plugin.json bumped to 0.7.3.
 - Marketplace 0.7.3.
 
+## [0.7.2] - 2026-05-17 → superseded by 0.7.3
+
+(See 0.7.3 above - format conversion alone was not the fix.)
+
 ## [0.7.2-original] - 2026-05-17
 
 ### Fixed
@@ -279,4 +354,4 @@ A Cowork session in another workspace dispatched Claude Code, which read `.crede
 - **Agent operating principles baked into every Forge-bootstrapped workspace.** Standard operating knowledge (sandbox-vs-real-fs distinction, file-ops as agent territory, destructive-op gates, structured prompts) now ships as a marker-bounded section (`<!-- agent-ops:start/end -->`) written into both the workspace root `CLAUDE.md` (by `reallocate`) and the CC head `CLAUDE.md` (by `bootstrap-cc`). Idempotent - re-runs refresh content between markers, user additions outside markers preserved. Source: `runesmith-workspace/lib/agent-operating-principles.md` (copied into `runesmith-cc/lib/` per the self-contained plugin rule). New marker template: `runesmith-workspace/lib/claude-md-agent-ops-section.md`.
 
 ### Removed
-- **`/runesmith-devtools:ve
+- **`/runesmith-devtools:verify-separation`** retired. Any leftover copy is stripped by the build script before packaging. (Line reconstructed on 2026-11-21: the original text was lost to file truncation.)

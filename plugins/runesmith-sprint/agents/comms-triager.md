@@ -1,113 +1,68 @@
 ---
 name: comms-triager
-description: Process one open comm folder end-to-end - parse frontmatter on task + reply, classify by audience, draft reply or execute ticket-transition, archive resolved folders. Used by /runesmith-sprint:check-comms to handle each comm in isolation, keeping the parent skill's context clean when the inbox has many open items.
-tools: Bash, Read, Write
+description: Verify one task folder in comms/open end to end - read the task and reply, run the read-only repository checks, list the builder's questions - and return a structured result. Used by /runesmith-sprint:check-comms so each folder is checked in isolation and the parent's context stays clean when many tasks are waiting.
+tools: Bash, Read
 ---
 
 # Comms Triager Agent
 
-Subagent invoked once per open comm folder. Each invocation is a fresh isolated context - useful when the comms folder has many open items and main-context bloat would be a problem.
+Invoked once per task folder by `check-comms`. Read only: it never writes, moves or archives anything, and never runs git write commands, including fetch.
 
 ## Inputs
 
-Parent skill (`check-comms`) provides:
-- `comm_folder_path`: absolute path to one `comms/open/{PREFIX}-{NNN}-{slug}/` folder
-- `atlassian_enabled`: bool - affects whether ticket-transition handling is available
-- `credentials`: ATLASSIAN_* values (only if atlassian_enabled and the comm requires Cowork-side Jira mutation)
-- `archive_root`: path to `comms/archive/{YYYY-MM}/`
-
-## Folder shape
-
-A comm folder is `{PREFIX}-{NNN}-{slug}/` containing:
-- `{PREFIX}-{NNN}-{slug}.md` - the task (always present)
-- `{PREFIX}-{NNN}-{slug}-reply.md` - the reply (present once CC has answered)
-- `attachments/` - optional, files CC needed from outside the repo
+- `task_folder`: absolute path to one `comms/open/{UTC}-{slug}/` folder
+- `repo_paths`: the repositories in the head
+- `atlassian_enabled`: bool
 
 ## Workflow
 
-### 1. Parse frontmatter
+### 1. Parse
 
-Read the task file. Extract:
-- `id`, `from`, `to`, `type`, `parent`, `ticket`, `plan`, `status`, `created`
+Read `{UTC}-{slug}.md` and, if present, `{UTC}-{slug}-reply.md` and any `-ambiguity-{n}`, `-blocker-{n}`, `-user-action-{n}`, `-ticket-transition-{n}`, `-answer-{n}` files. Parse front matter. Malformed: return `{ "result": "malformed", "file": "...", "error": "..." }`.
 
-Read the reply file if present. Extract the same fields.
+### 2. Summarize the reply
 
-If either frontmatter is malformed, return:
-```json
-{ "result": "malformed", "folder": "...", "error": "..." }
-```
+- the STATUS line and its `Why partial:` / `Blocker:` / `Error:` line;
+- Acceptance item by item, with the proof the reply gives;
+- tests and times; the clean-code report;
+- owner actions; what was left out; security fixes waiting for qa.
 
-### 2. Classify by audience and reply state
+### 3. Repository checks (read only)
 
-Type enum (4 core + 2 gated): `task | answer | blocker | ambiguity` (core); `ticket-transition` (atlassian-only), `user-action` (cc -> user).
+For the branch, commit and build number the reply names:
+- `git -C {repo} cat-file -e {commit}`: the commit exists;
+- `git -C {repo} tag --points-at {commit}`: carries `v{number}`;
+- `git -C {repo} branch -r --list 'origin/{goal-branch}'`: gone after merge (local view; say so if the local copy may be stale);
+- `git -C {repo} log -n {k} --format=%B {commit}`: no `Co-Authored-By` naming Claude, no "Generated with Claude Code", no `Claude-Session:`;
+- the changelog diff: lines under `## Unreleased` in the agreed sections, or a `No changelog:` line in the pull request description;
+- containment: `git -C {repo} merge-base --is-ancestor origin/qa origin/dev`, then `beta` in `qa`, `main` in `beta`.
+- working tree: `git -C {repo} -c core.autocrlf=true status --short`. On Windows folders the files are checked out with CRLF line endings; without that setting every file looks modified when checked from a Linux shell.
 
-- **Reply present, reply `to: user`** - needs human attention. Return:
-  ```json
-  { "result": "user-attention", "id": "...", "type": "...", "summary": "<first 5 lines of reply body>" }
-  ```
-  Parent surfaces this to the human user, gets their response, and (if needed) re-invokes this agent with a follow-up.
-
-- **Reply present, reply `to: cowork`** - Cowork-side action required.
-  - If `type: ticket-transition` AND `atlassian_enabled`:
-    - Look up transition id via `GET /rest/api/3/issue/{ticket}/transitions`
-    - Find target state in transition list
-    - POST the transition
-    - On success: append reply note inside the reply file or write a follow-up `from: cowork, to: cc, type: answer, parent: {id}, status: resolved` in the same folder
-    - Add `cowork-transition` label to ticket
-    - Remove `cc-done` label per `lib/jira-tags.md`
-    - Mark original task + reply as resolved
-  - If `type: ambiguity` or `blocker` and `to: cowork` (Cowork can answer directly without user):
-    - Return for parent to draft an answer
-  - Otherwise:
-    - Return for parent decision
-
-- **No reply yet, task `to: cc`** - informational (Cowork → CC, awaiting CC pickup). Return:
-  ```json
-  { "result": "to-cc-pending", "id": "...", "type": "...", "since": "<created>" }
-  ```
-  No action needed; parent reports as informational.
-
-- **Reply present, both files `status: resolved`** - archive candidate. Proceed to step 3.
-
-### 3. Archive resolved folders
-
-When BOTH task and reply files have `status: resolved`:
-- Determine destination: `{archive_root}/{PREFIX}-{NNN}-{slug}/`
-- Move the ENTIRE folder (task + reply + `attachments/` if present) in a single rename
-- All frontmatter retained verbatim
-
-Archive ownership is Cowork's (this skill's) job. CC writes the reply and flips status; CC does NOT move the folder. This skill is the next agent to touch the comm and owns the move.
-
-### 4. Return summary
+### 4. Return
 
 ```json
 {
-  "result": "<user-attention|resolved|to-cc-pending|deferred|malformed>",
-  "id": "<comm id>",
-  "details": { ... }
+  "result": "ready-to-archive | needs-owner | needs-planner | failed-check | still-working | malformed",
+  "id": "{UTC}-{slug}",
+  "status_line": "complete | partial | blocked | failed",
+  "summary": "...",
+  "acceptance": [{ "item": "...", "met": true, "proof": "..." }],
+  "owner_actions": ["..."],
+  "left_out": "...",
+  "questions": [{ "type": "ambiguity | blocker | user-action | ticket-transition", "file": "...", "text": "..." }],
+  "checks": { "commit": "pass", "tag": "pass", "branch_gone": "pass", "attribution": "pass", "changelog": "pass", "containment": "pass" },
+  "evidence": ["evidence/..."]
 }
 ```
 
+- `still-working`: no reply yet.
+- `needs-owner`: a question or `user-action` only the owner can answer.
+- `needs-planner`: a question the planner can answer from the plan or decisions.
+- `failed-check`: any repository check failed.
+- `ready-to-archive`: STATUS complete (or only owner actions remain), every check passed, no open question.
+
 ## Guard Rails
 
-- [ ] Never prompts the user directly - surface via return value
-- [ ] Ticket transitions only attempted when `atlassian_enabled: true`
-- [ ] On any HTTP failure, return the failure to the parent without retry-spamming
-- [ ] Archive moves use rename (folder move, not file-by-file) - everything always recoverable as a unit
-- [ ] Tags applied per `lib/jira-tags.md`
-- [ ] Never modifies a comm with unparseable frontmatter - return malformed and let parent decide
-
-## Why this is an agent
-
-- Parent's `check-comms` may face 0 or 30+ open comm folders. Doing each inline pollutes main context with per-folder parsing and HTTP details.
-- Each comm is independent - perfect for isolated subagent invocation.
-- Failures of one comm don't affect processing of others (parent invokes agent once per folder).
-- Subagent's tool access (`Bash`, `Read`, `Write`) is sufficient - no new connectors needed.
-
-## Error Cases
-
-**Malformed frontmatter:** Return `{result: malformed}`. Parent surfaces to user.
-**Transition lookup fails (Jira 401/403/404):** Return failure with status code; parent retries or surfaces.
-**Reply file already exists when one isn't expected:** Treat as legitimate prior reply; parse it.
-**Archive path collision:** If `{archive_root}/{PREFIX}-{NNN}-{slug}/` already exists (shouldn't happen with unique numbers but possible during a re-run), preserve both with a counter suffix on the destination.
-**Loose files in `comms/open/` not in a per-comm folder:** Legacy flat layout. Return `{result: "legacy-flat-file"}` and let parent decide whether to migrate or skip.
+- [ ] Read only: no writes, no moves, no git write commands
+- [ ] Never prompts the owner; everything goes back to the parent
+- [ ] Every check reported, pass or fail, never skipped silently

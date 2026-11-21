@@ -284,6 +284,36 @@ def check_no_emdash_json_escapes(fails):
             fail(f"{f}: em/en-dash unicode escape at {path or '<root>'}: '{sample}'", fails)
 
 
+def check_complete_files(fails):
+    """Files rewritten on Windows have come back cut off or padded with NUL bytes."""
+    EXTS = ('.md', '.json', '.ps1', '.sh', '.py', '.txt', '.xhtml', '.yml', '.yaml', '.html')
+    for f in Path('.').rglob('*'):
+        if not f.is_file() or '.git' in f.parts or 'dist' in f.parts:
+            continue
+        if f.suffix not in EXTS and f.name != 'commit-msg':
+            continue
+        b = f.read_bytes()
+        if not b:
+            continue
+        if b'\x00' in b:
+            fail(f"{f}: contains NUL bytes (padded or damaged rewrite)", fails)
+        if not b.endswith(b'\n'):
+            fail(f"{f}: does not end with a newline (possibly cut off)", fails)
+
+
+def check_shared_libs_identical(fails):
+    """A lib file that exists in several plugins must be identical in all of them."""
+    copies = {}
+    for f in Path('plugins').glob('*/lib/*.md'):
+        copies.setdefault(f.name, []).append(f)
+    for name, files in sorted(copies.items()):
+        if len(files) < 2:
+            continue
+        bodies = {f.read_bytes() for f in files}
+        if len(bodies) > 1:
+            fail(f"lib/{name}: {len(files)} copies, {len(bodies)} different versions: " + ", ".join(str(f.parts[1]) for f in files), fails)
+
+
 def main():
     fails = []
     m = check_marketplace_json(fails)
@@ -297,6 +327,8 @@ def main():
     check_no_emdashes(fails)
     check_no_emdash_json_escapes(fails)
     check_references(fails)
+    check_complete_files(fails)
+    check_shared_libs_identical(fails)
 
     print(f"Plugins: {len(plugin_names)}")
     print(f"Audit fails: {len(fails)}")

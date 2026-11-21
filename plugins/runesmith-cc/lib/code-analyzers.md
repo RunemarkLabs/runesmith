@@ -2,14 +2,14 @@
 
 Source of truth for per-language code analysis in `runesmith-cc:code-tech-debt`. Each language entry defines: detection signal, preferred analyzer tool, fallback heuristic, and findings categories covered.
 
-This file is shipped as part of `runesmith-cc/lib/` and deployed alongside the `code-tech-debt` skill into `{PROJECT}.cc/.claude/skills/code-tech-debt/` by `runesmith-cc:bootstrap-cc`. The skill reads from this registry to know which analyzers to run per detected language.
+This file is shipped as part of `runesmith-cc/lib/` and deployed alongside the `code-tech-debt` skill into `{PROJECT}.cc/.claude/skills/code-tech-debt/` by `runesmith-cc:head`. The skill reads from this registry to know which analyzers to run per detected language.
 
 ## Registry format
 
 Each entry:
 
 ```
-### <Language>
+### {Language}
 
 **Detection:** how the skill identifies this language in a repo
 **Preferred tool:** the recommended analyzer + install/invoke command
@@ -62,7 +62,7 @@ npx eslint --rule '{"no-unused-vars":"warn"}' --no-eslintrc .
 ```
 
 **Fallback heuristic:**
-- Unused deps: parse `package.json` `dependencies` + `devDependencies`. For each, grep for `require('<name>')` and `import .* from '<name>'` across the source tree. No match → flag.
+- Unused deps: parse `package.json` `dependencies` + `devDependencies`. For each, grep for `require('{name}')` and `import .* from '{name}'` across the source tree. No match → flag.
 - Unused imports: regex `^import .* from` then check usage in the same file's body.
 
 **Categories:** unused-dep, unused-import, unused-export (via eslint plugins), unreferenced-file
@@ -127,14 +127,14 @@ npx eslint --rule '{"no-unused-vars":"warn"}' --no-eslintrc .
 **Preferred tool:** [`vulture`](https://github.com/jendrikseipp/vulture)
 ```
 pip install vulture
-vulture <repo-root>
+vulture {repo-root}
 ```
 Reports unused functions, classes, variables, and unreachable code.
 
 **Fallback heuristic:**
 - For each top-level function/class definition, grep for its name as a call (`name(`) or attribute access (`.name(`) elsewhere
 - For imports (`import x`, `from y import x`), check usage in the same module
-- Unused dependencies: parse `pyproject.toml` `[project.dependencies]` or `requirements.txt`; grep `import <pkg>` and `from <pkg> import` for each
+- Unused dependencies: parse `pyproject.toml` `[project.dependencies]` or `requirements.txt`; grep `import {pkg}` and `from {pkg} import` for each
 
 **Categories:** unused-function, unused-class, unused-import, unreachable-module, unused-dep
 

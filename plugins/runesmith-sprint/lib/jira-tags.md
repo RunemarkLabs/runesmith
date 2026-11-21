@@ -39,9 +39,9 @@ Tags are Jira **labels**, not custom fields. No special configuration needed in 
 
 | Skill | Tags it writes | Tags it removes |
 |---|---|---|
-| `atlassian:plan-to-tickets` | `cowork-planned`, `bootstrap` | - |
-| `atlassian:check-comms` | `cowork-resolved` (on blocker resolution) | `cc-blocked`, `needs-user` (when resolving) |
-| `atlassian:sprint-status` | - | - (read-only) |
+| `runesmith-sprint:plan-to-tickets` | `cowork-planned`, `bootstrap` | - |
+| `runesmith-sprint:check-comms` | `cowork-resolved` (on blocker resolution) | `cc-blocked`, `needs-user` (when resolving) |
+| `runesmith-sprint:sprint-status` | - | - (read-only) |
 | CC `ticket-document` | `cc-plan` / `cc-action` / `cc-decision` (per type) | - |
 | CC `blocker-write` | `cc-blocked`, `needs-user` (if user-only) | - |
 | CC `ticket-done` | `cc-done` | - (Cowork removes `cc-blocked` etc. when transitioning) |

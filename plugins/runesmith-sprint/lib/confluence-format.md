@@ -16,10 +16,10 @@ Content-Type: application/json
   "spaceId": "{SPACE_ID}",
   "status": "current",
   "title": "Page Title",
-  "parentId": "<optional parent page id>",
+  "parentId": "{optional parent page id}",
   "body": {
     "representation": "storage",
-    "value": "<XHTML storage string>"
+    "value": "{XHTML storage string}"
   }
 }
 ```
@@ -37,7 +37,7 @@ Content-Type: application/json
   "version": { "number": <existing_version + 1> },
   "body": {
     "representation": "storage",
-    "value": "<XHTML storage string>"
+    "value": "{XHTML storage string}"
   }
 }
 ```
@@ -98,7 +98,7 @@ Table of contents:
 Always scope by space id:
 
 ```http
-GET {ATLASSIAN_API_URL}/wiki/api/v2/pages?space-id={SPACE_ID}&title=<URL-encoded title>&status=current
+GET {ATLASSIAN_API_URL}/wiki/api/v2/pages?space-id={SPACE_ID}&title={URL-encoded title}&status=current
 ```
 
 Without `space-id`, results cross spaces and the wrong page may be edited.
@@ -108,7 +108,7 @@ Without `space-id`, results cross spaces and the wrong page may be edited.
 | Status | Meaning | Action |
 |---|---|---|
 | 400 | Bad body / missing field | Validate XHTML, log offending element, abort |
-| 401 | Auth failed | Re-read `.credentials`, retry once, then "Run `/core:setup`." |
+| 401 | Auth failed | Re-read `.credentials`, retry once, then "Run `/runesmith-core:setup`." |
 | 403 | No permission | Surface to user, do not retry |
 | 404 | Space/page not found | Verify SPACE_ID, abort |
 | 409 | Version conflict on PUT | Re-GET version, retry once |

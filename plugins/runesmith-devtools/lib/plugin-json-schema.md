@@ -39,7 +39,7 @@ Kebab-case-lowercase. Pick a prefix that won't collide with public marketplaces 
 
 - Single paragraph, ends with a period.
 - No em-dashes (U+2014) or en-dashes (U+2013). ASCII hyphens only.
-- No angle-bracket placeholders (`<word>`). Use curly braces (`{WORD}`).
+- No angle-bracket placeholders (a word wrapped in `<` and `>`). Use curly braces (`{WORD}`).
 - No unicode escapes for em-dashes (U+2014, written as the six-character sequence backslash-u-2-0-1-4) inside JSON strings - they render as em-dash on parse and the byte-level audit misses them.
 - 200-400 characters is the sweet spot. Long enough to be informative, short enough to render cleanly in catalog UIs.
 

@@ -7,7 +7,8 @@
 #
 # Usage:
 #   .\install-guardrail.ps1                # install (or update existing)
-#   .\install-guardrail.ps1 -Mode verify   # verify install
+#   .\install-guardrail.ps1 -Mode verify   # verify install + AI attribution audit of {PROJECT}.cc heads
+#   .\install-guardrail.ps1 -Mode verify -Workspace C:\path\to\workspace
 #   .\install-guardrail.ps1 -Mode uninstall # remove
 #
 # What this writes:
@@ -28,7 +29,10 @@
 
 param(
     [ValidateSet('install', 'verify', 'uninstall')]
-    [string]$Mode = 'install'
+    [string]$Mode = 'install',
+
+    # verify only: workspace root to audit for AI attribution (default: current folder)
+    [string]$Workspace = (Get-Location).Path
 )
 
 $ErrorActionPreference = 'Stop'
@@ -465,14 +469,11 @@ function Invoke-Install {
     Write-Host "Next step: restart any open Claude Code sessions for the new settings to load." -ForegroundColor Yellow
 }
 
-function Invoke-Verify {
-    Write-Host "`nRuneSmith CC Project-Boundary Guardrail - Verify" -ForegroundColor White
-    Write-Host "================================================"
-
+function Test-GuardrailInstall {
     if (-not (Test-Path $SettingsP)) {
         Write-Fail "$SettingsP does not exist."
         Write-Host "Status: NOT INSTALLED" -ForegroundColor Red
-        exit 1
+        return $false
     }
 
     try {
@@ -481,13 +482,13 @@ function Invoke-Verify {
     } catch {
         Write-Fail "Cannot parse $SettingsP as JSON."
         Write-Fail "  Error: $($_.Exception.Message)"
-        exit 1
+        return $false
     }
 
     if (-not $existing.ContainsKey($MarkerKey)) {
         Write-Fail "Marker key '$MarkerKey' absent. Guardrail not installed."
         Write-Host "Status: NOT INSTALLED" -ForegroundColor Red
-        exit 1
+        return $false
     }
     Write-Ok "Marker present: $($existing[$MarkerKey])"
 
@@ -496,7 +497,7 @@ function Invoke-Verify {
     if (-not (Test-Path $hookPath)) {
         Write-Fail "Hook script missing: $hookPath"
         Write-Host "Status: PARTIAL - run install to repair" -ForegroundColor Red
-        exit 1
+        return $false
     }
     Write-Ok "Hook script present: $hookPath"
 
@@ -511,9 +512,143 @@ function Invoke-Verify {
     if ($result.AllowPass) { Write-Ok "Hook allow case: PASS" } else { Write-Fail "Hook allow case: FAIL ($($result.AllowCode))" }
     if ($result.DenyPass)  { Write-Ok "Hook deny case:  PASS" } else { Write-Fail "Hook deny case:  FAIL ($($result.DenyCode))" }
 
+    return ($result.AllowPass -and $result.DenyPass)
+}
+
+# ---------- AI attribution audit (report only, never rewrites history) ----------
+
+$AttrRe = '^[[:space:]]*co-authored-by:.*(anthropic\.com|claude)|generated with \[?claude code|^[[:space:]]*claude-session:|claude\.ai/code/session_'
+$AttrRePs = '(?im)^\s*co-authored-by:.*(anthropic\.com|claude)|generated with \[?claude code|^\s*claude-session:|claude\.ai/code/session_'
+
+# Returns 'off' when the merged settings files turn every attribution part off.
+function Get-AttributionState([string[]]$Files) {
+    $commit = $null; $pr = $null; $session = $null; $allOff = $false
+    foreach ($f in $Files) {
+        if (-not (Test-Path $f)) { continue }
+        try { $j = ConvertTo-Hashtable (Get-Content $f -Raw | ConvertFrom-Json) } catch { continue }
+        if (-not $j -or -not $j.ContainsKey('attribution')) { continue }
+        $at = $j['attribution']
+        if ($at -is [bool]) { $allOff = (-not $at); continue }
+        if ($at -is [hashtable]) {
+            $allOff = $false
+            if ($at.ContainsKey('commit'))     { $commit  = $at['commit'] }
+            if ($at.ContainsKey('pr'))         { $pr      = $at['pr'] }
+            if ($at.ContainsKey('sessionUrl')) { $session = $at['sessionUrl'] }
+        }
+    }
+    if ($allOff) { return 'off' }
+    if ($commit -eq '' -and $pr -eq '' -and $session -eq $false) { return 'off' }
+    $fmt = { param($v) if ($null -eq $v) { 'unset' } elseif ($v -is [string]) { '"' + $v + '"' } else { "$v" } }
+    return "commit=$(& $fmt $commit) pr=$(& $fmt $pr) sessionUrl=$(& $fmt $session)"
+}
+
+# Runs the repo's commit-msg hook on a sample message; $true when no attribution survives.
+function Test-HookStrips([string]$Repo) {
+    $tmp = [System.IO.Path]::GetTempFileName()
+    $probe = "chore: runesmith attribution probe`n`nCo-Authored-By: Claude <noreply@anthropic.com>`nClaude-Session: https://claude.ai/code/session_probe`n`nGenerated with [Claude Code](https://claude.com/claude-code)`n"
+    [System.IO.File]::WriteAllText($tmp, $probe)
+    $tmpFwd = $tmp -replace '\\', '/'
+    & git -C $Repo hook run --ignore-missing commit-msg -- $tmpFwd *> $null
+    $out = [System.IO.File]::ReadAllText($tmp)
+    Remove-Item $tmp -ErrorAction SilentlyContinue
+    return -not ($out -match $AttrRePs)
+}
+
+function Get-DefaultBranchRef([string]$Repo) {
+    $ref = & git -C $Repo symbolic-ref -q --short refs/remotes/origin/HEAD 2>$null
+    if ($LASTEXITCODE -eq 0 -and $ref) { return $ref.Trim() }
+    foreach ($b in 'origin/main', 'origin/master', 'main', 'master') {
+        & git -C $Repo rev-parse --verify -q $b *> $null
+        if ($LASTEXITCODE -eq 0) { return $b }
+    }
+    return 'HEAD'
+}
+
+function Test-Attribution([string]$Ws) {
     Write-Host ""
-    Write-Host "Status: $(if ($result.AllowPass -and $result.DenyPass) { 'OK' } else { 'PARTIAL - run install to repair' })" `
-        -ForegroundColor $(if ($result.AllowPass -and $result.DenyPass) { 'Green' } else { 'Yellow' })
+    Write-Host "AI attribution (workspace: $Ws)" -ForegroundColor White
+    Write-Host "------------------------------------------------"
+    $problems = 0
+
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+        Write-Fail "git not found on PATH. Cannot audit repos."
+        return $false
+    }
+    if (Test-Path $SettingsP) {
+        $us = Get-AttributionState @($SettingsP)
+        if ($us -eq 'off') { Write-Ok "User settings: attribution off" }
+        else { Write-Warn "User settings: attribution not off ($us) - CC heads still override this" }
+    }
+
+    $heads = @()
+    if (Test-Path (Join-Path $Ws '.claude-code-workspace')) { $heads += (Get-Item $Ws) }
+    $heads += @(Get-ChildItem -Path $Ws -Directory -Filter '*.cc' -ErrorAction SilentlyContinue)
+    if ($heads.Count -eq 0) {
+        Write-Warn "No {PROJECT}.cc head found under $Ws. Run from the workspace root or pass -Workspace."
+        return $true
+    }
+
+    foreach ($h in $heads) {
+        $hp = $h.FullName
+        Write-Host ""
+        Write-Host "  Head: $hp"
+        $st = Get-AttributionState @((Join-Path $hp '.claude\settings.json'), (Join-Path $hp '.claude\settings.local.json'))
+        if ($st -eq 'off') { Write-Ok "  settings: attribution off" }
+        else { Write-Fail "  settings: attribution not off ($st)"; $problems++ }
+
+        $cm = Join-Path $hp 'CLAUDE.md'
+        if ((Test-Path $cm) -and ((Get-Content $cm -Raw) -match '(?i)attribution.{0,3}\(?hard rule')) {
+            Write-Ok "  CLAUDE.md: attribution rule present"
+        } else {
+            Write-Fail "  CLAUDE.md: attribution rule missing"; $problems++
+        }
+
+        foreach ($r in (Get-ChildItem -Path $hp -Directory -ErrorAction SilentlyContinue)) {
+            if (-not (Test-Path (Join-Path $r.FullName '.git'))) { continue }
+            $repo = $r.FullName
+            $name = $r.Name
+            $hooksPath = (& git -C $repo config core.hooksPath 2>$null)
+            $hdir = (& git -C $repo rev-parse --git-path hooks 2>$null)
+            if ($hdir -and -not [System.IO.Path]::IsPathRooted($hdir)) { $hdir = Join-Path $repo $hdir }
+            $hook = Join-Path $hdir 'commit-msg'
+            & git -C $repo hook run --ignore-missing runesmith-probe-none *> $null
+            $hasHookRun = ($LASTEXITCODE -eq 0)
+            if (-not (Test-Path $hook)) {
+                $suffix = if ($hooksPath) { " (core.hooksPath=$hooksPath)" } else { '' }
+                Write-Fail "  ${name}: no commit-msg hook$suffix"; $problems++
+            } elseif (-not $hasHookRun) {
+                Write-Warn "  ${name}: commit-msg hook present; git is older than 2.36, so it was not tested"
+            } elseif (-not (Test-HookStrips $repo)) {
+                Write-Fail "  ${name}: commit-msg hook does not strip attribution"; $problems++
+            } elseif ((Get-Content $hook -Raw) -match 'runesmith-no-attribution') {
+                Write-Ok "  ${name}: commit-msg hook (RuneSmith) strips attribution"
+            } else {
+                Write-Ok "  ${name}: commit-msg hook (custom) strips attribution"
+            }
+
+            $ref = Get-DefaultBranchRef $repo
+            $hits = @(& git -C $repo log $ref -E -i --format=%h "--grep=$AttrRe" 2>$null)
+            $count = ($hits | Where-Object { $_ }).Count
+            $shallow = if ((& git -C $repo rev-parse --is-shallow-repository 2>$null) -eq 'true') { ' (shallow clone: fetched history only)' } else { '' }
+            if ($count -eq 0) { Write-Ok "  ${name}: 0 commits on $ref carry attribution$shallow" }
+            else { Write-Warn "  ${name}: $count commits on $ref carry attribution$shallow (report only; history not rewritten)" }
+        }
+    }
+    return ($problems -eq 0)
+}
+
+function Invoke-Verify {
+    Write-Host "`nRuneSmith CC Project-Boundary Guardrail - Verify" -ForegroundColor White
+    Write-Host "================================================"
+    $guardOk = Test-GuardrailInstall
+    $attrOk  = Test-Attribution $Workspace
+    Write-Host ""
+    if ($guardOk -and $attrOk) {
+        Write-Host "Status: OK" -ForegroundColor Green
+    } else {
+        Write-Host "Status: ATTENTION - see failures above (re-run install for the guardrail, /runesmith-cc:bootstrap-cc for attribution)" -ForegroundColor Yellow
+        exit 1
+    }
 }
 
 function Invoke-Uninstall {

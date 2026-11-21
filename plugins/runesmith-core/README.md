@@ -1,30 +1,28 @@
 # runesmith-core
 
-Foundation plugin: credentials, plugin install/sync, chat-first planning.
+Foundation plugin: credentials, plugin install and sync, and planning before writes.
 
 Part of the [RuneSmith marketplace](https://github.com/runemarklabs/runesmith).
 
 ## Skills
 
-- **`/runesmith-core:plan`** - Discuss and converge on a plan in chat before any writes; saves to plans/active/<slug>/plan.md.
-- **`/runesmith-core:install`** - Browse and install plugins from this marketplace and optional catalogs.
-- **`/runesmith-core:sync`** - Pull latest plugin versions and refresh AIOPS templates from upstream.
-- **`/runesmith-core:setup`** - Configure .credentials (Atlassian, GitHub, plugin sources) with health checks.
+- **`/runesmith-core:plan`**: Discuss a change, check open issues, and write `plans/active/{slug}/plan.md` and `decisions.md`.
+- **`/runesmith-core:setup`**: Set up the planner's `.credentials` blocks and run health checks. Never asks for a secret in chat.
+- **`/runesmith-core:install`**: Browse and install plugins from this marketplace and extra sources.
+- **`/runesmith-core:sync`**: Update installed plugins and refresh the AI Operations templates.
 
 ## Install
-
-Via marketplace (Claude Code / Teams):
 
 ```
 /plugin marketplace add runemarklabs/runesmith
 /plugin install runesmith-core@runesmith
 ```
 
-Via manual `.plugin` file (Cowork): drag the file from `dist-v2/` into the Cowork plugin sidebar.
+Or build the `.plugin` files with `python scripts/build.py` and drag them from `dist/` into the Claude desktop plugin sidebar.
 
 ## Configure
 
-Run `/runesmith-core:setup` first to populate `.credentials` at the workspace root.
+Install this first. `/runesmith-workspace:init` runs setup when keys are missing.
 
 ## License
 

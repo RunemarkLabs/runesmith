@@ -36,13 +36,13 @@ Validate the output is well-formed XML (root content properly nested, no unbalan
 
 ```json
 {
-  "spaceId": "<space_id>",
+  "spaceId": "{space_id}",
   "status": "current",
-  "title": "<title>",
-  "parentId": "<parent_id>"  // omit if not provided
+  "title": "{title}",
+  "parentId": "{parent_id}"  // omit if not provided
   "body": {
     "representation": "storage",
-    "value": "<XHTML string>"
+    "value": "{XHTML string}"
   }
 }
 ```
@@ -50,7 +50,7 @@ Validate the output is well-formed XML (root content properly nested, no unbalan
 For `mode: update`, also include:
 ```json
 {
-  "id": "<page_id>",
+  "id": "{page_id}",
   "version": { "number": <current_version + 1> }
 }
 ```
@@ -58,7 +58,7 @@ For `mode: update`, also include:
 ### 3. Send request
 
 - `mode: create` → `POST {ATLASSIAN_API_URL}/wiki/api/v2/pages`
-- `mode: update` → `PUT {ATLASSIAN_API_URL}/wiki/api/v2/pages/<page_id>`
+- `mode: update` → `PUT {ATLASSIAN_API_URL}/wiki/api/v2/pages/{page_id}`
 
 Auth header: `Authorization: Basic <base64(email:token)>`.
 
@@ -82,9 +82,9 @@ On success:
 {
   "success": true,
   "page_id": "...",
-  "url": "<ATLASSIAN_API_URL>/<webui-path>",
+  "url": "{ATLASSIAN_API_URL}/{webui-path}",
   "title": "...",
-  "version_number": <new-version>
+  "version_number": {new-version}
 }
 ```
 

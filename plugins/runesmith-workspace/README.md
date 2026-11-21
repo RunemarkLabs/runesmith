@@ -1,28 +1,27 @@
 # runesmith-workspace
 
-Workspace structure manager: _INBOX, plans/active, plans/archive, snapshots.
+Project setup and workspace structure. `/init` is the single entry point for a project.
 
 Part of the [RuneSmith marketplace](https://github.com/runemarklabs/runesmith).
 
 ## Skills
 
-- **`/runesmith-workspace:reallocate`** - Migrate or initialize the workspace folder structure with auto-snapshot.
-- **`/runesmith-workspace:inbox`** - Classify files in _INBOX/ and route them to plans, drafts, tickets, or notes.
+- **`/runesmith-workspace:init`**: Interview, workspace layout, `CLAUDE.md`, `STRUCTURE.md` and Project Instructions; for code projects, the Claude Code head through `runesmith-cc:head`. Safe to re-run.
+- **`/runesmith-workspace:inbox`**: Classify files dropped in `_INBOX/` and route them on approval.
+- **`/runesmith-workspace:reallocate`**: Pointer to `init` for this release.
 
 ## Install
-
-Via marketplace (Claude Code / Teams):
 
 ```
 /plugin marketplace add runemarklabs/runesmith
 /plugin install runesmith-workspace@runesmith
 ```
 
-Via manual `.plugin` file (Cowork): drag the file from `dist-v2/` into the Cowork plugin sidebar.
+Or build the `.plugin` files with `python scripts/build.py` and drag them from `dist/` into the Claude desktop plugin sidebar.
 
 ## Configure
 
-Run `/runesmith-core:setup` first to populate `.credentials` at the workspace root.
+Needs `runesmith-core`. Code projects also need `runesmith-cc` and `runesmith-sprint`.
 
 ## License
 

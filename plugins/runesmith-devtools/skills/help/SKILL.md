@@ -2,7 +2,7 @@
 name: help
 description: "Show all available workspace skills, installed plugins, and what they do. Use when the user says \"help\", \"what can you do\", \"list skills\", \"show commands\", \"what skills are there\", or seems unsure what's available. Also use when the user asks \"how do I...\", \"is there a way to...\", or \"can you...\" about a workflow that might already be covered by a plugin or skill."
 model: haiku
-compatibility: Requires Cowork desktop app environment.
+compatibility: Runs in the planner chat with the project's workspace folder connected.
 ---
 
 # Workspace Help
@@ -27,8 +27,8 @@ Use for:
 - Onboarding a new user
 
 Do not use for:
-- Installing plugins → `/core:install`
-- Configuring credentials → `/core:setup`
+- Installing plugins → `/runesmith-core:install`
+- Configuring credentials → `/runesmith-core:setup`
 
 ## Workflow
 
@@ -56,29 +56,29 @@ If this marketplace is installed, ensure these are listed:
 
 ### 4. Format output
 
-Group by plugin, alphabetical within group. One line per skill: `/<plugin>:<skill> - <one-line description>`.
+Group by plugin, alphabetical within group. One line per skill: `/{plugin}:{skill} - {one-line description}`.
 
 ```
 Installed plugins (n)
 
 core
-  /core:plan          - Discuss before writing
-  /core:install       - Browse and install plugins
-  /core:sync          - Pull latest plugin versions
-  /core:setup         - Configure credentials
+  /runesmith-core:plan          - Discuss before writing
+  /runesmith-core:install       - Browse and install plugins
+  /runesmith-core:sync          - Pull latest plugin versions
+  /runesmith-core:setup         - Configure credentials
 
 atlassian
-  /atlassian:ticket   - Create a Jira ticket
+  /runesmith-jira:ticket   - Create a Jira ticket
   …
 
 aiops
   /aiops:bootstrap-aiops - Populate AIOPS space
 
 devtools
-  /devtools:help      - This help
+  /runesmith-devtools:help      - This help
   …
 
-Try /core:install to add more, or /core:setup to configure credentials.
+Try /runesmith-core:install to add more, or /runesmith-core:setup to configure credentials.
 ```
 
 ### 5. Topic search (if user asked "how do I X?")
@@ -96,6 +96,6 @@ Match X against skill descriptions. Suggest top 1-3 matches with their trigger p
 
 ## Error Cases
 
-**No plugins found:** "No plugins installed. Try /core:install."
-**Plugin scan permission denied:** "Cannot read plugin directory. Check permissions on <path>."
-**Unknown topic in search:** Suggest /core:install and the marketplace URL.
+**No plugins found:** "No plugins installed. Try /runesmith-core:install."
+**Plugin scan permission denied:** "Cannot read plugin directory. Check permissions on {path}."
+**Unknown topic in search:** Suggest /runesmith-core:install and the marketplace URL.

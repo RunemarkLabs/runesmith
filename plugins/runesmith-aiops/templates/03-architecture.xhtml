@@ -1,36 +1,47 @@
 <h1>{COMPANY} - AIOPS Architecture</h1>
 
-<p>How AI-driven operations skills connect to <strong>{COMPANY}</strong>'s Atlassian instance.</p>
+<p>How planning, building and review fit together at <strong>{COMPANY}</strong>, and how they connect to Atlassian at <code>{SITE}</code>.</p>
 
-<h2>Components</h2>
+<h2>Roles</h2>
 <table>
   <tbody>
-    <tr><th>Component</th><th>Role</th><th>Where it lives</th></tr>
-    <tr><td>Plugin marketplace</td><td>Distributes skills to clients</td><td>Git repo with <code>.claude-plugin/marketplace.json</code></td></tr>
-    <tr><td>Skill</td><td>Executable workflow (e.g. <code>/atlassian:ticket</code>)</td><td>Plugin folder <code>skills/&lt;name&gt;/SKILL.md</code></td></tr>
-    <tr><td>Shared libs</td><td>Endpoint, format, consent rules</td><td><code>plugins/core/lib/*.md</code></td></tr>
-    <tr><td>Atlassian Cloud</td><td>Source of truth for issues + pages</td><td><code>{SITE}</code></td></tr>
-    <tr><td>Local <code>.credentials</code></td><td>Per-user auth</td><td>Workspace root, gitignored</td></tr>
+    <tr><th>Role</th><th>Who</th><th>Does</th><th>Never does</th></tr>
+    <tr><td>Owner</td><td>A person</td><td>Decides, approves promotions, marks the QA checklist</td><td></td></tr>
+    <tr><td>Planner</td><td>Claude in a Claude Project</td><td>Plans, writes tasks and goal lines, verifies replies, archives, talks to Jira, Confluence and GitHub</td><td>Write application code, run git write commands in the builder's repos, edit a reply</td></tr>
+    <tr><td>Builder</td><td>Claude Code</td><td>Builds, tests, merges into <code>dev</code>, numbers builds, writes replies, prints one banner per goal</td><td>Talk to the owner directly, archive comms</td></tr>
   </tbody>
 </table>
 
-<h2>Auth flow</h2>
+<h2>Where things live</h2>
+<table>
+  <tbody>
+    <tr><th>Thing</th><th>Where</th></tr>
+    <tr><td>Plans and decisions</td><td><code>plans/active/</code> in the workspace, one folder per plan with <code>plan.md</code> and <code>decisions.md</code></td></tr>
+    <tr><td>Claude Code head</td><td>A <code>.cc</code> folder beside the workspace files, holding the builder's rules, settings, skills, <code>comms/</code> and the repos</td></tr>
+    <tr><td>Comms</td><td><code>comms/open/</code> for active work (one folder per task), <code>comms/archive/</code> for finished work</td></tr>
+    <tr><td>Work state (Jira on)</td><td>Jira project <code>{PROJECT_KEY}</code></td></tr>
+    <tr><td>Lasting documents</td><td>Confluence space <code>{SPACE_KEY}</code></td></tr>
+    <tr><td>Credentials</td><td>The planner's at the workspace root; Claude Code's in the head; never in a repo</td></tr>
+  </tbody>
+</table>
+
+<h2>A goal, step by step</h2>
 <ol>
-  <li>Skill resolves <code>.credentials</code> via <code>credentials.md</code> rules.</li>
-  <li>Builds Basic auth header: <code>email:token</code> base64.</li>
-  <li>Issues request to <code>{ATLASSIAN_API_URL}</code> with the header.</li>
-  <li>On 401: re-read once, then prompt user to re-run <code>/core:setup</code>.</li>
+  <li>The planner writes a task with Acceptance and gives the owner a <code>/goal</code> line.</li>
+  <li>The owner pastes it into Claude Code.</li>
+  <li>Claude Code writes a goal status comm first, works each task on its own branch, and merges into <code>dev</code> when tests pass.</li>
+  <li>Each task gets a reply that starts with a STATUS line: complete, partial, blocked or failed.</li>
+  <li>Claude Code prints one banner and stops.</li>
+  <li>The planner checks comms: verifies each reply against the repository, archives finished work, logs the outcome.</li>
 </ol>
 
-<h2>Data flow (page create)</h2>
-<ol>
-  <li>User invokes write skill (e.g. <code>/atlassian:feature-doc</code>).</li>
-  <li>Skill drafts markdown locally to <code>/drafts/...</code>.</li>
-  <li>User reviews and issues consent trigger phrase.</li>
-  <li>Skill converts markdown → Confluence storage XHTML per <code>confluence-format.md</code>.</li>
-  <li>Skill <code>POST /wiki/api/v2/pages</code> against <code>{ATLASSIAN_API_URL}</code>.</li>
-  <li>Skill reports page URL.</li>
-</ol>
+<h2>Promotions</h2>
+<p><code>dev</code> to <code>qa</code> to <code>beta</code> to <code>main</code>, one step at a time, only on the owner's word. Before <code>qa</code>, the full test suite runs against <code>dev</code>. At <code>qa</code>, the owner works through the project's QA checklist page; every item must pass before <code>beta</code>. A failing item becomes a fix task and a GitHub issue. Build numbers are MAJOR.MINOR.BUILD with a four-digit build, one per finished goal.</p>
 
-<h2>Substitution tokens</h2>
-<p>Templates in this space use canonical tokens - see <code>tokens.md</code> in the marketplace repo. <code>{COMPANY}</code>, <code>{SITE}</code>, <code>{SPACE_KEY}</code>, <code>{SPACE_ID}</code>, <code>{PROJECT_KEY}</code>, <code>{ATLASSIAN_API_URL}</code>.</p>
+<h2>Atlassian calls</h2>
+<ol>
+  <li>The planner reads the keys from the workspace <code>.credentials</code> and builds a Basic auth header for one command.</li>
+  <li>It calls <code>{ATLASSIAN_API_URL}</code> on the current Cloud endpoints.</li>
+  <li>Pages are drafted in markdown, converted to storage format, and published only on the owner's approval.</li>
+  <li>Claude Code reads Jira with its own read-only token. To move a ticket, it asks the planner through a comm.</li>
+</ol>

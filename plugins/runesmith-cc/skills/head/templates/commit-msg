@@ -1,0 +1,31 @@
+#!/bin/sh
+# runesmith-no-attribution
+#
+# commit-msg hook installed by RuneSmith runesmith-cc:bootstrap-cc.
+# Removes AI attribution lines from every commit message in this repo:
+#   - Co-Authored-By trailers naming Claude or an anthropic.com address
+#   - "Generated with Claude Code" lines (any prefix, with or without link)
+#   - Claude-Session trailers and claude.ai/code/session_ links
+# Human Co-Authored-By trailers are kept.
+#
+# If this repo already had a commit-msg hook, bootstrap-cc renamed it to
+# commit-msg.local; it runs first, unchanged, and its exit code is honored.
+# Re-running bootstrap-cc rewrites this file; put custom logic in
+# commit-msg.local instead.
+
+MSG_FILE="$1"
+HOOK_DIR=$(dirname "$0")
+
+if [ -f "$HOOK_DIR/commit-msg.local" ]; then
+  sh "$HOOK_DIR/commit-msg.local" "$@" || exit $?
+fi
+
+[ -f "$MSG_FILE" ] || exit 0
+
+TMP_FILE="$MSG_FILE.runesmith-tmp"
+grep -viE '^[[:space:]]*co-authored-by:.*(anthropic\.com|claude)|generated with \[?claude code|^[[:space:]]*claude-session:|claude\.ai/code/session_' "$MSG_FILE" > "$TMP_FILE"
+
+# Drop blank lines left dangling at the end of the message.
+awk '{ line[NR] = $0 } END { n = NR; while (n > 0 && line[n] ~ /^[[:space:]]*$/) n--; for (i = 1; i <= n; i++) print line[i] }' "$TMP_FILE" > "$MSG_FILE"
+rm -f "$TMP_FILE"
+exit 0

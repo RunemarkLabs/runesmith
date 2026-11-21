@@ -1,7 +1,7 @@
 {
   "name": "runesmith-sprint",
-  "version": "0.8.1",
-  "description": "[RuneSmith v0.8.1] Atlassian sprint workflow + Cowork↔CC interconnect. /enable wires Atlassian into a project (CLAUDE.md updates, CC-side skill deployment), /start-sprint and /sprint-status manage the active sprint handshake, /check-comms triages the comms folder, /plan-to-tickets converts plans into Jira tickets organized by sprint. CC reads sprints via read-only REST while mutations route through Cowork.",
+  "version": "1.0.0",
+  "description": "[RuneSmith v1.0.0] The planner and builder loop. /task writes a task comm and its /goal line, /check-comms verifies Claude Code's replies against the repository and archives finished work, /promote moves a build from dev to qa to beta to main on the owner's word, and /qa-checklist publishes one checklist page per project where you mark each item pass or fail. Optional Jira wiring: /enable, /start-sprint, /sprint-status, /plan-to-tickets.",
   "author": {
     "name": "Runemark Labs"
   }

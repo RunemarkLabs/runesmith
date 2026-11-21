@@ -1,12 +1,12 @@
 ---
 name: ticket-done
 description: "Mark a ticket complete from CC's side - write a comm requesting Cowork to transition the ticket to Done, tag with cc-done. Use when CC has finished implementation and verified the work meets acceptance criteria. Runs in Claude Code."
-compatibility: Requires Cowork desktop app environment.
+compatibility: Runs in Claude Code, inside the project's head.
 ---
 
 # Ticket Done (CC-side)
 
-CC's token cannot transition Jira state by design. CC requests the transition via a `type: ticket-transition` comm. Cowork's `check-comms` executes the transition via its MCP tools.
+CC's token cannot transition Jira state by design. CC requests the transition via a `type: ticket-transition` comm. The planner's `check-comms` makes the transition through the Jira REST API.
 
 ## References
 
@@ -28,7 +28,7 @@ Re-read the ticket description and acceptance criteria. Confirm:
 - All known tests pass.
 - Required documentation is in place.
 
-If anything fails, write a `cc-blocked` comm instead - don't request Done.
+If anything fails, write a blocker through `blocker-write` instead - don't request Done.
 
 ### 2. Add `cc-done` label
 
@@ -43,19 +43,20 @@ Otherwise, request via the same comm in the next step.
 ### 3. Write the transition request comm
 
 ```
-comms/open/<ISO>-transition-{KEY}-done.md
+comms/open/{UTC}-{slug}/{UTC}-{slug}-ticket-transition-{n}.md     (in the current task's folder)
 ```
 
 ```yaml
 ---
-id: <id>
+id: {UTC}-{slug}-ticket-transition-{n}
 from: cc
 to: cowork
 type: ticket-transition
+parent: {UTC}-{slug}
 ticket: {KEY}
 target-state: Done
 status: open
-created: <ISO>
+created: {ISO time, UTC}
 also-add-labels: []                  # if cc-done already added directly, leave empty
 also-remove-labels: [cc-blocked]     # in case ticket was previously blocked then unblocked
 ---
@@ -64,12 +65,12 @@ also-remove-labels: [cc-blocked]     # in case ticket was previously blocked the
 
 ## Body
 Implementation complete. Acceptance criteria verified:
-1. <criterion> - satisfied by <evidence: commit / test / file>
+1. {criterion} - satisfied by {evidence: commit, test or file}
 2. ...
 
-Last commit: <sha>
-Branch: <branch>
-PR (if any): <url>
+Last commit: {sha}
+Branch: {goal branch}
+Pull request: {address}
 
 ## Acceptance
 Transition the ticket to Done. Reply with `type: answer` confirming
@@ -82,13 +83,13 @@ Use `ticket-document` skill with `type: action` - body summarizing what was done
 
 ### 5. Move on
 
-After writing the transition comm, CC should NOT continue working this ticket. Pick the next available from the sprint.
+After writing the transition comm, carry on with the goal's next task. Never pick a ticket the goal doesn't name.
 
 ### 6. Report (in CC chat)
 
 ```
-Done on {KEY}: <one-line summary>
-Wrote: <transition comm filename>
+Done on {KEY}: {one-line summary}
+Wrote: {transition comm filename}
 Label cc-done: <direct | via comms>
 Picking next available ticket…
 ```

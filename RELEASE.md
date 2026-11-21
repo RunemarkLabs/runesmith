@@ -1,132 +1,47 @@
-# Release process - Runemark internal
+# Release process
 
-This document describes how to ship a release of RuneSmith from this private development workspace to the public marketplace repo.
+How to ship a RuneSmith release. This repo is the public marketplace; private work (plans, drafts, notes) lives in the maintainer's workspace outside this folder and never enters the repo.
 
-**Audience:** Runemark Labs internal contributors. The public marketplace repo (e.g. `github.com/runemarklabs/runesmith`) is the consumer-facing artifact.
+## Versions
 
-## Repo topology
+Each plugin has its own SemVer track in its `.claude-plugin/plugin.json`. Bump only the plugins that changed. The marketplace version (`.claude-plugin/marketplace.json` `metadata.version`) moves with every release.
 
-```
-PRIVATE (this workspace, internal-only)
-├── .claude-plugin/              ← public
-├── plugins/                     ← public
-├── dist/                        ← public
-├── scripts/                     ← public (audit.py, md-to-storage.py)
-├── .github/workflows/           ← public
-├── README, INSTALL, CHANGELOG,  ← public
-│   CONTRIBUTING, LICENSE, NOTICE
-├── .credentials.example         ← public
-├── .gitignore                   ← public
-│
-├── CLAUDE.md                    ← private (workspace rules for Runemark dev)
-├── notes/                       ← private (Ben's session notes)
-├── drafts/                      ← private (pre-publish Atlassian drafts)
-├── plans/                       ← private (project plans, supersedes/related)
-├── _INBOX/                      ← private (drop zone)
-├── tickets/                     ← private (Jira drafts)
-├── research/                    ← private (analysis docs)
-├── source-docs/                 ← private (external uploads)
-├── archive/                     ← private (reallocate / bootstrap-cc snapshots)
-├── claude-code/                 ← private (Ben's CC workspaces)
-├── *.cc/                        ← private (per-project CC heads)
-├── .credentials                 ← private (real creds, gitignored)
-├── atlassian-index.json         ← private (workspace index)
-├── bootstrap-setup-templates.md ← private (legacy)
-├── Screenshot*.png              ← private (workflow screenshots)
-└── PUBLIC.manifest.txt          ← controls what release.sh ships
-└── RELEASE.md                   ← this file
-└── scripts/release.sh           ← Runemark internal release tool
+- **MAJOR:** breaking changes to a skill name, a library convention, the comms protocol or the workspace layout.
+- **MINOR:** new skills, new plugins, new agents.
+- **PATCH:** fixes, wording, internal refactors.
 
-PUBLIC (e.g. github.com/runemarklabs/runesmith)
-└── (only the subset listed in PUBLIC.manifest.txt)
-```
+Each plugin's description starts with `[RuneSmith v{version}]`, and the matching entry in `marketplace.json` repeats it. Keep both in step; `scripts/bump-version.py` does it for you.
 
-## How to release
+## Steps
 
-Prerequisite: have a local clone of the public marketplace repo somewhere on disk:
+1. Update the changed plugins' versions and descriptions.
+2. Add the `CHANGELOG.md` entry under `## [{version}] - {YYYY-MM-DD}`: Added, Changed, Removed, Fixed, and a Migration section when anything breaks.
+3. Update every copy when a convention changes: each plugin's shared library files (copies must stay identical), templates, READMEs, the docs, the AI Operations templates.
+4. Run the audit and fix anything it reports:
 
-```bash
-git clone git@github.com:runemarklabs/runesmith.git ~/Code/runesmith
-```
+   ```
+   python scripts/audit.py
+   ```
 
-From this private workspace:
+5. Build the zips and install them locally to try them:
 
-```bash
-# 1. Bump version in marketplace.json + each plugin.json if releasing a new version
-# 2. Update CHANGELOG.md
-# 3. Run the audit locally
-python3 scripts/audit.py
+   ```
+   python scripts/build.py
+   ```
 
-# 4. Run release script pointing at your public clone
-bash scripts/release.sh ~/Code/runesmith
+6. Commit to `main` and push. If `main` is protected, commit on a release branch and merge it through a pull request instead. CI runs the audit on every push.
+7. Tag the release (`git tag v{version}`) and push the tag with the branch: `git push origin main v{version}`.
 
-# 5. Review the diff in the public clone, then commit + push
-cd ~/Code/runesmith
-git status
-git add -A
-git commit -m "release: runesmith v0.4.0"
-git push origin main
-```
+## What the audit checks
 
-The release script:
-- Runs `scripts/audit.py` first; refuses to ship if audit fails.
-- Reads `PUBLIC.manifest.txt` to determine what to copy.
-- Refuses to overwrite uncommitted changes in the public clone without confirmation.
-- Copies each manifest entry from this private workspace to the destination.
-- Never copies anything not on the manifest.
-
-## What the public sees
-
-- The packaged `dist/*.plugin` files (drag-and-drop install)
-- The plugin source in `plugins/` (forkable, modifiable)
-- Reference scripts: `scripts/audit.py` (validation), `scripts/md-to-storage.py` (converter)
-- CI workflow: `.github/workflows/build.yml`
-- Documentation: README, INSTALL, CHANGELOG, CONTRIBUTING
-- Legal: LICENSE (Apache-2.0), NOTICE
-- `.credentials.example` template
-
-The public never sees:
-- Internal session notes, drafts, plans, research
-- Workspace CLAUDE.md (the rules for *this* dev environment)
-- Any real credentials, screenshots, or per-project `.cc/` workspaces
-- The release script itself (it's Runemark internal tooling)
-- This RELEASE.md (also Runemark internal)
-- PUBLIC.manifest.txt (Runemark internal)
+- The marketplace manifest, plugin manifests, skill front matter and command descriptions are valid; no `dependencies` field.
+- No word wrapped in `<` and `>` in front matter or descriptions.
+- No forbidden phrasing (plain-text yes or no prompts, secret-paste wording and the like).
+- No em dashes or en dashes.
+- Library references resolve inside each plugin.
+- Every file is complete: no NUL bytes, a final newline.
+- Shared library files are identical across plugins.
 
 ## Forks
 
-Anyone (Sapient, third parties, anyone who finds the repo) can fork the public marketplace and modify for their own use. Runemark does not maintain forks. Sapient-specific or other tenant-specific customizations live in their own forks, not in this dev workspace and not in the public marketplace.
-
-The public marketplace is **generic and single-tenant configurable per project** - that's a design invariant enforced by `scripts/audit.py`. Forks may override that for internal use.
-
-## Version policy
-
-Single version across the marketplace (`marketplace.json` `metadata.version` + every plugin.json `version`). Bump together on each release. Semver:
-- **MAJOR** - breaking changes to lib conventions, skill names, or marketplace structure
-- **MINOR** - new skills, new plugins, new agent files
-- **PATCH** - fixes, doc updates, internal refactors
-
-Update `CHANGELOG.md` under `## [<version>] - <date>` with the change list before running release.
-
-## Common workflow patterns
-
-**Hotfix a published plugin:**
-1. Make the fix in this private workspace, in `plugins/<plugin>/`
-2. Bump PATCH version in `marketplace.json` and the affected plugin.json
-3. Add CHANGELOG entry
-4. `python3 scripts/audit.py`
-5. `bash dist/build.sh`  (rebuilds `.plugin` zips)
-6. `bash scripts/release.sh ~/Code/runesmith`
-7. cd to public clone, commit, push
-
-**Add a new plugin:**
-1. Develop under `plugins/<new-plugin>/`
-2. Add entry to `marketplace.json` `plugins[]`
-3. Add new plugin to `PUBLIC.manifest.txt`? - already covered (`plugins/` is a recursive copy)
-4. Update `dist/build.sh` PLUGINS array? - yes, add to the array
-5. Bump MINOR version everywhere
-6. Audit, rebuild, release
-
-**Working session that should stay private:**
-1. Use this private workspace freely. Write notes, drafts, plans. None of it ships.
-2. When ready to publish, run `scripts/release.sh` - only the public subset goes.
+Anyone can fork and adapt the marketplace. Runemark Labs does not maintain forks. Tenant-specific changes live in the fork, never here: this repo stays generic, and the audit enforces it.

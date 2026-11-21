@@ -1,32 +1,33 @@
 # runesmith-sprint
 
-Atlassian sprint workflow + Cowork-CC interconnect.
+The planner and builder loop, with optional Jira wiring.
 
 Part of the [RuneSmith marketplace](https://github.com/runemarklabs/runesmith).
 
 ## Skills
 
-- **`/runesmith-sprint:enable`** - Wire Atlassian into a project (CLAUDE.md updates + CC-side skill deploy).
-- **`/runesmith-sprint:disable`** - Strip Atlassian wiring from a project.
-- **`/runesmith-sprint:start-sprint`** - Hand the active sprint to Claude Code via session-init comm.
-- **`/runesmith-sprint:sprint-status`** - Sprint board view + comms summary; auto-fires handshake on sprint change.
-- **`/runesmith-sprint:check-comms`** - Triage open comms in {PROJECT}.cc/comms/open/ and process replies.
-- **`/runesmith-sprint:plan-to-tickets`** - Convert plans/active/ plan.md files into Jira tickets organized by sprint.
+- **`/runesmith-sprint:task`**: Write a task comm with Acceptance and give the `/goal` line for Claude Code.
+- **`/runesmith-sprint:check-comms`**: Verify Claude Code's replies against the repository, archive finished work, and give the next goal line.
+- **`/runesmith-sprint:promote`**: Move a build from `dev` to `qa` to `beta` to `main`, only on the owner's word.
+- **`/runesmith-sprint:qa-checklist`**: Publish and read the project's QA checklist page.
+- **`/runesmith-sprint:enable`**: Turn on Jira and Confluence for the project.
+- **`/runesmith-sprint:disable`**: Turn them off again, keeping comms, plans and credentials.
+- **`/runesmith-sprint:start-sprint`**: Turn the active Jira sprint into task comms.
+- **`/runesmith-sprint:sprint-status`**: Show the board and open comms. Writes nothing.
+- **`/runesmith-sprint:plan-to-tickets`**: Draft Jira tickets from a plan and push them on approval.
 
 ## Install
-
-Via marketplace (Claude Code / Teams):
 
 ```
 /plugin marketplace add runemarklabs/runesmith
 /plugin install runesmith-sprint@runesmith
 ```
 
-Via manual `.plugin` file (Cowork): drag the file from `dist-v2/` into the Cowork plugin sidebar.
+Or build the `.plugin` files with `python scripts/build.py` and drag them from `dist/` into the Claude desktop plugin sidebar.
 
 ## Configure
 
-Run `/runesmith-core:setup` first to populate `.credentials` at the workspace root.
+Needs a Claude Code head for the loop. The Jira skills need the planner's Atlassian keys; Claude Code's read-only token goes in `{PROJECT}.cc/.credentials`.
 
 ## License
 
