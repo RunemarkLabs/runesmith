@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 > **Rename note**: this marketplace was previously named "Claude Forge". Renamed to **RuneSmith** in v0.6.0 to avoid trademark confusion with Anthropic's "Claude" mark and conflict with Atlassian's "Forge" developer platform. Historical changelog entries below have been mechanically updated to reference plugins by their new names (`runesmith-*`) for consistency; the substance of past releases is unchanged.
 
+## [1.0.1] - 2026-11-21
+
+### Added
+- **One GitHub account per project (runesmith-workspace 1.0.1, runesmith-cc 1.0.1).** Init asks which GitHub account pushes the project's repos (default: the account behind `RUNESMITH_GITHUB_PAT`) and records it as `githubAccount` in the head's marker file. Every repo's `origin` becomes `https://{account}@github.com/{owner}/{repo}.git`, so a machine with several accounts always pushes as the right one.
+- **Remote rewrite on refresh.** `runesmith-cc:head` rewrites SSH addresses, addresses with no account or another account, stale organization spellings and separate push addresses, and reports each change. The repo-bootstrapper clones over HTTPS even when given an SSH address.
+- **Login check.** Head and init give the owner one line that tests a no-prompt push as the project's account, and the two lines that route only that account to Git Credential Manager when another helper (such as the GitHub command-line tool signed in as a different account) answers instead.
+- **INSTALL:** adding the marketplace from GitHub in Claude (Customize, Plugins, Add marketplace) is now the recommended path; manual `.plugin` files remain for offline installs.
+
+### Versions
+- runesmith-cc 1.0.0 -> 1.0.1
+- runesmith-workspace 1.0.0 -> 1.0.1
+- marketplace 1.0.0 -> 1.0.1
+
 ## [1.0.0] - 2026-11-21
 
 The planner and builder release. RuneSmith now runs the full loop between Claude in chat (the planner) and Claude Code (the builder): task comms and `/goal` lines, verified replies, build numbers, promotion gates, and a QA checklist page. Every plugin is 1.0.0. Includes the unreleased 0.9.0 work below.

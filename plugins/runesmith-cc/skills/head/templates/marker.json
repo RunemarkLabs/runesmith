@@ -2,6 +2,7 @@
   "project": "{PROJECT}",
   "initialized": "{ISO_TIMESTAMP}",
   "schemaVersion": 1,
+  "githubAccount": null,
   "atlassianEnabled": false,
   "atlassian": null,
   "repos": []

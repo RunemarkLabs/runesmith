@@ -117,6 +117,7 @@ The builder never archives. The planner never edits a reply. Full rules: `lib/co
 ## Branches, builds and promotions
 
 - Branches: `dev`, `qa`, `beta`, `main`. The head creates `dev`, `qa` and `beta` from `main` on a new repo and protects all four: pull request required, no force-push, no deletion, plus the build check once the project's CI reports one. Protection is a guardrail on Claude Code, so RuneSmith sets it; the CI that produces the check belongs to the stack tooling.
+- Every project names one GitHub account. Each repo's address is `https://{account}@github.com/{owner}/{repo}.git`, so a machine with several accounts always pushes as the right one.
 - Every goal gets its own branch and a pull request into `dev`.
 - Build numbers: `MAJOR.MINOR.BUILD` with a four-digit build, one per finished goal, tagged `v{number}`. A new project starts at `0.1.0001`.
 - `/runesmith-sprint:promote` moves `dev` to `qa` to `beta` to `main`, only on the owner's word. Before `qa`, the builder runs the full test suite against `dev`.

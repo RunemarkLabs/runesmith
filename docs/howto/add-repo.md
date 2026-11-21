@@ -26,13 +26,13 @@ Repeat until you pick None.
 The `repo-bootstrapper` agent does the git work:
 
 1. Creates the repo on GitHub when asked (`POST /user/repos` or `/orgs/{owner}/repos`).
-2. Clones into `{PROJECT}.cc/{normalized-name}/`. The token is passed for that one command and never stored in the remote address.
-3. Adds the repo to `{PROJECT}.cc/.claude-code-workspace` (`repos[]`).
-4. Installs the commit hook that strips AI attribution, and probes it.
-5. Drops a `CLAUDE.md` stub from `templates/CLAUDE.repo.md` if the repo has none, and adds it to `.git/info/exclude` so it never enters the repository.
-6. Creates `dev`, `qa` and `beta` from `main` when they're missing, pushes them, and makes `dev` the branch Claude Code works from. Existing branches are never moved.
-
-7. Protects `dev`, `qa`, `beta` and `main`: pull request required (no approvals, since Claude Code merges its own goal branches into `dev`), no force-push, no deletion, and the build check when the repo already reports one. It only adds what's missing and never loosens existing rules. The check itself comes from the project's CI, which isn't RuneSmith's; once it exists, run head again to require it.
+2. Clones into `{PROJECT}.cc/{normalized-name}/` over HTTPS, even when you give an SSH address. The token is passed for that one command and never stored.
+3. Sets the address to `https://{account}@github.com/{owner}/{repo}.git`, naming the project's GitHub account, so the repo always pushes as that account.
+4. Adds the repo to `{PROJECT}.cc/.claude-code-workspace` (`repos[]`).
+5. Installs the commit hook that strips AI attribution, and probes it.
+6. Drops a `CLAUDE.md` stub from `templates/CLAUDE.repo.md` if the repo has none, and adds it to `.git/info/exclude` so it never enters the repository.
+7. Creates `dev`, `qa` and `beta` from `main` when they're missing, pushes them, and makes `dev` the branch Claude Code works from. Existing branches are never moved.
+8. Protects `dev`, `qa`, `beta` and `main`: pull request required (no approvals, since Claude Code merges its own goal branches into `dev`), no force-push, no deletion, and the build check when the repo already reports one. It only adds what's missing and never loosens existing rules. The check itself comes from the project's CI, which isn't RuneSmith's; once it exists, run head again to require it.
 
 ## The marker file
 
@@ -68,6 +68,15 @@ Shows the four branches, a remote with no token in it, and that `CLAUDE.md` is e
 **`fatal: could not read Username for 'https://github.com'`.** `RUNESMITH_GITHUB_PAT` is missing or can't see the repo. Check the key and the token's repository access.
 
 **422 on create.** The name is taken. Pick another, or clone the existing repo.
+
+**A push asks for a password, or goes out as the wrong account.** Another sign-in helper is answering for github.com, often the GitHub command-line tool signed in as a different account. Route just this account to Git Credential Manager; other accounts are untouched:
+
+```
+git config --global --add credential.https://{account}@github.com.helper '""'
+git config --global --add credential.https://{account}@github.com.helper manager
+```
+
+The next push opens a browser sign-in once.
 
 **Created on GitHub but the clone failed.** The repo exists; run head again and clone it. Creating it again returns 422.
 

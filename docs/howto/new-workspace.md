@@ -26,10 +26,11 @@ Init reads the folder, then asks only what changes the result. Every question is
 
 For a code project it continues:
 
-6. **Repos:** none yet, clone an existing repo, or create a new one (name, description, visibility, owner). Repeat as needed.
-7. **Changelog readers:** default "For users" and "For admins".
-8. **Dev data:** may Claude Code wipe dev's data when it resets dev? Default no.
-9. **Claude Code's Jira token** (Jira projects only): its own read-only token (default) or reuse yours.
+6. **GitHub account:** which account pushes this project's repos. It defaults to the account behind `RUNESMITH_GITHUB_PAT`.
+7. **Repos:** none yet, clone an existing repo, or create a new one (name, description, visibility, owner). Repeat as needed.
+8. **Changelog readers:** default "For users" and "For admins".
+9. **Dev data:** may Claude Code wipe dev's data when it resets dev? Default no.
+10. **Claude Code's Jira token** (Jira projects only): its own read-only token (default) or reuse yours.
 
 ## 2. What init builds
 
@@ -40,7 +41,7 @@ For a code project it continues:
   - `.claude/settings.json` (attribution off, stop hook cap of 3, code-simplifier on, an empty cross-project list) and `.claude/README.md` explaining it;
   - the `runesmith-clean-code`, `runesmith-code-tech-debt` and `runesmith-release` skills;
   - `comms/open/` and `comms/archive/`;
-  - the repo, with `dev`, `qa` and `beta` branches created from `main`, the no-attribution commit hook, and a repo `CLAUDE.md` stub kept out of git.
+  - the repo, with its address naming the project's GitHub account (`https://{account}@github.com/...`), `dev`, `qa` and `beta` branches created from `main`, the no-attribution commit hook, and a repo `CLAUDE.md` stub kept out of git.
 - With Jira on, the `runesmith-sprint:enable` steps (see `docs/howto/enable-atlassian.md`).
 - When a stack tool such as runestack is installed, init runs its init last.
 

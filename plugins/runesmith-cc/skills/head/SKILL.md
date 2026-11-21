@@ -127,7 +127,24 @@ Rename each `comms/open/{PREFIX}-{NNN}-{slug}/` folder to `{created UTC}-{slug}/
 
 Add each repo init or the owner asked for through the `repo-bootstrapper` agent: create (name, description, visibility, owner; needs `RUNESMITH_GITHUB_PAT` from the planner's credentials file) or clone (address). After each: add it to the marker's `repos[]`, install the hook (step 6), and drop a stub `CLAUDE.md` from `templates/CLAUDE.repo.md` if the repo has none. Add `CLAUDE.md` to the repo's `.git/info/exclude` so the builder's instruction file never enters the repository (no AI tool names in the repo).
 
-**Branches (Ben, 2026-11-21).** After adding a repo, make sure `dev`, `qa` and `beta` exist beside `main`. Any that are missing are created from `main` and pushed (when the repo has a remote), and `dev` becomes the default branch Claude Code works from. Existing branches are never moved or rewritten.
+**The GitHub account (Ben, 2026-11-21).** Every repo pushes as the project's own account, so a machine with several GitHub accounts (personal, a company's, an organization's) never pushes as the wrong one and never asks again after the first sign-in.
+
+- The account is `githubAccount` in the head's marker file, set by init (step 9). Run alone with none recorded, ask the same question.
+- Every repo's `origin` (fetch and push) is `https://{account}@github.com/{owner}/{repo}.git`. Set it after each clone or create. On a refresh, rewrite any `origin` that differs: an SSH address (`git@github.com:{owner}/{repo}.git`), an address with no account or another account, a stale organization spelling, or a separate `pushurl`. Report each rewrite with its old address. Never put a token in the address.
+- Login check: this session can't read the owner's own git settings, so give him one line that tests the account with no prompt, and the fix if it fails:
+
+  ```
+  git -C "{repo path on his computer}" push --dry-run origin HEAD
+  ```
+
+  If it asks for a password or signs in as another account, another credential helper is answering for github.com (for example the GitHub command-line tool signed in as a different account). Give him these two lines, which route only this account to Git Credential Manager and leave every other account alone; the first push after opens a browser sign-in once:
+
+  ```
+  git config --global --add credential.https://{account}@github.com.helper '""'
+  git config --global --add credential.https://{account}@github.com.helper manager
+  ```
+
+**Branches (Ben, 2026-11-21). After adding a repo, make sure `dev`, `qa` and `beta` exist beside `main`. Any that are missing are created from `main` and pushed (when the repo has a remote), and `dev` becomes the default branch Claude Code works from. Existing branches are never moved or rewritten.
 
 **Branch protection (Ben, 2026-11-21).** Protection is a guardrail on Claude Code, so RuneSmith owns it, not the stack tooling. For each repo with a GitHub remote, on `dev`, `qa`, `beta` and `main`, through the GitHub REST API with `RUNESMITH_GITHUB_PAT` (Administration write), read the branch's protection, then `PUT /repos/{owner}/{repo}/branches/{branch}/protection` with:
 
@@ -150,6 +167,7 @@ Claude Code's own keys go in `{name}.cc/.credentials`, never inside a repo folde
 ```
 Head: {workspace}/{name}.cc/
 Repos: {list}
+GitHub account: {account}; remotes: {repo}: https://{account}@github.com/{owner}/{repo}.git{ (rewritten from: old address)}
 Branches: {repo}: dev, qa, beta present{ (created: list)}; protection on dev, qa, beta, main: {set | added: list | skipped: no remote | refused: reason}{; build check: name | none yet}
 Skills: runesmith-clean-code, runesmith-code-tech-debt, runesmith-release{, Jira skills}  (kept, changed by project: {list})
 Settings: attribution off, stop-hook cap 3, code-simplifier enabled
@@ -171,6 +189,7 @@ If Claude Code says code-simplifier is enabled but not installed: claude plugin 
 - [ ] Project-changed skill copies kept
 - [ ] Hook installed or chained and probed in every repo; no hook deleted; no history rewritten
 - [ ] Branch protection added on all four branches; nothing the repo already had removed or loosened
+- [ ] Every `origin` names the project's GitHub account; no SSH or account-less address left
 - [ ] No credentials inside a repo folder
 - [ ] No token left in a stored remote address
 

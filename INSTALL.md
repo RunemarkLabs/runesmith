@@ -31,7 +31,18 @@ Three install paths. Pick the one that fits your client.
 
 Restart the client so the plugins register, then run `/runesmith-workspace:init` in your project.
 
-## Path B: manual .plugin files (Claude desktop)
+## Path B: add the marketplace in Claude (web and desktop)
+
+Paid plans can add a marketplace from GitHub, and it stays synced:
+
+1. Open **Customize**, then **Plugins**.
+2. In **Personal plugins**, click **+**, then **Add marketplace**.
+3. Choose **Add from a repository** and enter `RunemarkLabs/runesmith`.
+4. Install the plugins you need from the RuneSmith marketplace.
+
+Plugins added this way are saved to your account, so they follow you to chat and Claude Code.
+
+## Path B2: manual .plugin files (offline)
 
 `.plugin` zips aren't committed; build them:
 
@@ -92,6 +103,8 @@ Keys live where the thing that uses them runs, and never inside a repo folder.
 | `CC_ATLASSIAN_API_EMAIL` | Email for Claude Code's read-only token |
 | `CC_ATLASSIAN_API_TOKEN` | Claude Code's read-only Jira token |
 | `ATLASSIAN_BOARD_ID` | Numeric board id from the board address |
+
+**Pushing from your computer:** each project names its GitHub account, and every repo address carries it (`https://{account}@github.com/...`). If you use several GitHub accounts on one machine, route each account to Git Credential Manager once; init and head give you the exact two lines when a push would ask for a password or use the wrong account.
 
 Every value is single-quoted (`KEY='value'`). Both files are gitignored. When another tool manages `{PROJECT}.cc/.credentials` with zone markers, RuneSmith writes only its own block. `.credentials.example` in this repo shows the layout. Full rules: `plugins/runesmith-core/lib/credentials.md`.
 

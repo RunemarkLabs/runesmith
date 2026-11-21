@@ -56,6 +56,7 @@ The `.atlassian-enabled` marker file at workspace root + the `atlassianEnabled` 
   "project": "{workspace-folder-name}",
   "initialized": "{ISO timestamp}",
   "schemaVersion": 1,
+  "githubAccount": null,
   "atlassianEnabled": false,
   "atlassian": {
     "siteUrl": null,
@@ -72,9 +73,11 @@ The `.atlassian-enabled` marker file at workspace root + the `atlassianEnabled` 
 
 When `runesmith-sprint:enable` runs, it sets `atlassianEnabled: true`, fills the `atlassian` block from user input (the **user's** Jira project - not the bootstrap framework's), and updates `activeSprintId` whenever `start-sprint` or `sprint-status` notice a change.
 
-When `bootstrap-cc` clones or creates a repo, it appends to `repos[]`:
+`githubAccount` is the GitHub account every repo in the head pushes as, set by `runesmith-workspace:init`. Each repo's `origin` is `https://{githubAccount}@github.com/{owner}/{repo}.git`.
+
+When `runesmith-cc:head` clones or creates a repo, it appends to `repos[]`:
 ```json
-{ "name": "...", "url": "...", "createdBy": "bootstrap-cc", "added": "{ISO}" }
+{ "name": "...", "url": "https://github.com/{owner}/{repo}", "createdBy": "runesmith-cc:head", "added": "{ISO}" }
 ```
 
 ## CLAUDE.md (parent)

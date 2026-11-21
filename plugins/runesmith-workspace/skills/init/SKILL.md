@@ -49,7 +49,7 @@ With no signal, offer two short drafted descriptions built from what the owner h
 
 ### 4. Will this project hold code?
 
-- **Yes:** builds the Claude Code head (steps 8 to 12). The Project Instructions role becomes "planner, writes no application code".
+- **Yes:** builds the Claude Code head (steps 8 to 13). The Project Instructions role becomes "planner, writes no application code".
 - **No:** stops after the workspace. The role becomes "plans and does the work directly".
 
 On a re-run with a head already present, skip this question.
@@ -86,7 +86,15 @@ Run the `runesmith-cc:head` workflow:
 - write or refresh the head's files, settings and skills;
 - rename legacy numbered comm folders in `comms/open/` to `{created UTC}-{slug}/`.
 
-### 9. Code projects: repos
+### 9. Code projects: the GitHub account
+
+Which GitHub account pushes this project's repos (Ben, 2026-11-21: every project names its account, so one machine can push for several accounts without them crossing)? Show what's known, then ask:
+- **{login}** (default): the account behind `RUNESMITH_GITHUB_PAT`, from `GET https://api.github.com/user`, when the key is set
+- **Another account:** text input, the GitHub username
+
+On a re-run, skip this when the head already records an account. Recorded as `githubAccount` in the head's marker file; `runesmith-cc:head` writes it into every repo address.
+
+### 10. Code projects: repos
 
 Show the repos already in the head, then ask:
 - **None yet** (default when repos exist)
@@ -95,11 +103,11 @@ Show the repos already in the head, then ask:
 
 Repeat until the owner picks None.
 
-### 10. Code projects: changelog readers
+### 11. Code projects: changelog readers
 
 Default "For users" and "For admins". Ask only to change them. Written into the head's rules.
 
-### 11. Code projects: dev data
+### 12. Code projects: dev data
 
 "May Claude Code wipe dev's data when it resets dev?"
 - **No, keep dev's data** (default)
@@ -107,12 +115,12 @@ Default "For users" and "For admins". Ask only to change them. Written into the 
 
 Written into the head's rules as the owner's answer.
 
-### 12. Code projects with Jira: Claude Code's token
+### 13. Code projects with Jira: Claude Code's token
 
 - **Its own read-only token** (default)
 - **Reuse yours** (Claude Code can then change Jira directly)
 
-### 13. Workspace (no question)
+### 14. Workspace (no question)
 
 - Create the required folders from `lib/folder-conventions.md`, including `drafts/handoffs/` and `plans/active/` (every plan carries `decisions.md`).
 - A new CLAUDE.md gets a short preamble: the project name and the description from step 3. An existing preamble is left as it is.
@@ -120,28 +128,29 @@ Written into the head's rules as the owner's answer.
 - Write or refresh the `folder-conventions` and `agent-ops` marker sections in the root CLAUDE.md. Never touch content outside them, or any other tool's marker sections.
 - Add `.gitignore` patterns: `_INBOX/*`, `archive/_pre-*/`, `.credentials`, `{PROJECT}.cc/.credentials`, `{PROJECT}.cc/comms/open/*`.
 
-### 14. Credentials (no question)
+### 15. Credentials (no question)
 
 Per `lib/credentials.md`: check each key the answers above need, in the right file (the planner's at the root, Claude Code's in the head). Create a missing file with the key names and empty values. Report each key as set or missing. For missing keys, tell the owner which file to open and which keys to paste, then run the health checks once he says it's done. Never ask for a value in chat.
 
-### 15. Guardrail (no question)
+### 16. Guardrail (no question)
 
 The guardrail installs into the user's Claude Code settings, which this session can't reach. Code projects get the one command to run for their system (from `runesmith-cc:guardrail`).
 
-### 16. runestack (no question)
+### 17. runestack (no question)
 
 Code projects only. If runestack is installed, run `runestack-index:init`. It checks the head, loads its `runestack-*` skills, writes its `runestack-credentials` and `runestack-stack` sections, and asks the stack questions. If it isn't installed, say so in one line.
 
-### 17. Project Instructions (no question)
+### 18. Project Instructions (no question)
 
 A fresh, complete block every run, per `lib/project-instructions.md`: the project description from step 3, the role from step 4, the rules, and the Atlassian supplement when Jira is on. No file paths in it; it points at CLAUDE.md. Show it in a code block for the owner to paste into the Project's instructions on claude.ai, replacing what's there.
 
-### 18. Report
+### 19. Report
 
 ```
 Project: {name}  ({code project | workspace only})
 Moved: {n} items (snapshot: archive/_pre-init-{UTC}/)
 Head: {PROJECT}.cc/  (repos: {list}; skills refreshed: {list})
+GitHub account: {account}  (login check: {ok | run the line shown})
 Jira and Confluence: {on: project, space | off}
 runestack: {ran runestack-index:init | not installed}
 Credentials: {all set | missing: KEY in file, ...}

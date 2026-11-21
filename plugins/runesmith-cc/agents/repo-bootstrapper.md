@@ -16,6 +16,7 @@ The parent skill provides:
 - `repo_name`: kebab-case name
 - `mode == new` only: `description`, `visibility` (public | private), `owner` (user or org)
 - `mode == clone` only: `git_url` (HTTPS or SSH)
+- `github_account`: the project's GitHub account (`githubAccount` in the head's marker file). Every stored remote names it.
 - `github_pat`: optional, `RUNESMITH_GITHUB_PAT` from the planner's `.credentials` at the workspace root (see `lib/credentials.md`). Required for a private clone or creating a repo. Read only inside the command that uses it; never printed.
 
 ## Workflow
@@ -34,7 +35,7 @@ The parent skill provides:
    ```
    git -c credential.helper= -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $(printf 'x-access-token:%s' "$github_pat" | base64 -w0)" clone https://github.com/{owner}/{name}.git {target_dir}
    ```
-   The stored remote is the plain `https://github.com/{owner}/{name}.git`; nothing to strip afterwards.
+   Then set the stored remote to name the account: `git -C {target_dir} remote set-url origin https://{github_account}@github.com/{owner}/{name}.git`. The token is never stored.
 4. Set the repo-local identity (the owner's) and `commit.gpgsign false` before any commit.
 5. Install the attribution `commit-msg` hook from `templates/commit-msg` (LF line endings, executable), per `runesmith-cc:head` step 6.
 6. Drop the stub CLAUDE.md from `templates/CLAUDE.repo.md` (`{REPO_NAME}`, `{PROJECT}` substituted) and add `CLAUDE.md` to `.git/info/exclude`. It is never committed.
@@ -45,9 +46,10 @@ The parent skill provides:
 1. Determine if URL is HTTPS or SSH.
 2. **HTTPS, repo private, github_pat available:** clone with the one-command header from mode new, step 3. The token never enters the address or `.git/config`.
 3. **HTTPS, repo public:** clone normally, no auth needed.
-4. **SSH:** clone normally; user's SSH agent handles auth.
-5. After clone, if the repo has no top-level CLAUDE.md, drop the stub from `templates/CLAUDE.repo.md` and add `CLAUDE.md` to `.git/info/exclude`. Never commit it.
-6. Install the attribution `commit-msg` hook per `runesmith-cc:head` step 6 (chain any hook the repo already has; skip and report if `core.hooksPath` is set).
+4. **SSH address given:** clone over HTTPS instead, at the same owner and name, with the one-command header when the repo is private.
+5. Set the stored remote to `https://{github_account}@github.com/{owner}/{name}.git`, whatever address was given.
+6. After clone, if the repo has no top-level CLAUDE.md, drop the stub from `templates/CLAUDE.repo.md` and add `CLAUDE.md` to `.git/info/exclude`. Never commit it.
+7. Install the attribution `commit-msg` hook per `runesmith-cc:head` step 6 (chain any hook the repo already has; skip and report if `core.hooksPath` is set).
 
 ## Return value
 
@@ -68,6 +70,7 @@ On failure: `{"success": false, "step": "{which step failed}", "error": "{messag
 ## Guard Rails
 
 - [ ] Token never in an address, `.git/config`, a log or chat
+- [ ] Stored remote is `https://{github_account}@github.com/{owner}/{name}.git`
 - [ ] PAT never logged or echoed
 - [ ] Stub CLAUDE.md never overwrites an existing CLAUDE.md without explicit consent
 - [ ] Git operations all run inside `target_dir` - never affect other repos

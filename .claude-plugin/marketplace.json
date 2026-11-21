@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Claude plugin marketplace for how work gets done with Claude: workspace setup, planning, the comms loop between the planner (Claude in chat) and the builder (Claude Code), build numbers, promotion gates and the QA checklist, Jira and Confluence, AI Operations documentation, and plugin-author tooling. Install the plugins you need. Every tenant detail comes from your answers or .credentials at runtime. Decisions about tech stack, environments and hosting belong to other tools; RuneSmith works without them.",
-    "version": "1.0.0"
+    "version": "1.0.1"
   },
   "plugins": [
     {
@@ -16,12 +16,12 @@
     {
       "name": "runesmith-workspace",
       "source": "./plugins/runesmith-workspace",
-      "description": "[RuneSmith v1.0.0] Workspace setup and structure. /init is the single entry point for a new or existing project: it interviews you, lays out the workspace (_INBOX, plans, drafts, notes, archive), writes CLAUDE.md, and hands off to runesmith-cc:head when the project holds code. /inbox routes dropped files on consent. /reallocate remains one release as a pointer to /init."
+      "description": "[RuneSmith v1.0.1] Workspace setup and structure. /init is the single entry point for a new or existing project: it interviews you, lays out the workspace (_INBOX, plans, drafts, notes, archive), writes CLAUDE.md, and hands off to runesmith-cc:head when the project holds code. /inbox routes dropped files on consent. /reallocate remains one release as a pointer to /init."
     },
     {
       "name": "runesmith-cc",
       "source": "./plugins/runesmith-cc",
-      "description": "[RuneSmith v1.0.0] Builds and maintains the Claude Code head ({PROJECT}.cc/) beside your workspace: the builder's standing rules, comms folder, settings (stop hook cap, code-simplifier), the runesmith skills Claude Code uses (clean code, release, tech debt), and the dev, qa and beta branches on a new repo. Calls runestack-index:init when runestack is installed. /guardrail keeps Claude Code sessions inside their project. /bootstrap-cc remains one release as a pointer to /head."
+      "description": "[RuneSmith v1.0.1] Builds and maintains the Claude Code head ({PROJECT}.cc/) beside your workspace: the builder's standing rules, comms folder, settings (stop hook cap, code-simplifier), the runesmith skills Claude Code uses (clean code, release, tech debt), and the dev, qa and beta branches on a new repo. Calls runestack-index:init when runestack is installed. /guardrail keeps Claude Code sessions inside their project. /bootstrap-cc remains one release as a pointer to /head."
     },
     {
       "name": "runesmith-jira",
