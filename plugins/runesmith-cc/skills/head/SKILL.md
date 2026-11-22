@@ -144,16 +144,19 @@ Add each repo init or the owner asked for through the `repo-bootstrapper` agent:
   git config --global --add credential.https://{account}@github.com.helper manager
   ```
 
-**Branches (Ben, 2026-11-21). After adding a repo, make sure `dev`, `qa` and `beta` exist beside `main`. Any that are missing are created from `main` and pushed (when the repo has a remote), and `dev` becomes the default branch Claude Code works from. Existing branches are never moved or rewritten.
+**Branches (Ben, 2026-11-21; beta changed 2026-11-22).** After adding a repo, make sure `dev` and `qa` exist beside `main`. Any that are missing are created from `main` and pushed (when the repo has a remote), and `dev` becomes the default branch Claude Code works from. `beta` is never created here: Claude Code creates it on the first promotion to beta (`runesmith-sprint:promote`). Existing branches are never moved or rewritten.
 
-**Branch protection (Ben, 2026-11-21).** Protection is a guardrail on Claude Code, so RuneSmith owns it, not the stack tooling. For each repo with a GitHub remote, on `dev`, `qa`, `beta` and `main`, through the GitHub REST API with `RUNESMITH_GITHUB_PAT` (Administration write), read the branch's protection, then `PUT /repos/{owner}/{repo}/branches/{branch}/protection` with:
+**Branch protection (Ben, 2026-11-21).** Protection is a guardrail on Claude Code, so RuneSmith owns it, not the stack tooling. For each repo with a GitHub remote, protect `dev`, `qa`, `beta` and `main` with one repository ruleset, through the GitHub REST API with `RUNESMITH_GITHUB_PAT` (Administration write). A ruleset names branches by name, so `beta` is protected the moment Claude Code creates it; per-branch protection can't cover a branch that doesn't exist yet.
 
-- pull request required, `required_approving_review_count` 0 (the builder merges its own goal branches into `dev`);
-- `allow_force_pushes` false and `allow_deletions` false;
-- `enforce_admins` false, so the owner's own git access can still make the fast-forward a promotion calls for;
+Read `GET /repos/{owner}/{repo}/rulesets`. If a branch ruleset already names some of the four, add the missing names to its `conditions.ref_name.include` (`PUT /repos/{owner}/{repo}/rulesets/{id}`); otherwise create one (`POST /repos/{owner}/{repo}/rulesets`) named "Protected branches", `target: branch`, `enforcement: active`, including `refs/heads/dev`, `refs/heads/qa`, `refs/heads/beta` and `refs/heads/main`, with:
+
+- `pull_request` with `required_approving_review_count` 0 (the builder merges its own goal branches into `dev`);
+- `non_fast_forward` (no force-push) and `deletion` (no deletion);
+- no `creation` rule, so Claude Code can create `beta` on the first promotion;
+- the repository admin role in `bypass_actors` (`bypass_mode: always`), so the owner's own git access can still make the fast-forward a promotion calls for;
 - a required build check only when the repo already reports one: take the check names from the newest commit on `dev` (or `main`). The check itself comes from the project's CI, which is the stack tooling's; with none yet, leave checks out and say "re-run head once the build check exists".
 
-Only add what's missing. Never remove a rule, a required check or a review requirement the repo already has. A local repo with no remote is skipped and reported.
+Only add what's missing. Never remove a rule, a required check or a review requirement the repo already has, in a ruleset or in older per-branch protection. A local repo with no remote is skipped and reported.
 
 Claude Code's own keys go in `{name}.cc/.credentials`, never inside a repo folder. Without Jira there may be none; then no file is created.
 
@@ -168,7 +171,7 @@ Claude Code's own keys go in `{name}.cc/.credentials`, never inside a repo folde
 Head: {workspace}/{name}.cc/
 Repos: {list}
 GitHub account: {account}; remotes: {repo}: https://{account}@github.com/{owner}/{repo}.git{ (rewritten from: old address)}
-Branches: {repo}: dev, qa, beta present{ (created: list)}; protection on dev, qa, beta, main: {set | added: list | skipped: no remote | refused: reason}{; build check: name | none yet}
+Branches: {repo}: dev, qa present{ (created: list)}; beta {present | created on the first promotion to beta}; ruleset on dev, qa, beta, main: {set | added: list | skipped: no remote | refused: reason}{; build check: name | none yet}
 Skills: runesmith-clean-code, runesmith-code-tech-debt, runesmith-release{, Jira skills}  (kept, changed by project: {list})
 Settings: attribution off, stop-hook cap 3, code-simplifier enabled
 Hooks: {repo}: installed | updated | chained | skipped (core.hooksPath), probe pass/fail

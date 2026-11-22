@@ -40,7 +40,7 @@ Unknown root items go to `_INBOX/` without a question each.
 - Deploys the builder skills as `.claude/skills/runesmith-{name}/` and moves the old unprefixed copies to the snapshot. A deployed skill the project changed is kept and reported.
 - Merges the head's settings (attribution off, stop hook cap, code-simplifier) without touching other keys.
 - Rewrites each repo's address to `https://{account}@github.com/{owner}/{repo}.git` for the project's GitHub account, replacing SSH or account-less addresses, and reports each change.
-- Creates any missing `dev`, `qa` and `beta` branches. Existing branches are never moved.
+- Creates any missing `dev` and `qa` branches; `beta` comes from the first promotion. Existing branches are never moved.
 - Rewrites only its own marker sections in each `CLAUDE.md`. Content outside them, and sections owned by other tools, stay as they are.
 - Writes `STRUCTURE.md` and gives you a fresh Project Instructions block.
 

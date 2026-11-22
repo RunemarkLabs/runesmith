@@ -31,8 +31,8 @@ The `repo-bootstrapper` agent does the git work:
 4. Adds the repo to `{PROJECT}.cc/.claude-code-workspace` (`repos[]`).
 5. Installs the commit hook that strips AI attribution, and probes it.
 6. Drops a `CLAUDE.md` stub from `templates/CLAUDE.repo.md` if the repo has none, and adds it to `.git/info/exclude` so it never enters the repository.
-7. Creates `dev`, `qa` and `beta` from `main` when they're missing, pushes them, and makes `dev` the branch Claude Code works from. Existing branches are never moved.
-8. Protects `dev`, `qa`, `beta` and `main`: pull request required (no approvals, since Claude Code merges its own goal branches into `dev`), no force-push, no deletion, and the build check when the repo already reports one. It only adds what's missing and never loosens existing rules. The check itself comes from the project's CI, which isn't RuneSmith's; once it exists, run head again to require it.
+7. Creates `dev` and `qa` from `main` when they're missing, pushes them, and makes `dev` the branch Claude Code works from. `beta` is left for Claude Code to create on the first promotion to beta. Existing branches are never moved.
+8. Protects `dev`, `qa`, `beta` and `main` with one repository ruleset, which covers `beta` before it exists: pull request required (no approvals, since Claude Code merges its own goal branches into `dev`), no force-push, no deletion, and the build check when the repo already reports one. It only adds what's missing and never loosens existing rules. The check itself comes from the project's CI, which isn't RuneSmith's; once it exists, run head again to require it.
 
 ## The marker file
 

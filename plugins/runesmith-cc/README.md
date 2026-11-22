@@ -6,7 +6,7 @@ Part of the [RuneSmith marketplace](https://github.com/runemarklabs/runesmith).
 
 ## Skills
 
-- **`/runesmith-cc:head`**: Build or refresh the head: builder rules, settings (no attribution, stop hook cap of 3, code-simplifier), comms folders, the `runesmith-clean-code`, `runesmith-code-tech-debt` and `runesmith-release` skills, repos, and the `dev`, `qa` and `beta` branches.
+- **`/runesmith-cc:head`**: Build or refresh the head: builder rules, settings (no attribution, stop hook cap of 3, code-simplifier), comms folders, the `runesmith-clean-code`, `runesmith-code-tech-debt` and `runesmith-release` skills, repos, the `dev` and `qa` branches, and the ruleset that protects `dev`, `qa`, `beta` and `main` (Claude Code creates `beta` on the first promotion).
 - **`/runesmith-cc:guardrail`**: Copy the one-shot installer that keeps every Claude Code session inside its project; install, verify or uninstall.
 - **`/runesmith-cc:bootstrap-cc`**: Pointer to `head` for this release.
 

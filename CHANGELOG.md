@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 > **Rename note**: this marketplace was previously named "Claude Forge". Renamed to **RuneSmith** in v0.6.0 to avoid trademark confusion with Anthropic's "Claude" mark and conflict with Atlassian's "Forge" developer platform. Historical changelog entries below have been mechanically updated to reference plugins by their new names (`runesmith-*`) for consistency; the substance of past releases is unchanged.
 
+## [1.0.3] - 2026-11-22
+
+### Changed
+- **Claude Code creates `beta` (runesmith-cc, runesmith-sprint).** Head creates only `dev` and `qa` from `main`. `beta` first appears when Claude Code promotes a build to it: the first promotion creates `beta` at the promoted commit; later ones go by pull request.
+- **One ruleset protects the branches (runesmith-cc).** Head protects `dev`, `qa`, `beta` and `main` with a single repository ruleset, which names branches so `beta` is protected the moment it exists. An existing branch ruleset gets the missing names added; nothing already there is removed. The owner's admin role bypasses it for promotion fast-forwards.
+
+### Versions
+- runesmith-cc 1.0.2 -> 1.0.3
+- runesmith-sprint 1.0.1 -> 1.0.2
+- marketplace 1.0.2 -> 1.0.3
+
 ## [1.0.2] - 2026-11-22
 
 ### Fixed

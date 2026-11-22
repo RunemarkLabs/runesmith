@@ -41,7 +41,7 @@ For a code project it continues:
   - `.claude/settings.json` (attribution off, stop hook cap of 3, code-simplifier on, an empty cross-project list) and `.claude/README.md` explaining it;
   - the `runesmith-clean-code`, `runesmith-code-tech-debt` and `runesmith-release` skills;
   - `comms/open/` and `comms/archive/`;
-  - the repo, with its address naming the project's GitHub account (`https://{account}@github.com/...`), `dev`, `qa` and `beta` branches created from `main`, the no-attribution commit hook, and a repo `CLAUDE.md` stub kept out of git.
+  - the repo, with its address naming the project's GitHub account (`https://{account}@github.com/...`), `dev` and `qa` branches created from `main` (`beta` comes from the first promotion), the no-attribution commit hook, and a repo `CLAUDE.md` stub kept out of git.
 - With Jira on, the `runesmith-sprint:enable` steps (see `docs/howto/enable-atlassian.md`).
 - When a stack tool such as runestack is installed, init runs its init last.
 

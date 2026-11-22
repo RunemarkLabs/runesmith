@@ -39,7 +39,7 @@ The parent skill provides:
 4. Set the repo-local identity (the owner's) and `commit.gpgsign false` before any commit.
 5. Install the attribution `commit-msg` hook from `templates/commit-msg` (LF line endings, executable), per `runesmith-cc:head` step 6.
 6. Drop the stub CLAUDE.md from `templates/CLAUDE.repo.md` (`{REPO_NAME}`, `{PROJECT}` substituted) and add `CLAUDE.md` to `.git/info/exclude`. It is never committed.
-7. Branches: `runesmith-cc:head` creates `dev`, `qa` and `beta` from `main` and pushes them with the same one-command header.
+7. Branches: `runesmith-cc:head` creates `dev` and `qa` from `main` and pushes them with the same one-command header. `beta` is created by Claude Code on the first promotion to beta.
 
 ### mode: clone
 

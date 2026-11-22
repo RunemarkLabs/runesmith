@@ -1,6 +1,6 @@
 {
   "name": "runesmith-cc",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "[RuneSmith v1.0.1] Builds and maintains the Claude Code head ({PROJECT}.cc/) beside your workspace: the builder's standing rules, comms folder, settings (stop hook cap, code-simplifier), the runesmith skills Claude Code uses (clean code, release, tech debt), and the dev, qa and beta branches on a new repo. Calls runestack-index:init when runestack is installed. /guardrail keeps Claude Code sessions inside their project. /bootstrap-cc remains one release as a pointer to /head.",
   "author": {
     "name": "Runemark Labs"
