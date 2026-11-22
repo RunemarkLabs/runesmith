@@ -53,7 +53,7 @@ Files written or refreshed: CLAUDE.md sections, settings, comms folders, skills
 Legacy comm folders to rename: {n}
 ```
 
-Structured prompt: **Apply** (default) / **Preview only** / **Cancel**. Skipped when init already got consent.
+Ask only when repos move in or a legacy `claude-code/` folder is renamed: structured prompt **Apply** (default) / **Cancel**, the list inside the question. Refreshing the head's own files, settings, skills and comms folders is never asked; it's reported. Skipped when init already got consent.
 
 ### 2. Snapshot
 

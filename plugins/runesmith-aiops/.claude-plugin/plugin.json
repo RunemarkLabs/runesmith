@@ -1,6 +1,6 @@
 {
   "name": "runesmith-aiops",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "[RuneSmith v1.0.0] Populates an AI Operations Confluence space from template pages that describe the planner and builder workflow. Every tenant detail ({COMPANY}, {SITE}, {SPACE_KEY}, {PROJECT_KEY} and the rest) is substituted at publish time, so the same templates work for any organization. The space must already exist.",
   "author": {
     "name": "Runemark Labs"

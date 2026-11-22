@@ -3,7 +3,7 @@
 .credentials
 .credentials.local
 
-# Comms — open is ephemeral per session, archive is committed
+# Comms: open is ephemeral per session, archive is committed
 comms/open/*
 !comms/open/.gitkeep
 

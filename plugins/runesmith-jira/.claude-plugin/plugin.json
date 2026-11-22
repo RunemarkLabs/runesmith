@@ -1,6 +1,6 @@
 {
   "name": "runesmith-jira",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "[RuneSmith v1.0.0] Jira ticket and project workflows: create tickets (Task, Story, Bug, Epic) with proper formatting, report bugs with linked Confluence pages, scaffold new Jira projects, and read board status. Uses the Atlassian Cloud REST API with a service account token, and asks before every push.",
   "author": {
     "name": "Runemark Labs"

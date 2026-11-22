@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Claude plugin marketplace for how work gets done with Claude: workspace setup, planning, the comms loop between the planner (Claude in chat) and the builder (Claude Code), build numbers, promotion gates and the QA checklist, Jira and Confluence, AI Operations documentation, and plugin-author tooling. Install the plugins you need. Every tenant detail comes from your answers or .credentials at runtime. Decisions about tech stack, environments and hosting belong to other tools; RuneSmith works without them.",
-    "version": "1.0.1"
+    "version": "1.0.2"
   },
   "plugins": [
     {

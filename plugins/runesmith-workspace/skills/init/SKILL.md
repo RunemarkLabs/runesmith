@@ -23,7 +23,7 @@ The single entry point for a project. It replaces `reallocate`. Safe to re-run: 
 
 ## Interview rule
 
-Show first, then ask. Ask only when the answer changes what gets built. When there's an obvious default, do it and say so. Every question is a structured prompt with the recommended option first.
+Show first, then ask: every draft is shown in full inside the question that approves it (`lib/user-prompts.md`, "Drafts the owner approves"). Ask only when the answer changes what gets built. When there's an obvious default, do it and say so. Every question is a structured prompt with the recommended option first, asked one at a time, never several in one dialog.
 
 ## Workflow
 
@@ -39,13 +39,9 @@ Classify every root entry against the keep-list in `lib/folder-conventions.md`: 
 
 **A start marker without an end marker** means the file is damaged. Stop and report the file and the marker; never append a second copy.
 
-### 3. What is this project?
+### 3. What is this project? (no question)
 
-Draft one to three sentences from workspace signal per `lib/project-mission-inference.md` (README, source documents, CLAUDE.md preamble outside markers, package manifest). Show the draft and ask:
-- **Use this** (default)
-- **Edit** (text input)
-
-With no signal, offer two short drafted descriptions built from what the owner has said in the chat (the question tool needs at least two options), with "Other" for his own words. There is no placeholder option.
+Draft one to three sentences from workspace signal per `lib/project-mission-inference.md` (README, source documents, CLAUDE.md preamble outside markers, package manifest). Don't ask about it on its own: on its own it means nothing to the owner. It goes into the CLAUDE.md preamble (step 14) and the PROJECT section of the Project Instructions block (step 18), and the owner sees it there, in the finished block. With no signal, ask him in one structured question what the project is, with two short drafted answers built from what he has said in the chat; his own words go in the dialog's text box.
 
 ### 4. Will this project hold code?
 
@@ -69,14 +65,19 @@ On a re-run, skip this question when `.atlassian-enabled` exists. `runesmith-spr
 
 ### 7. Consent to the move plan
 
-Show the plan as a table, one row per move, with the head line on top:
+Ask only about the owner's own files: things init moves or archives that the project put there itself (a README, a folder of notes, repos at the root). One short line each: what, and where it goes. Nothing else goes in this question (Ben, 2026-11-22):
+
+- **Not asked, just done and reported in one line:** everything init owns. CLAUDE.md marker sections, `STRUCTURE.md`, the head's files, settings, skills and comms folder layout, renaming legacy comm folders. Re-running init is the consent for refreshing these.
+- **Not in the list:** anything that waits on a missing key. It goes in the report's "Still needed from you".
+- **No moves of the owner's files:** no question at all.
+
+The list goes inside the question text (`lib/user-prompts.md`, "Drafts the owner approves"). Ask it on its own:
 - **Apply** (default)
-- **Preview only**
 - **Cancel**
 
-Unknown root items go to `_INBOX/` with no per-item question. Nothing moves before Apply.
+Unknown root items go to `_INBOX/` with no per-item question. Nothing of the owner's moves before Apply.
 
-Then, before the first move: ask once for delete permission on the project folder (git and moves need it). Snapshot everything that will move or change to `archive/_pre-init-{UTC}/`.
+Then, before the first move: ask once for delete permission on the project folder (git and moves need it). Snapshot everything that will move or change to `archive/_pre-init-{UTC}/`, the refreshed files included.
 
 ### 8. Code projects: the head
 
@@ -92,7 +93,7 @@ Which GitHub account pushes this project's repos (Ben, 2026-11-21: every project
 - **{login}** (default): the account behind `RUNESMITH_GITHUB_PAT`, from `GET https://api.github.com/user`, when the key is set
 - **Another account:** text input, the GitHub username
 
-On a re-run, skip this when the head already records an account. Recorded as `githubAccount` in the head's marker file; `runesmith-cc:head` writes it into every repo address.
+When `RUNESMITH_GITHUB_PAT` is missing, don't ask: there's no login to offer. Set the account from the key once the owner has pasted it (step 15), and say so. Never offer an email address as an account. On a re-run, skip this when the head already records an account. Recorded as `githubAccount` in the head's marker file; `runesmith-cc:head` writes it into every repo address.
 
 ### 10. Code projects: repos
 
@@ -142,23 +143,27 @@ Code projects only. If runestack is installed, run `runestack-index:init`. It ch
 
 ### 18. Project Instructions (no question)
 
-A fresh, complete block every run, per `lib/project-instructions.md`: the project description from step 3, the role from step 4, the rules, and the Atlassian supplement when Jira is on. No file paths in it; it points at CLAUDE.md. Show it in a code block for the owner to paste into the Project's instructions on claude.ai, replacing what's there.
+A fresh, complete block every run, per `lib/project-instructions.md`: the project description from step 3, the role from step 4, the rules, and the Atlassian supplement when Jira is on. No file paths in it; it points at CLAUDE.md.
+
+This block and CLAUDE.md are what init delivers. Send the block as its own message the owner reads verbatim (the send-message tool in hosts that have one), in one code block, so it is never hidden behind a question box. Send the root CLAUDE.md as a file the owner can open (a file card in hosts that have one; otherwise its path).
 
 ### 19. Report
 
-```
-Project: {name}  ({code project | workspace only})
-Moved: {n} items (snapshot: archive/_pre-init-{UTC}/)
-Head: {PROJECT}.cc/  (repos: {list}; skills refreshed: {list})
-GitHub account: {account}  (login check: {ok | run the line shown})
-Jira and Confluence: {on: project, space | off}
-runestack: {ran runestack-index:init | not installed}
-Credentials: {all set | missing: KEY in file, ...}
-Guardrail: run {command}
+Short, plain words, after the two deliverables:
 
-Project Instructions (paste into the Project's instructions on claude.ai):
-{block}
 ```
+{name}: {code project | workspace only}
+CLAUDE.md: written (preamble, folder layout, operating rules)
+Project Instructions: sent above; paste into the Project's instructions on claude.ai, replacing what's there
+Moved: {n} items (snapshot in archive/_pre-init-{UTC}/)
+Head: {PROJECT}.cc/ with {repos}
+GitHub account: {account | set once the key is pasted}
+Jira and Confluence: {on | off}
+runestack: {ran its init | not installed}
+Still needed from you: {each missing key and the file it goes in; the guardrail command} 
+```
+
+The owner changes the description by saying so; update the CLAUDE.md preamble and send a new block. Every open item that needs an answer is a structured question. Never end with a plain-text "Reply with" list.
 
 ## Re-running
 

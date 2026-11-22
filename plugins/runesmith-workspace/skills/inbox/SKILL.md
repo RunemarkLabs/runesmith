@@ -108,10 +108,8 @@ Group up to 10 routes per consent prompt. Show:
   [note]            standup-notes.md                  → notes/2026-05-10-standup-notes.md
   [unclassifiable]  random-attachment.zip             → leave in _INBOX/
 
-Surface a structured single-pick prompt: question "Apply these routes?", options "Apply all" / "Edit per-file" / "Cancel".
+Surface a structured single-pick prompt: question "Apply these routes?", options "Apply all" / "Cancel". To change a target, the user types it in the dialog's text box ("put b.pdf in docs/"); apply it, show the updated table, and ask again.
 ```
-
-"Edit per-file" lets the user override individual targets before applying via per-row structured prompts.
 
 ### 5. Move
 

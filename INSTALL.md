@@ -35,10 +35,11 @@ Restart the client so the plugins register, then run `/runesmith-workspace:init`
 
 Paid plans can add a marketplace from GitHub, and it stays synced:
 
-1. Open **Customize**, then **Plugins**.
-2. In **Personal plugins**, click **+**, then **Add marketplace**.
-3. Choose **Add from a repository** and enter `RunemarkLabs/runesmith`.
-4. Install the plugins you need from the RuneSmith marketplace.
+1. Open **Plugins** (Customize, Plugins in older versions of the app).
+2. Click **Add**, then **Add marketplace**, and enter `RunemarkLabs/runesmith`. Leave **Sync automatically** on.
+3. Adding a marketplace doesn't install its plugins. Search `runesmith`, open each plugin and add it, one at a time.
+4. Check that each one is listed under **Active** on Your plugins; turn on any that aren't. Then open a new chat.
+5. When a later release adds a new plugin, add that one the same way. Updates to plugins you already have arrive on their own.
 
 Plugins added this way are saved to your account, so they follow you to chat and Claude Code.
 

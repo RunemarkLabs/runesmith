@@ -1,6 +1,6 @@
 {
   "name": "runesmith-confluence",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "[RuneSmith v1.0.0] Confluence page authoring: feature specs, architecture decision records, project overview pages, decisions logs, known issues trackers, roadmaps and session logs. Drafts in markdown locally, converts to Confluence storage format, and publishes on your consent. Can prefill from plans/active/.",
   "author": {
     "name": "Runemark Labs"

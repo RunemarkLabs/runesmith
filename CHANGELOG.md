@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 > **Rename note**: this marketplace was previously named "Claude Forge". Renamed to **RuneSmith** in v0.6.0 to avoid trademark confusion with Anthropic's "Claude" mark and conflict with Atlassian's "Forge" developer platform. Historical changelog entries below have been mechanically updated to reference plugins by their new names (`runesmith-*`) for consistency; the substance of past releases is unchanged.
 
+## [1.0.2] - 2026-11-22
+
+### Fixed
+- **Drafts are shown before they are approved (all plugins).** `lib/user-prompts.md` gains "Drafts the owner approves": a draft goes inside the question text in a fenced block (or, when long, is sent first as a message the owner reads in full), one draft per question, and changes are typed in the dialog's own text box, so the owner never retypes a whole draft. Init step 3 (the project description) follows it, offering two wordings; before, the question said "Use this draft?" with no draft on screen.
+- **Init delivers CLAUDE.md and the Project Instructions block (runesmith-workspace).** The separate "project description" question is gone; the description goes straight into the CLAUDE.md preamble and the Project Instructions block. Init sends the block as its own message, never behind a question box, and sends CLAUDE.md as a file to open. The approval question lists only the owner's own files that move; refreshes of what init owns (CLAUDE.md sections, the head's files, settings, skills, comms layout) are done and reported, not asked, and anything waiting on a key goes in "Still needed from you". Head asks the same way. The GitHub account question waits until the key is set, and never offers an email address. The report is shorter and ends with questions, never a typed reply list.
+- **One question at a time (all plugins).** Skills never put several questions in one dialog; they ask one, wait, then ask the next.
+- **No edit options in questions (all plugins).** The question dialog already has a text box, so skills no longer add "Edit", "Edit first", "Other" or similar options. Removed from init, inbox and the consent prompt.
+- **INSTALL:** adding a marketplace does not install its plugins. The steps now say to add each plugin from search, check that each is under **Active**, and add new plugins from later releases by hand.
+
+### Versions
+- runesmith-aiops 1.0.0 -> 1.0.1
+- runesmith-cc 1.0.1 -> 1.0.2
+- runesmith-confluence 1.0.0 -> 1.0.1
+- runesmith-core 1.0.0 -> 1.0.1
+- runesmith-devtools 1.0.0 -> 1.0.1
+- runesmith-jira 1.0.0 -> 1.0.1
+- runesmith-sprint 1.0.0 -> 1.0.1
+- runesmith-workspace 1.0.1 -> 1.0.2
+- marketplace 1.0.1 -> 1.0.2
+
 ## [1.0.1] - 2026-11-21
 
 ### Added

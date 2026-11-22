@@ -4,7 +4,7 @@ When `runesmith-workspace:init` emits Project Instructions text on a re-run (or 
 
 ## When to infer
 
-Run inference at step 3 of init ("What is this project?"), BEFORE rendering the template.
+Run inference at step 3 of init, BEFORE rendering the template. The draft is not asked about on its own: the owner sees it inside the finished Project Instructions block.
 
 ## Signal sources (read in this order; stop at first strong hit)
 
@@ -23,23 +23,13 @@ Do NOT read `plans/active/*/plan.md` or `tickets/*` for mission inference. Plans
 3. **No structural details.** Per `lib/project-instructions.md`, Project Instructions must NOT contain file paths, plugin names, folder layouts. If the source has those, paraphrase to behavioral / mission terms only.
 4. **No certainty claims.** The draft is a proposal. Phrase as "this project IS about X" matter-of-factly; the user will edit if wrong.
 
-## Structured prompt format
+## No question
 
-Show the draft and where it came from, then ask:
-
-```
-Drafted from {source}:
-"{drafted 1-3 sentences}"
-
-- Use this (default)
-- Edit
-```
-
-On Edit, a text-input form pre-filled with the draft.
+The draft is not shown or asked about on its own. It goes straight into the CLAUDE.md preamble and the PROJECT section of the Project Instructions block, and the owner sees it there. He changes it by saying so (Ben, 2026-11-22: a separate "project description" question means nothing to him).
 
 ## No signal
 
-Offer two short drafted descriptions built from what the owner has said in the chat (the question tool needs at least two options); he can type his own in "Other". There is no placeholder option: a "fill this in" placeholder was rejected by the owner (2026-11-21).
+Ask what the project is in one structured question. Offer two short drafted descriptions built from what the owner has said in the chat (the question tool needs at least two options); he can type his own in the dialog's text box. There is no placeholder option: a "fill this in" placeholder was rejected by the owner (2026-11-21).
 
 ## ROLE section is NOT inferred
 
@@ -47,7 +37,7 @@ ROLE is not inferred either. It comes from init's "Will this project hold code?"
 
 ## Idempotence
 
-On a re-run, init skips the question when the project description is already in CLAUDE.md's preamble, and reuses it.
+On a re-run, init reuses the description already in CLAUDE.md's preamble.
 
 ## Implementation note (inline, not subagent)
 

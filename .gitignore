@@ -3,7 +3,7 @@
 # .github/, top-level docs (README, CHANGELOG, etc.), LICENSE, NOTICE,
 # .credentials.example.
 
-# --- Local secrets — never commit ---
+# --- Local secrets: never commit ---
 .credentials
 .credentials.local
 *.pem
