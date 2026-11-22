@@ -40,6 +40,14 @@ ATLASSIAN_DEFAULT_ASSIGNEE_ACCOUNT_ID={account id}
 ATLASSIAN_BUG_SEVERITY_FIELD={custom field id}
 ```
 
+Claude Code's GitHub key (every code project with a GitHub remote), in `{PROJECT}.cc/.credentials`, pasted by the owner (Ben, 2026-11-22: a key, never an interactive `gh auth login`):
+
+```
+CC_GITHUB_PAT={fine-grained token, made under the project's GitHub account, for this project's repos only}
+```
+
+Repository permissions: Contents read and write, Pull requests read and write, Workflows read and write (a goal may change the build check workflow), Actions read, Commit statuses read, Metadata read. No Administration: branch rules stay the planner's. Claude Code reads it into each command that needs it (`GH_TOKEN` for the `gh` command, an auth header for `git push`); it's never printed, stored in git settings or written into a remote address. A head file that already holds `RUNESMITH_GITHUB_PAT` for this purpose is accepted when `CC_GITHUB_PAT` is missing.
+
 Claude Code's read-only Jira token (Atlassian-enabled code projects), in `{PROJECT}.cc/.credentials`, pasted by the owner when `runesmith-sprint:enable` asks:
 
 ```

@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 > **Rename note**: this marketplace was previously named "Claude Forge". Renamed to **RuneSmith** in v0.6.0 to avoid trademark confusion with Anthropic's "Claude" mark and conflict with Atlassian's "Forge" developer platform. Historical changelog entries below have been mechanically updated to reference plugins by their new names (`runesmith-*`) for consistency; the substance of past releases is unchanged.
 
+## [1.0.7] - 2026-11-22
+
+### Added
+- **Claude Code's own GitHub key (runesmith-cc, and `lib/credentials.md` in every plugin that carries it).** Claude Code opens and merges pull requests with `CC_GITHUB_PAT` in the head's `.credentials`, a fine-grained key for the project's repos (Contents, Pull requests and Workflows read and write; Actions, Commit statuses and Metadata read; no Administration). It's read into each command, never printed, stored in git settings or put in a remote address, and Claude Code never uses `gh auth login` or another account's sign-in. Head adds the empty line and lists it under "Still needed" until the owner pastes it.
+
+### Versions
+- runesmith-aiops 1.0.1 -> 1.0.2
+- runesmith-cc 1.0.5 -> 1.0.6
+- runesmith-confluence 1.0.1 -> 1.0.2
+- runesmith-core 1.0.1 -> 1.0.2
+- runesmith-devtools 1.0.1 -> 1.0.2
+- runesmith-jira 1.0.1 -> 1.0.2
+- runesmith-sprint 1.0.5 -> 1.0.6
+- runesmith-workspace 1.0.4 -> 1.0.5
+- marketplace 1.0.6 -> 1.0.7
+
 ## [1.0.6] - 2026-11-22
 
 ### Changed

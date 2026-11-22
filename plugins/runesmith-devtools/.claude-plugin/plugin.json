@@ -1,6 +1,6 @@
 {
   "name": "runesmith-devtools",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "[RuneSmith v1.0.0] Tools for plugin authors. /help lists installed skills and their triggers, /plugin-builder scaffolds a new plugin, /tech-debt scans the workspace for stale or orphaned files, and /skill-updater carries a convention change across every skill and shared library copy.",
   "author": {
     "name": "Runemark Labs"

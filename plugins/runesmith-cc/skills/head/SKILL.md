@@ -172,7 +172,7 @@ Read `GET /repos/{owner}/{repo}/rulesets`. If a branch ruleset already names som
 
 Only add what's missing. Never remove a rule, a required check or a review requirement the repo already has, in a ruleset or in older per-branch protection. A local repo with no remote is skipped and reported.
 
-Claude Code's own keys go in `{name}.cc/.credentials`, never inside a repo folder. Without Jira there may be none; then no file is created.
+Claude Code's own keys go in `{name}.cc/.credentials`, never inside a repo folder. Every head with a GitHub remote gets `CC_GITHUB_PAT=''` there (`lib/credentials.md`: what it is and its permissions); when it's empty, the report lists it under "Still needed" with the permissions, and the owner pastes it. Claude Code never signs in with `gh auth login`.
 
 ### 9. Security scan
 

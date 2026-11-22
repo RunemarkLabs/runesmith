@@ -49,6 +49,7 @@ Skill-managed by RuneSmith. Each rule exists because skipping it caused a real m
   - merged security fixes not yet on qa, and dependency updates waiting for review.
 
 **Git authority**
+- GitHub access is the `CC_GITHUB_PAT` key in this folder's `.credentials`, read into each command that needs it (`GH_TOKEN` for `gh`, an auth header for `git push`). Never sign in with `gh auth login`, never use another account's sign-in, and never print the key, store it in git settings or put it in a remote address. If the key is missing or lacks a permission, name it in the reply as an owner action.
 - One branch per goal, named after the goal, from `dev`. Commit as you go and push the branch. When the goal's tasks are tested and working, open one pull request into `dev` and merge it once the build check passes. Never merge over a failing or pending check.
 - Never push directly to `dev`, `qa`, `beta` or `main`. Never force-push, rewrite published history, bypass or change branch rules, or delete branches other than your own merged goal branches.
 - Promotions run only on the owner's word, through a task comm: `dev` to `qa`, `qa` to `beta`, `beta` to `main`. How: the `runesmith-release` skill.
