@@ -38,8 +38,7 @@ For a code project it continues:
 - `.gitignore` patterns for `.credentials`, snapshots, `_INBOX/` and open comms.
 - For a code project, through `/runesmith-cc:head`:
   - `{PROJECT}.cc/CLAUDE.md` with the builder's standing rules;
-  - `.claude/settings.json` (attribution off, stop hook cap of 3, code-simplifier on, an empty cross-project list) and `.claude/README.md` explaining it;
-  - the `runesmith-clean-code`, `runesmith-code-tech-debt` and `runesmith-release` skills;
+  - Claude Code's `.claude/settings.json` (attribution off, stop hook cap of 3, code-simplifier on, an empty cross-project list), `.claude/README.md` explaining it, and the `runesmith-clean-code`, `runesmith-code-tech-debt` and `runesmith-release` skills. The chat can't write inside `.claude/`, so these are staged in `setup/claude/` and a first task, with its `/goal` line, has Claude Code install them;
   - `comms/open/` and `comms/archive/`;
   - the repo, with its address naming the project's GitHub account (`https://{account}@github.com/...`), `dev` and `qa` branches created from `main` (`beta` comes from the first promotion), the no-attribution commit hook, and a repo `CLAUDE.md` stub kept out of git.
 - With Jira on, the `runesmith-sprint:enable` steps (see `docs/howto/enable-atlassian.md`).

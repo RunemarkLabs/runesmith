@@ -3,6 +3,9 @@
 .credentials
 .credentials.local
 
+# Files staged by the planner for Claude Code to install into .claude/
+setup/
+
 # Comms: open is ephemeral per session, archive is committed
 comms/open/*
 !comms/open/.gitkeep

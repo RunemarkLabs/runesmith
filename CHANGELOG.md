@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 > **Rename note**: this marketplace was previously named "Claude Forge". Renamed to **RuneSmith** in v0.6.0 to avoid trademark confusion with Anthropic's "Claude" mark and conflict with Atlassian's "Forge" developer platform. Historical changelog entries below have been mechanically updated to reference plugins by their new names (`runesmith-*`) for consistency; the substance of past releases is unchanged.
 
+## [1.0.5] - 2026-11-22
+
+### Changed
+- **Claude Code installs its own `.claude/` files (runesmith-cc, runesmith-sprint).** The chat's file tools refuse writes inside `.claude/` on purpose, so head and enable no longer try. They stage settings, the `.claude/README.md` and the `runesmith-*` builder skills in `{PROJECT}.cc/setup/claude/`, and write an "Install RuneSmith's head files" task with its `/goal` line. Claude Code copies the files in, merges settings without touching other keys, keeps skill copies the project changed, and reports each file. `setup/` is git-ignored.
+
+### Versions
+- runesmith-cc 1.0.4 -> 1.0.5
+- runesmith-sprint 1.0.3 -> 1.0.4
+- marketplace 1.0.4 -> 1.0.5
+
 ## [1.0.4] - 2026-11-22
 
 ### Added

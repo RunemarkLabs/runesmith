@@ -69,14 +69,15 @@ Copy what will move or change to `archive/_pre-head-{UTC}/`.
 
 Create what's missing; never overwrite a file the project changed, except the marker sections and keys listed below.
 
+**Nothing is written inside `.claude/` from the chat (Ben, 2026-11-22).** The connected-folder tools refuse it on purpose ("Writing to .claude is not permitted via remote tools"): a chat must not change Claude Code's own settings, hooks or skills. Don't go around it with the shell. Everything below that belongs in `.claude/` is staged in `{name}.cc/setup/claude/`, mirroring the `.claude/` layout, and Claude Code installs it (step 5b).
+
 | Path | Source |
 |---|---|
 | `CLAUDE.md` | `templates/CLAUDE.parent.md`, with `{PROJECT}`, `{CHANGELOG_AUDIENCES}` and `{DEV_RESET_RULE}` from init's answers |
 | `README.md` | `templates/README.md` |
 | `.claude-code-workspace` | `templates/marker.json` |
-| `.claude/settings.json` | `templates/settings.json` |
-| `.claude/README.md` | `templates/claude-README.md` (the boundary, the escape hatch and its approval table) |
-| `.claude/settings.local.json` | `{}` (git-ignored) |
+| `setup/claude/settings.json` (for `.claude/settings.json`) | `templates/settings.json` |
+| `setup/claude/README.md` (for `.claude/README.md`) | `templates/claude-README.md` (the boundary, the escape hatch and its approval table) |
 | `comms/README.md` | `templates/comms-README.md` |
 | `comms/open/.gitkeep`, `comms/archive/.gitkeep` | empty |
 | `.gitignore`, `.gitattributes` | `templates/gitignore`, `templates/gitattributes` |
@@ -84,7 +85,7 @@ Create what's missing; never overwrite a file the project changed, except the ma
 
 **Existing `CLAUDE.md`:** replace only the content between `<!-- agent-ops:start -->` and `<!-- agent-ops:end -->` with the template's. Seed empty `atlassian-section` markers if missing. Leave everything else as it is, including other tools' marker sections (`runestack-credentials`, `runestack-stack`). A start marker without its end marker: stop and report.
 
-**Existing `.claude/settings.json`:** parse it and merge only these keys, keeping every other key and value:
+**Settings are merged by Claude Code, not replaced.** The setup task carries these rules. When `.claude/settings.json` exists, Claude Code parses it and merges only these keys, keeping every other key and value:
 
 ```json
 "attribution": { "commit": "", "pr": "", "sessionUrl": false },
@@ -94,11 +95,13 @@ Create what's missing; never overwrite a file the project changed, except the ma
 "permissions": { "additionalDirectories": [] }
 ```
 
-Merge into `env`, `enabledPlugins` and `permissions` without removing their other entries; `additionalDirectories` is created empty only when missing, and existing entries are kept. A top-level `additionalDirectories` left by an older release moves into `permissions.additionalDirectories` (Claude Code reads only that one). Never write `"attribution": false` (older Claude Code releases reject it and skip the whole file). Not valid JSON: don't rewrite it; report the parse error. Warn if `settings.local.json` turns attribution back on.
+Merge into `env`, `enabledPlugins` and `permissions` without removing their other entries; `additionalDirectories` is created empty only when missing, and existing entries are kept. A top-level `additionalDirectories` left by an older release moves into `permissions.additionalDirectories` (Claude Code reads only that one). Never write `"attribution": false` (older Claude Code releases reject it and skip the whole file). Not valid JSON: don't rewrite it; report the parse error. Create `.claude/settings.local.json` as `{}` when missing (git-ignored). Warn if `settings.local.json` turns attribution back on.
+
+The chat may read `.claude/` (listing, reading settings) to report what's there and to tell whether a refresh is needed.
 
 ### 5. RuneSmith's builder skills
 
-Each skill gets its own folder directly under `.claude/skills/`, named with the `runesmith-` prefix, so Claude Code finds it and runestack's `runestack-*` skills never collide:
+Each skill gets its own folder directly under `.claude/skills/`, named with the `runesmith-` prefix, so Claude Code finds it and runestack's `runestack-*` skills never collide. The chat stages each one at the same path under `setup/claude/skills/`; Claude Code installs it (step 5b):
 
 | Folder | Source |
 |---|---|
@@ -108,7 +111,17 @@ Each skill gets its own folder directly under `.claude/skills/`, named with the 
 
 Refresh replaces only `runesmith-*` folders, and only when the project hasn't changed the deployed copy since the last refresh (compare against the copy in the snapshot). A changed copy is kept and reported. Legacy folders (`code-tech-debt/` without the prefix, `atlassian/{name}/`) move to `archive/_pre-head-{UTC}/` after the prefixed copy is in place.
 
-`runesmith-sprint:enable` deploys the Jira builder skills the same way (`runesmith-sprint-pull/`, `runesmith-ticket-document/`, `runesmith-blocker-write/`, `runesmith-ticket-done/`).
+`runesmith-sprint:enable` deploys the Jira builder skills the same way (`runesmith-sprint-pull/`, `runesmith-ticket-document/`, `runesmith-blocker-write/`, `runesmith-ticket-done/`), staged and installed through the same setup task.
+
+### 5b. The setup task (Claude Code installs `.claude/`)
+
+When anything is staged in `setup/claude/`, write a task comm per `lib/comms-protocol.md`: "Install RuneSmith's head files". Requirements:
+- copy each staged file into `.claude/` at the same path; for `settings.json`, merge per step 4 instead of copying;
+- replace a `runesmith-*` skill folder only when the project hasn't changed the installed copy (compare with the previous staged copy, kept as `setup/claude.previous/`); a changed copy is kept and named in the reply;
+- move `setup/claude/` to `setup/claude.previous/` when done (replacing the older one);
+- Acceptance: the reply lists each file installed, merged, kept or skipped, and the merged settings keys.
+
+Give the `/goal` line for it. It runs before any other goal; when other tasks are waiting, it goes first in the same goal line. `setup/` is git-ignored.
 
 ### 6. Attribution hook in every repo
 
@@ -173,8 +186,8 @@ Head: {workspace}/{name}.cc/
 Repos: {list}
 GitHub account: {account}; remotes: {repo}: https://{account}@github.com/{owner}/{repo}.git{ (rewritten from: old address)}
 Branches: {repo}: dev, qa present{ (created: list)}; beta {present | created by Claude Code at the build promoted from qa, on the first promotion to beta}; ruleset on dev, qa, beta, main: {set | added: list | skipped: no remote | refused: reason}{; build check: name | none yet}
-Skills: runesmith-clean-code, runesmith-code-tech-debt, runesmith-release{, Jira skills}  (kept, changed by project: {list})
-Settings: attribution off, stop-hook cap 3, code-simplifier enabled
+Claude Code's files: staged in setup/claude/ for Claude Code to install {(nothing to change) | (settings, skills: list)}
+Setup task: comms/open/{UTC}-install-head-files/   Goal line: /goal ...
 Hooks: {repo}: installed | updated | chained | skipped (core.hooksPath), probe pass/fail
 Legacy comms renamed: {n}
 Security: {findings, or none}
@@ -189,7 +202,8 @@ If Claude Code says code-simplifier is enabled but not installed: claude plugin 
 - [ ] Snapshot before any change; consent unless init already had it
 - [ ] Only RuneSmith's marker sections and listed settings keys rewritten
 - [ ] A damaged marker stops the run
-- [ ] Skills deployed one level under `.claude/skills/` with the `runesmith-` prefix
+- [ ] Nothing written inside `.claude/` from the chat; staged in `setup/claude/` with a setup task and goal line
+- [ ] Skills staged one level under `setup/claude/skills/` with the `runesmith-` prefix
 - [ ] Project-changed skill copies kept
 - [ ] Hook installed or chained and probed in every repo; no hook deleted; no history rewritten
 - [ ] Branch protection added on all four branches; nothing the repo already had removed or loosened

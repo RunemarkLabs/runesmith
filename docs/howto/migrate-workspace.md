@@ -37,8 +37,7 @@ Unknown root items go to `_INBOX/` without a question each.
 - Moves git repos at the root into `{PROJECT}.cc/{repo}/` as whole units, history intact.
 - Renames `claude-code/` or an old head to `{PROJECT}.cc/`.
 - Renames numbered comm folders in `comms/open/` to `{UTC}-{slug}/`, and `attachments/` to `references/`. `comms/archive/` is left alone.
-- Deploys the builder skills as `.claude/skills/runesmith-{name}/` and moves the old unprefixed copies to the snapshot. A deployed skill the project changed is kept and reported.
-- Merges the head's settings (attribution off, stop hook cap, code-simplifier) without touching other keys.
+- Stages the builder skills (as `runesmith-{name}/`) and the head's settings in `setup/claude/`, and writes a setup task for Claude Code to install them into `.claude/`: old unprefixed skill copies moved aside, a skill the project changed kept and reported, settings merged (attribution off, stop hook cap, code-simplifier) without touching other keys. The chat never writes inside `.claude/`.
 - Rewrites each repo's address to `https://{account}@github.com/{owner}/{repo}.git` for the project's GitHub account, replacing SSH or account-less addresses, and reports each change.
 - Creates any missing `dev` and `qa` branches; `beta` comes from the first promotion. Existing branches are never moved.
 - Rewrites only its own marker sections in each `CLAUDE.md`. Content outside them, and sections owned by other tools, stay as they are.

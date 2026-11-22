@@ -85,13 +85,13 @@ Copy the files that will change to `archive/_pre-enable-{UTC}/`.
 
 ### 7. Claude Code's Jira skills (code projects)
 
-Copy each from `cc-skill-templates/` into its own prefixed folder, one level under `.claude/skills/`:
+Stage each from `cc-skill-templates/` in its own prefixed folder under `{PROJECT}.cc/setup/claude/skills/`, and add them to the "Install RuneSmith's head files" task (`runesmith-cc:head` step 5b), writing that task if none is open. Claude Code installs them one level under `.claude/skills/`; the chat never writes inside `.claude/`:
 - `runesmith-sprint-pull/` (reads the current task's tickets; never picks work)
 - `runesmith-ticket-document/`
 - `runesmith-blocker-write/`
 - `runesmith-ticket-done/`
 
-Copy `lib/jira-tags.md` into each that references it. Keep a copy the project changed; report it. Move legacy `.claude/skills/atlassian/` to the snapshot once the prefixed copies are in place.
+Copy `lib/jira-tags.md` into each that references it. Keep a copy the project changed; report it. The setup task moves legacy `.claude/skills/atlassian/` aside once the prefixed copies are in place.
 
 ### 8. Check Claude Code's token
 
@@ -135,7 +135,7 @@ Asks the project values again with the current ones as defaults, replaces the se
 - [ ] Planner's keys at the workspace root; Claude Code's in the head; none in a repo folder
 - [ ] Snapshot and consent before any change
 - [ ] Only the `atlassian-section` markers edited in either CLAUDE.md; a damaged marker stops the run
-- [ ] Skills deployed one level under `.claude/skills/` with the `runesmith-` prefix
+- [ ] Skills staged under `setup/claude/skills/` with the `runesmith-` prefix and handed to Claude Code in the setup task
 - [ ] No Jira writes; reads only, to look up ids
 - [ ] Every value from the owner or the credentials file; no company-specific defaults
 
