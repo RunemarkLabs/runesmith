@@ -43,7 +43,7 @@ Take the request in his words. Confirm the build with a structured prompt showin
    - list the owner items from `qa/checklist.md`, with anything the run couldn't check.
 
    Acceptance: qa runs build {number}; the reply lists test counts and times, and the owner items.
-3. **Goal line:** `/goal Promote build {number} from dev to qa only. Do {task path}. No other promotion. Done when ...` with the escape clause.
+3. **Goal line:** `/goal Promote build {number} from dev to qa only. Do {task path}. Done when ...` with the escape clause.
 4. **After the reply** (check comms): run `runesmith-sprint:qa-checklist` publish, then give the owner the page link.
 
 ### Promote to beta ("QA passed", "promote to beta")

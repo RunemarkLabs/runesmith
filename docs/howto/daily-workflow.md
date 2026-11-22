@@ -29,7 +29,7 @@ The planner pressure-tests the request, reads open issues (Jira or GitHub, read 
 It ends with a `/goal` line, for example:
 
 ```
-/goal Don't change the checkout layout. Do comms/open/20261121T173516Z-cancel-order/20261121T173516Z-cancel-order.md. No promotion. Done when each task's Acceptance is met, or each item that needs the owner is named in the reply as an owner action.
+/goal Do comms/open/20261121T173516Z-cancel-order/20261121T173516Z-cancel-order.md. Done when each task's Acceptance is met, or each item that needs the owner is named in the reply as an owner action.
 ```
 
 Paste it into Claude Code, opened in `{PROJECT}.cc/`. If a goal is already running, paste it after that goal's banner.

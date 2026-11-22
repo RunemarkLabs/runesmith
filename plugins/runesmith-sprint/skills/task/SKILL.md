@@ -68,7 +68,7 @@ Append to the plan's `decisions.md`: the date, what the owner decided, the task 
 Follow `lib/planner-task-method.md`:
 
 ```
-/goal {What must not happen, in the owner's words if he gave any}. Do {path to task A}, then {path to task B}. No promotion. Done when each task's Acceptance is met, or each item that needs the owner is named in the reply as an owner action.
+/goal Do {path to task A}, then {path to task B}. Done when each task's Acceptance is met, or each item that needs the owner is named in the reply as an owner action.
 ```
 
 - Name the task comms and their outcome only. Never mention the banner, replies or the finishing order.

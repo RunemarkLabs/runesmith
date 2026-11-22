@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 > **Rename note**: this marketplace was previously named "Claude Forge". Renamed to **RuneSmith** in v0.6.0 to avoid trademark confusion with Anthropic's "Claude" mark and conflict with Atlassian's "Forge" developer platform. Historical changelog entries below have been mechanically updated to reference plugins by their new names (`runesmith-*`) for consistency; the substance of past releases is unchanged.
 
+## [1.0.6] - 2026-11-22
+
+### Changed
+- **Goal lines carry only the tasks (runesmith-sprint, runesmith-workspace).** Claude Code builds in dev and promotes only on the owner's word, and its standing rules already cover qa, history, branch rules and the hosted services. Goal lines no longer restate any of it ("No promotion", "never wipe qa"); a limit is added only when the owner gave one for that goal, or beta is held.
+
+### Versions
+- runesmith-sprint 1.0.4 -> 1.0.5
+- runesmith-workspace 1.0.3 -> 1.0.4
+- marketplace 1.0.5 -> 1.0.6
+
 ## [1.0.5] - 2026-11-22
 
 ### Changed

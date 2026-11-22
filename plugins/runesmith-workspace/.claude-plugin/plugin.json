@@ -1,6 +1,6 @@
 {
   "name": "runesmith-workspace",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "[RuneSmith v1.0.1] Workspace setup and structure. /init is the single entry point for a new or existing project: it interviews you, lays out the workspace (_INBOX, plans, drafts, notes, archive), writes CLAUDE.md, and hands off to runesmith-cc:head when the project holds code. /inbox routes dropped files on consent. /reallocate remains one release as a pointer to /init.",
   "author": {
     "name": "Runemark Labs"

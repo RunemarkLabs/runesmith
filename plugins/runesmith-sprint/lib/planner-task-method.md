@@ -61,14 +61,14 @@ Part of the goal's branch; pull request into `dev`; changelog lines, or "No chan
 ## The `/goal` line
 
 ```
-/goal {What must not happen}. Do {path to task A}, then {path to task B}. No promotion. Done when each task's Acceptance is met, or each item that needs the owner is named in the reply as an owner action.
+/goal Do {path to task A}, then {path to task B}. Done when each task's Acceptance is met, or each item that needs the owner is named in the reply as an owner action.
 ```
 
 - **Chaining is fine:** several tasks of the same plan in one goal, in order, with one banner at the end. Use separate goals only when the owner wants to look at something between tasks.
 - **Name the task comms and their outcome only.** Never mention the banner, replies or the finishing order; those live in the builder's rules. A goal that said "one banner at the end" made the stop hook demand the banner be the last message, and it looped nine times.
 - **Never put an owner-only outcome in a goal line** (a token, a click, a promotion). The stop hook reads the line literally and re-prompts until its cap.
 - **Always end with the escape clause,** exactly: "Done when each task's Acceptance is met, or each item that needs the owner is named in the reply as an owner action."
-- **State what must not happen** ("No promotion", "Hold the beta promotion (owner's word)").
+- **No restated rules (Ben, 2026-11-22).** Claude Code builds in dev only and promotes only on the owner's word; its standing rules already cover that, along with qa's data, history, branch rules and the hosted services. Never repeat any of it in a goal line ("No promotion", "never wipe qa", "never touch Vercel"). Add a limit only when the owner gave one for this goal, in his words, or when beta is held ("Hold the beta promotion (owner's word)"). A "never do X" line puts X in front of the builder and can invite it; say what to do instead, and leave out what it would never think of doing.
 - **While a goal runs,** queue the next line for after its banner. To add a task mid-run, the owner can send a new `/goal` with the full list; the builder records the change in the status comm.
 - **Promotion goals** are written the same way and name the build number being promoted.
 
