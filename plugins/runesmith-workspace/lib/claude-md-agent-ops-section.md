@@ -59,6 +59,13 @@ Skill-managed by RuneSmith. Full rationale: `runesmith-workspace/lib/agent-opera
 - The `/goal` line names the task comms and their outcome only, never mentions the banner, never contains an owner-only outcome, and ends with: "Done when each task's Acceptance is met, or each item that needs the owner is named in the reply as an owner action."
 - The planner never runs git write commands, including fetch, in the builder's repositories.
 
+**Release flow (when the project has a head)**
+Full flow: `lib/release-flow.md` in the installed RuneSmith plugins.
+- Branches `dev`, `qa`, `beta`, `main` (prod). Setup creates `dev` and `qa` from `main`. Claude Code creates `beta` on the first promotion to beta, at the build promoted from `qa`, never from `main`.
+- One repository ruleset protects all four by name, `beta` before it exists: pull request required, no force-push, no deletion, the build check once CI reports one.
+- Goal branch into `dev` by pull request, build numbered `MAJOR.MINOR.BUILD`. Then `dev` to `qa` ("promote to qa"), `qa` to `beta` ("QA passed", after the checklist gate), `beta` to `main` ("ship it"). One step at a time, only on the owner's word, through `runesmith-sprint:promote`.
+- What each branch deploys and the CI workflow are the stack tooling's; the process is RuneSmith's.
+
 This section is skill-managed. Re-running `/runesmith-workspace:init` refreshes the content between markers. Additions belong outside the marker pair.
 <!-- agent-ops:end -->
 ```

@@ -1,6 +1,6 @@
 {
   "name": "runesmith-sprint",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "[RuneSmith v1.0.0] The planner and builder loop. /task writes a task comm and its /goal line, /check-comms verifies Claude Code's replies against the repository and archives finished work, /promote moves a build from dev to qa to beta to main on the owner's word, and /qa-checklist publishes one checklist page per project where you mark each item pass or fail. Optional Jira wiring: /enable, /start-sprint, /sprint-status, /plan-to-tickets.",
   "author": {
     "name": "Runemark Labs"

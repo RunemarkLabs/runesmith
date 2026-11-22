@@ -10,6 +10,7 @@ Promotions happen only on the owner's word, in his words, and Claude Code carrie
 
 ## References
 
+- `lib/release-flow.md` - the whole flow: branches, who creates them, protection, the chain
 - `lib/comms-protocol.md`, `lib/planner-task-method.md` - the task and goal line
 - `lib/qa-checklist.md` - the qa gate
 - `runesmith-sprint:qa-checklist` - publishing and reading the checklist page
@@ -51,7 +52,7 @@ Take the request in his words. Confirm the build with a structured prompt showin
    - **Not clear:** name what's blocking. The owner may override in his own words; record the override, verbatim, in `decisions.md` and in the task.
 2. **Task comm:** "Promote build {number} to beta". Requirements:
    - a release commit turns the changelog's Unreleased into `## {number} ({date})`, naming the goal builds it includes;
-   - pull requests into `qa` and `beta`, both fast-forwarded to it. On the first promotion to beta, `beta` doesn't exist yet: Claude Code creates it at that commit and pushes it (the ruleset already names it), with no pull request;
+   - pull requests into `qa` and `beta`, both fast-forwarded to it. On the first promotion to beta, `beta` doesn't exist yet: Claude Code creates it at that commit (the build promoted from `qa`, never `main`) and pushes it (the ruleset already names it), with no pull request;
    - `qa` merged back into `dev`;
    - the checklist file carries the same numbered version.
 

@@ -26,7 +26,7 @@ Until the project has a release script, do each step by hand with the same rules
 |---|---|---|
 | `number` | Tags the current `dev` commit with the next number and pushes the tag | Not on `dev`; older than a numbered commit |
 | `promote-qa {number}` | Pull request `dev` into `qa` with "Requested by: {owner's words}"; fast-forwards `qa` to that exact commit after the build check | The commit has no number; drift; the full suite or a live check failed on `dev` at that commit |
-| `promote-beta {number}` | Release commit (Unreleased becomes `## {number} ({date})`, naming the goal builds included); pull requests into `qa` and `beta`, both fast-forwarded to it; merges `qa` back into `dev` | qa gate not clear and no recorded override; beta held; drift |
+| `promote-beta {number}` | Release commit (Unreleased becomes `## {number} ({date})`, naming the goal builds included); pull requests into `qa` and `beta`, both fast-forwarded to it (the first time, `beta` doesn't exist: create it at that commit and push it, never from `main`); merges `qa` back into `dev` | qa gate not clear and no recorded override; beta held; drift |
 | `ship-it` | Pull request `beta` into `main` with "Requested by:"; no rebuild | Drift |
 | `merge-back` | `beta` into `qa`, `qa` into `dev`, rebuilding the changelog and checklist from both sides rather than leaving it to git | - |
 | `drift` | Checks `dev` contains every `qa` commit, `qa` every `beta` commit, `beta` every `main` commit | - |
@@ -44,7 +44,7 @@ The qa results live on the planner's checklist page, not in the repo: `qa-gate` 
   4. In the reply, list the owner items from `qa/checklist.md` and anything the run couldn't check.
 - **To beta:**
   1. Make the release commit on `qa`.
-  2. Open pull requests into `qa` and `beta` and fast-forward both.
+  2. Open pull requests into `qa` and `beta` and fast-forward both. The first time, `beta` doesn't exist: create it at the release commit and push it instead (never from `main`).
   3. Merge `qa` back into `dev`.
   4. Push. If `qa` got fixes since the passing run, run the full suite once on this commit first.
 - **Ship it:** open the pull request `beta` into `main`. Nothing is rebuilt.

@@ -116,7 +116,7 @@ The builder never archives. The planner never edits a reply. Full rules: `lib/co
 
 ## Branches, builds and promotions
 
-- Branches: `dev`, `qa`, `beta`, `main`. The head creates `dev` and `qa` from `main` on a new repo; Claude Code creates `beta` on the first promotion to beta. One repository ruleset protects all four by name, beta included before it exists: pull request required, no force-push, no deletion, plus the build check once the project's CI reports one. Protection is a guardrail on Claude Code, so RuneSmith sets it; the CI that produces the check belongs to the stack tooling.
+- Branches: `dev`, `qa`, `beta`, `main`. The whole flow is in `lib/release-flow.md` (runesmith-cc, runesmith-sprint, runesmith-workspace). The head creates `dev` and `qa` from `main` on a new repo; Claude Code creates `beta` on the first promotion to beta. One repository ruleset protects all four by name, beta included before it exists: pull request required, no force-push, no deletion, plus the build check once the project's CI reports one. Protection is a guardrail on Claude Code, so RuneSmith sets it; the CI that produces the check belongs to the stack tooling.
 - Every project names one GitHub account. Each repo's address is `https://{account}@github.com/{owner}/{repo}.git`, so a machine with several accounts always pushes as the right one.
 - Every goal gets its own branch and a pull request into `dev`.
 - Build numbers: `MAJOR.MINOR.BUILD` with a four-digit build, one per finished goal, tagged `v{number}`. A new project starts at `0.1.0001`.

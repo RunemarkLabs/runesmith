@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 > **Rename note**: this marketplace was previously named "Claude Forge". Renamed to **RuneSmith** in v0.6.0 to avoid trademark confusion with Anthropic's "Claude" mark and conflict with Atlassian's "Forge" developer platform. Historical changelog entries below have been mechanically updated to reference plugins by their new names (`runesmith-*`) for consistency; the substance of past releases is unchanged.
 
+## [1.0.4] - 2026-11-22
+
+### Added
+- **One release flow every chat knows (runesmith-cc, runesmith-sprint, runesmith-workspace).** New `lib/release-flow.md` is the single description of how code moves from a goal to production: the branches and who creates each, the ruleset that protects them, the dev, qa, beta, main chain with its gates, build numbers, fixes, holds and drift. Head, promote and init follow it.
+- **The flow is in both CLAUDE.md files.** Init writes a release flow summary into the planner's CLAUDE.md section, and the builder's CLAUDE.md now says how `beta` is created, so every chat in a code project knows the flow without opening a promotion skill.
+
+### Fixed
+- `beta` is created at the build promoted from `qa`, never from `main`: now stated in head, the repo bootstrapper, promote and Claude Code's release skill, not only in promote.
+
+### Versions
+- runesmith-cc 1.0.3 -> 1.0.4
+- runesmith-sprint 1.0.2 -> 1.0.3
+- runesmith-workspace 1.0.2 -> 1.0.3
+- marketplace 1.0.3 -> 1.0.4
+
 ## [1.0.3] - 2026-11-22
 
 ### Changed

@@ -20,6 +20,7 @@ The single entry point for a project. It replaces `reallocate`. Safe to re-run: 
 - `lib/naming.md` - folder name normalization
 - `lib/comms-check.md` - runs first on a re-run
 - `lib/user-prompts.md` - structured prompts
+- `lib/release-flow.md` - the release flow, summarized into CLAUDE.md for code projects
 
 ## Interview rule
 

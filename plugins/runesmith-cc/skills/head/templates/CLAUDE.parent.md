@@ -52,6 +52,7 @@ Skill-managed by RuneSmith. Each rule exists because skipping it caused a real m
 - One branch per goal, named after the goal, from `dev`. Commit as you go and push the branch. When the goal's tasks are tested and working, open one pull request into `dev` and merge it once the build check passes. Never merge over a failing or pending check.
 - Never push directly to `dev`, `qa`, `beta` or `main`. Never force-push, rewrite published history, bypass or change branch rules, or delete branches other than your own merged goal branches.
 - Promotions run only on the owner's word, through a task comm: `dev` to `qa`, `qa` to `beta`, `beta` to `main`. How: the `runesmith-release` skill.
+- `beta` doesn't exist until the first promotion to beta. Then you create it at the build being promoted from `qa` (never from `main`) and push it; the branch ruleset already protects it. Later promotions to beta go by pull request.
 - Commit as the owner's account over HTTPS, unsigned, with the repo's own identity. Never use a credential, key or account from another company. If an authentication, signing or password-manager prompt appears, stop and write a `blocker` comm.
 - Throwaway copies of a repo for testing: signing off and the repo identity set before the first commit, a local stand-in remote, never pushed, deleted afterwards.
 

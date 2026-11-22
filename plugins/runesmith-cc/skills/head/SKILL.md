@@ -10,6 +10,7 @@ Builds the `{PROJECT}.cc/` folder that Claude Code works in, and keeps it curren
 
 ## References
 
+- `lib/release-flow.md` - branches, protection and the promotion chain this skill sets up
 - `agents/repo-bootstrapper.md` - creates or clones one repo
 - `lib/cc-workspace.md` - the head's structure and marker file
 - `lib/comms-protocol.md` - comms folder layout
@@ -144,7 +145,7 @@ Add each repo init or the owner asked for through the `repo-bootstrapper` agent:
   git config --global --add credential.https://{account}@github.com.helper manager
   ```
 
-**Branches (Ben, 2026-11-21; beta changed 2026-11-22).** After adding a repo, make sure `dev` and `qa` exist beside `main`. Any that are missing are created from `main` and pushed (when the repo has a remote), and `dev` becomes the default branch Claude Code works from. `beta` is never created here: Claude Code creates it on the first promotion to beta (`runesmith-sprint:promote`). Existing branches are never moved or rewritten.
+**Branches (Ben, 2026-11-21; beta changed 2026-11-22).** After adding a repo, make sure `dev` and `qa` exist beside `main`. Any that are missing are created from `main` and pushed (when the repo has a remote), and `dev` becomes the default branch Claude Code works from. `beta` is never created here, and never from `main`: Claude Code creates it on the first promotion to beta, at the build being promoted from `qa` (`runesmith-sprint:promote`). Existing branches are never moved or rewritten.
 
 **Branch protection (Ben, 2026-11-21).** Protection is a guardrail on Claude Code, so RuneSmith owns it, not the stack tooling. For each repo with a GitHub remote, protect `dev`, `qa`, `beta` and `main` with one repository ruleset, through the GitHub REST API with `RUNESMITH_GITHUB_PAT` (Administration write). A ruleset names branches by name, so `beta` is protected the moment Claude Code creates it; per-branch protection can't cover a branch that doesn't exist yet.
 
@@ -171,7 +172,7 @@ Claude Code's own keys go in `{name}.cc/.credentials`, never inside a repo folde
 Head: {workspace}/{name}.cc/
 Repos: {list}
 GitHub account: {account}; remotes: {repo}: https://{account}@github.com/{owner}/{repo}.git{ (rewritten from: old address)}
-Branches: {repo}: dev, qa present{ (created: list)}; beta {present | created on the first promotion to beta}; ruleset on dev, qa, beta, main: {set | added: list | skipped: no remote | refused: reason}{; build check: name | none yet}
+Branches: {repo}: dev, qa present{ (created: list)}; beta {present | created by Claude Code at the build promoted from qa, on the first promotion to beta}; ruleset on dev, qa, beta, main: {set | added: list | skipped: no remote | refused: reason}{; build check: name | none yet}
 Skills: runesmith-clean-code, runesmith-code-tech-debt, runesmith-release{, Jira skills}  (kept, changed by project: {list})
 Settings: attribution off, stop-hook cap 3, code-simplifier enabled
 Hooks: {repo}: installed | updated | chained | skipped (core.hooksPath), probe pass/fail
